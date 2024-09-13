@@ -581,8 +581,8 @@ class Monad05(Thing):
 
         if SHOW_AGGREGATE_FORCE:
             line_end_position = (
-                int(self.position[0] + aggregate_influence[0] * 100),
-                int(self.position[1] + aggregate_influence[1] * 100)
+                int(self.position[0] + aggregate_influence[0] * 500),
+                int(self.position[1] + aggregate_influence[1] * 500)
             )
 
             pygame.draw.line(
@@ -594,8 +594,8 @@ class Monad05(Thing):
             )
 
             line_end_position = (
-                int(self.position[0] + distance_to_walls[0] * 100),
-                int(self.position[1] + distance_to_walls[1] * 100)
+                int(self.position[0] + distance_to_walls[0] * 500),
+                int(self.position[1] + distance_to_walls[1] * 500)
             )
 
             pygame.draw.line(
@@ -688,8 +688,8 @@ class Monad05(Thing):
 
         if SHOW_AGGREGATE_FORCE:
             line_end_position = (
-                int(self.position[0] + self.action_vector[1][0] * 100),
-                int(self.position[1] + self.action_vector[1][1] * 100)
+                int(self.position[0] + self.action_vector[1][0]),
+                int(self.position[1] + self.action_vector[1][1])
             )
 
             pygame.draw.line(
@@ -827,8 +827,8 @@ def Rules(n, arg1 = None):
 
         if SHOW_AGGREGATE_FORCE:
             line_end_position = (
-                int(THINGS[0].position[0] + dvx * 1000),
-                int(THINGS[0].position[1] + dvy * 1000)
+                int(THINGS[0].position[0] + dvx * 500),
+                int(THINGS[0].position[1] + dvy * 500)
             )
             pygame.draw.line(
                 screen,

@@ -108,7 +108,7 @@ class Simulation:
         self.screen = pygame.display.set_mode(
             (SCREEN_WIDTH, SCREEN_HEIGHT)
         )
-        pygame.display.set_caption("Experiment 137.03: Endosymbiosis")
+        pygame.display.set_caption("Experiment 137.03: LUCA")
         self.things = things_object
         self.steps, self.periods, self.epochs = 0, 0, 0
         self.period_start_time = time.time()
@@ -125,10 +125,7 @@ class Simulation:
 
     def handle_input(self):
         keys = pygame.key.get_pressed()
-
         dx, dy = 0, 0
-
-        # Arrow keys to control the cell
         if keys[pygame.K_LEFT]:
             dx = -SPEED_CONSTANT
         if keys[pygame.K_RIGHT]:
@@ -137,21 +134,16 @@ class Simulation:
             dy = -SPEED_CONSTANT
         if keys[pygame.K_DOWN]:
             dy = SPEED_CONSTANT
-
-        # Ensure that the tensor is a floating-point type
-        self.controlled_direction = torch.tensor([dx, dy], dtype=torch.float)
-
+        self.controlled_direction = torch.tensor([dx, dy], dtype = torch.float)
 
     def get_controlled_action(self):
-        # Return the movement direction based on keyboard inputs
         if self.controlled_direction.norm().item() > 0:
             angle = torch.atan2(
                 self.controlled_direction[1],
                 self.controlled_direction[0]
             )
-            return angle  # Return movement angle
-        return torch.tensor(float('nan'))  # No movement if no key is pressed
-
+            return angle
+        return torch.tensor(float('nan'))
 
     def update_state(self):
         self.steps += 1
