@@ -1,10 +1,8 @@
 import pygame
 import time
 import json
-
-SCREEN_WIDTH = 1920
-SCREEN_HEIGHT = 1080
-MENU_WIDTH = 180
+import torch
+from base_vars import *
 
 class Button:
     def __init__(self, screen, x, y, width, height, label, font,
@@ -117,8 +115,43 @@ class Simulation:
         self.crr_period_dur = 0
         self.ui_manager = UIManager(self.screen, MENU_WIDTH)
         self.paused = False
+        self.controlled_direction = torch.tensor([0., 0.])
         if load_file:
             self.load_simulation(load_file)
+
+        THING_TYPES["controlled_cell"]["action_function"] = (
+            self.get_controlled_action
+        )
+
+    def handle_input(self):
+        keys = pygame.key.get_pressed()
+
+        dx, dy = 0, 0
+
+        # Arrow keys to control the cell
+        if keys[pygame.K_LEFT]:
+            dx = -SPEED_CONSTANT
+        if keys[pygame.K_RIGHT]:
+            dx = SPEED_CONSTANT
+        if keys[pygame.K_UP]:
+            dy = -SPEED_CONSTANT
+        if keys[pygame.K_DOWN]:
+            dy = SPEED_CONSTANT
+
+        # Ensure that the tensor is a floating-point type
+        self.controlled_direction = torch.tensor([dx, dy], dtype=torch.float)
+
+
+    def get_controlled_action(self):
+        # Return the movement direction based on keyboard inputs
+        if self.controlled_direction.norm().item() > 0:
+            angle = torch.atan2(
+                self.controlled_direction[1],
+                self.controlled_direction[0]
+            )
+            return angle  # Return movement angle
+        return torch.tensor(float('nan'))  # No movement if no key is pressed
+
 
     def update_state(self):
         self.steps += 1
@@ -160,6 +193,9 @@ class Simulation:
 
                 # Check UI interactions (Save/Play-Pause)
                 self.ui_manager.handle_event(event, self)
+
+            # Handle keyboard inputs for the controlled cell
+            self.handle_input()
 
             # Update simulation if not paused
             if not self.paused:
