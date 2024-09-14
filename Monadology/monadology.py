@@ -432,10 +432,7 @@ class Monad15(Thing):
         self.color = THINGS[i].color
         self.dissipation = THINGS[i].dissipation
 
-        if torch.backends.mps.is_built():
-            self.device = torch.device("mps")
-        else:
-            self.device = torch.device("cpu")
+        self.device = torch.device("cpu")
 
         self.apply_genome(genome)
 

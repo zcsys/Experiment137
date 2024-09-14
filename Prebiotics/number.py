@@ -1,5 +1,5 @@
 class Number:
-    def __init__(self, value = None, decimals = 5):
+    def __init__(self, value = None, decimals = 6):
         self.decimals = decimals
         self.factor = 10 ** self.decimals
         self.value = round(value * self.factor)

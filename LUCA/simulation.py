@@ -119,32 +119,6 @@ class Simulation:
         if load_file:
             self.load_simulation(load_file)
 
-        THING_TYPES["controlled_cell"]["action_function"] = (
-            self.get_controlled_action
-        )
-
-    def handle_input(self):
-        keys = pygame.key.get_pressed()
-        dx, dy = 0, 0
-        if keys[pygame.K_LEFT]:
-            dx = -SPEED_CONSTANT
-        if keys[pygame.K_RIGHT]:
-            dx = SPEED_CONSTANT
-        if keys[pygame.K_UP]:
-            dy = -SPEED_CONSTANT
-        if keys[pygame.K_DOWN]:
-            dy = SPEED_CONSTANT
-        self.controlled_direction = torch.tensor([dx, dy], dtype = torch.float)
-
-    def get_controlled_action(self):
-        if self.controlled_direction.norm().item() > 0:
-            angle = torch.atan2(
-                self.controlled_direction[1],
-                self.controlled_direction[0]
-            )
-            return angle
-        return torch.tensor(float('nan'))
-
     def update_state(self):
         self.steps += 1
         if self.steps == 2400:
@@ -174,6 +148,19 @@ class Simulation:
         self.period_start_time = time.time()
         self.crr_period_dur = state.get('crr_period_dur', 0)
 
+    def handle_input(self):
+        keys = pygame.key.get_pressed()
+        dx, dy = 0, 0
+        if keys[pygame.K_LEFT]:
+            dx = -SPEED_CONSTANT
+        if keys[pygame.K_RIGHT]:
+            dx = SPEED_CONSTANT
+        if keys[pygame.K_UP]:
+            dy = -SPEED_CONSTANT
+        if keys[pygame.K_DOWN]:
+            dy = SPEED_CONSTANT
+        return torch.tensor([dx, dy], dtype=torch.float32)
+
     def run(self):
         running = True
         clock = pygame.time.Clock()
@@ -186,12 +173,9 @@ class Simulation:
                 # Check UI interactions (Save/Play-Pause)
                 self.ui_manager.handle_event(event, self)
 
-            # Handle keyboard inputs for the controlled cell
-            self.handle_input()
-
             # Update simulation if not paused
             if not self.paused:
-                self.things.update_positions()
+                self.things.update_positions(self.handle_input())
                 self.update_state()
 
             # Draw everything
@@ -212,7 +196,7 @@ class Simulation:
         }
         with open(filename, 'w') as f:
             json.dump(combined_state, f)
-        print(f"Simulation saved to {filename}.")
+        print(f"Simulation saved to {filename}")
 
     def load_simulation(self, filename):
         with open(filename, 'r') as f:

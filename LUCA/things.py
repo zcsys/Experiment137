@@ -5,13 +5,18 @@ from base_vars import *
 from simulation import Simulation
 
 def generate_unique_positions(N):
-    positions = torch.rand((N, 2))
+    # Generate random variables (positions) initially on CPU
+    positions = torch.rand((N, 2))  # Default dtype is float32, device is CPU
+
+    # Apply scaling and transformation to positions
     positions[:, 0] *= SCREEN_WIDTH - MENU_WIDTH
     positions[:, 1] *= SCREEN_HEIGHT
 
-    while positions.unique(dim = 0).size(0) < N:
-        duplicates = positions.unique(dim = 0, return_counts = True)[1] > 1
-        positions[duplicates] = torch.rand((duplicates.sum(), 2))
+    # Ensure unique positions by replacing duplicates
+    while positions.unique(dim=0).size(0) < N:
+        duplicates = positions.unique(dim=0, return_counts=True)[1] > 1
+        new_randoms = torch.rand((duplicates.sum(), 2))  # Generate new randoms
+        positions[duplicates] = new_randoms
         positions[duplicates, 0] *= SCREEN_WIDTH - MENU_WIDTH
         positions[duplicates, 1] *= SCREEN_HEIGHT
 
@@ -24,19 +29,19 @@ class Things:
         self.positions = generate_unique_positions(self.num_things)
         self.energies = torch.tensor(
             [INITIAL_ENERGY if thing_type != "sugar" else 0.
-             for thing_type in self.thing_types],
-            dtype = torch.float
+             for thing_type in self.thing_types]
         )
         self.handle_boundary_checks()
         self.resolve_overlaps()
         pygame.font.init()
         self.font = pygame.font.Font(None, 24)
 
-    def update_positions(self):
+    def update_positions(self, controlled_direction):
         # Get movement directions (angles or None) from the assigned strategies
         movement_angles = torch.stack(
+            [get_controlled_action(controlled_direction)] +
             [THING_TYPES[self.thing_types[i]]["action_function"]()
-             for i in range(self.num_things)]
+             for i in range(1, self.num_things)]
         )
 
         is_sugar = torch.tensor([thing_type == "sugar"
@@ -136,7 +141,7 @@ class Things:
 
         # Remove all sugars marked for removal after all energy updates
         if len(sugars_to_remove) > 0:
-            sugars_to_remove = sorted(sugars_to_remove, reverse=True)
+            sugars_to_remove = sorted(sugars_to_remove)
 
             # Remove sugars from positions, types, and energies
             self.positions = torch.stack([self.positions[i] for i in range(self.num_things) if i not in sugars_to_remove])
@@ -192,10 +197,12 @@ class Things:
     def get_state(self):
         return {
             'positions': self.positions.tolist(),
-            'types': [thing_type for thing_type, _ in self.thing_types]
+            'types': self.thing_types,
+            'energies': self.energies.tolist()
         }
 
     def load_state(self, state):
         self.positions = torch.tensor(state['positions'])
-        self.thing_types = [(thing_type, default_action_function)
-                            for thing_type in state['types']]
+        self.thing_types = state['types']
+        self.energies = torch.tensor(state['energies'])
+        self.num_things = len(self.positions)
