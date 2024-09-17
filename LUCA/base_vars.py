@@ -50,7 +50,7 @@ THING_TYPES = {
     "cell": {
         "color": color.GREEN,
         "size": 20,
-        "action_function": just_dont,
+        "action_function": move_diagonally,
         "overlap": False
     },
     "sugar": {

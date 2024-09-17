@@ -2,46 +2,62 @@ import torch
 import pygame
 import random
 from base_vars import *
-from simulation import Simulation
 
-def generate_unique_positions(N):
-    # Generate random variables (positions) initially on CPU
-    positions = torch.rand((N, 2))  # Default dtype is float32, device is CPU
+def generate_positions(sizes,
+                       existing_positions = torch.empty((0, 2)),
+                       existing_sizes = torch.empty((0, 1)),
+                       width = SCREEN_WIDTH - MENU_WIDTH,
+                       height = SCREEN_HEIGHT):
+    N = len(sizes)
+    existing_N = len(existing_positions)
+    total_N = N + existing_N
 
-    # Apply scaling and transformation to positions
-    positions[:, 0] *= SCREEN_WIDTH - MENU_WIDTH
-    positions[:, 1] *= SCREEN_HEIGHT
+    positions = existing_positions
+    sizes = torch.cat((existing_sizes, sizes), dim = 0)
 
-    # Ensure unique positions by replacing duplicates
-    while positions.unique(dim=0).size(0) < N:
-        duplicates = positions.unique(dim=0, return_counts=True)[1] > 1
-        new_randoms = torch.rand((duplicates.sum(), 2))  # Generate new randoms
-        positions[duplicates] = new_randoms
-        positions[duplicates, 0] *= SCREEN_WIDTH - MENU_WIDTH
-        positions[duplicates, 1] *= SCREEN_HEIGHT
+    i = existing_N
+    while i < total_N:
+        new_position = torch.tensor(
+            [
+                random.randint(sizes[i], width - sizes[i]),
+                random.randint(sizes[i], height - sizes[i])
+            ],
+            dtype = torch.float32
+        ).unsqueeze(0)
 
-    return positions
+        distances = torch.norm(positions - new_position, dim = 1)
+
+        overlap = False
+        for j, distance in enumerate(distances):
+            if distance < sizes[i] + sizes[j]
+                overlap = True
+                break
+        if overlap:
+            continue
+
+        positions = torch.cat((positions, new_tensor), dim = 0)
+        i += 1
+
+    return positions[existing_N:]
 
 class Things:
     def __init__(self, thing_types):
         self.thing_types = thing_types
         self.num_things = len(thing_types)
-        self.positions = generate_unique_positions(self.num_things)
+        self.sizes = [THINGS[x]["size"] for x in self.thing_types]
+        self.positions = generate_unique_positions(self.sizes)
         self.energies = torch.tensor(
             [INITIAL_ENERGY if thing_type != "sugar" else 0.
              for thing_type in self.thing_types]
         )
-        self.handle_boundary_checks()
-        self.resolve_overlaps()
         pygame.font.init()
         self.font = pygame.font.Font(None, 24)
 
     def update_positions(self, controlled_direction):
         # Get movement directions (angles or None) from the assigned strategies
         movement_angles = torch.stack(
-            [get_controlled_action(controlled_direction)] +
-            [THING_TYPES[self.thing_types[i]]["action_function"]()
-             for i in range(1, self.num_things)]
+            [[THING_TYPES[self.thing_types[i]]["action_function"]()
+             for i in range(self.num_things)]
         )
 
         is_sugar = torch.tensor([thing_type == "sugar"
@@ -63,20 +79,15 @@ class Things:
 
         self.energies[valid_movements & ~is_sugar] -= SPEED_CONSTANT
 
-        self.handle_boundary_checks()
-        self.resolve_overlaps()
+        self.apply_constraints()
 
-    def handle_boundary_checks(self):
+    def apply_constraints(self):
         # Get sizes for all things from THING_TYPES dynamically
         sizes = torch.tensor([THING_TYPES[thing]["size"] for thing in self.thing_types])
 
         # Adjust positions to allow cells to reach the very edge of the screen
         self.positions[:, 0] = self.positions[:, 0].clamp(min=sizes, max=SCREEN_WIDTH - MENU_WIDTH - sizes)
         self.positions[:, 1] = self.positions[:, 1].clamp(min=sizes, max=SCREEN_HEIGHT - sizes)
-
-    def resolve_overlaps(self):
-        # Get sizes of all things
-        sizes = torch.tensor([THING_TYPES[thing]["size"] for thing in self.thing_types])
 
         # Compute pairwise differences in positions for all things
         diff = self.positions.unsqueeze(1) - self.positions.unsqueeze(0)
@@ -155,14 +166,17 @@ class Things:
         new_position = torch.rand(1, 2)
         new_position[0, 0] *= SCREEN_WIDTH - MENU_WIDTH
         new_position[0, 1] *= SCREEN_HEIGHT
-        self.positions = torch.cat((self.positions, new_position))
-        self.thing_types.append(
-            (type_name, THING_TYPES[type_name]["action_function"])
-        )
-        self.num_things += 1
+        positions = torch.cat((self.positions, new_position))
 
-        self.handle_boundary_checks()
-        self.resolve_overlaps()
+        while positions.unique(dim=0).size(0) < self.num_things + 1:
+            new_random = torch.rand(1, 2)
+            new_random[0, 0] *= SCREEN_WIDTH - MENU_WIDTH
+            new_random[0, 1] *= SCREEN_HEIGHT
+            positions = torch.cat((self.positions, new_random))
+
+        self.positions = positions
+        self.thing_types.append(type_name)
+        self.num_things += 1
 
     def remove_thing(self, i):
         self.positions = torch.cat((self.positions[:i], self.positions[i + 1:]))
@@ -206,3 +220,4 @@ class Things:
         self.thing_types = state['types']
         self.energies = torch.tensor(state['energies'])
         self.num_things = len(self.positions)
+        self.sizes = [THINGS[x]["size"] for x in self.thing_types]

@@ -51,7 +51,6 @@ class UIManager:
         self.menu_width = menu_width
         self.font = pygame.font.Font(None, 24)
 
-        # Define buttons with hover and clicked states
         self.save_button = Button(self.screen,
                                   screen.get_width() - menu_width + 10, 10, 160,
                                   40, "Save", self.font)
@@ -60,11 +59,8 @@ class UIManager:
                                         60, 160, 40, "Pause", self.font)
 
     def handle_event(self, event, simulation):
-        # Handle Save button click
         if self.save_button.handle_event(event):
             simulation.save_simulation()
-
-        # Handle Play/Pause button click
         if self.play_pause_button.handle_event(event):
             simulation.toggle_pause()
             self.play_pause_button.label = ("Play" if simulation.paused
@@ -115,7 +111,6 @@ class Simulation:
         self.crr_period_dur = 0
         self.ui_manager = UIManager(self.screen, MENU_WIDTH)
         self.paused = False
-        self.controlled_direction = torch.tensor([0., 0.])
         if load_file:
             self.load_simulation(load_file)
 
@@ -159,7 +154,7 @@ class Simulation:
             dy = -SPEED_CONSTANT
         if keys[pygame.K_DOWN]:
             dy = SPEED_CONSTANT
-        return torch.tensor([dx, dy], dtype=torch.float32)
+        return torch.tensor([dx, dy], dtype = torch.float32)
 
     def run(self):
         running = True
