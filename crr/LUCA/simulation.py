@@ -99,19 +99,20 @@ class UIManager:
                          self.menu_width + 10, start_y + 90))
 
 class Simulation:
-    def __init__(self, things_object, load_file = None):
+    def __init__(self, things_object = None, load_file = None):
         pygame.init()
         self.screen = pygame.display.set_mode(
             (SCREEN_WIDTH, SCREEN_HEIGHT)
         )
         pygame.display.set_caption("Experiment 137.03: LUCA")
-        self.things = things_object
-        self.steps, self.periods, self.epochs = 0, 0, 0
-        self.period_start_time = time.time()
-        self.crr_period_dur = 0
         self.ui_manager = UIManager(self.screen, MENU_WIDTH)
         self.paused = False
-        if load_file:
+        if things_object:
+            self.things = things_object
+            self.steps, self.periods, self.epochs = 0, 0, 0
+            self.period_start_time = time.time()
+            self.crr_period_dur = 0
+        else:
             self.load_simulation(load_file)
 
     def update_state(self):
@@ -143,19 +144,6 @@ class Simulation:
         self.period_start_time = time.time()
         self.crr_period_dur = state.get('crr_period_dur', 0)
 
-    def handle_input(self):
-        keys = pygame.key.get_pressed()
-        dx, dy = 0, 0
-        if keys[pygame.K_LEFT]:
-            dx = -SPEED_CONSTANT
-        if keys[pygame.K_RIGHT]:
-            dx = SPEED_CONSTANT
-        if keys[pygame.K_UP]:
-            dy = -SPEED_CONSTANT
-        if keys[pygame.K_DOWN]:
-            dy = SPEED_CONSTANT
-        return torch.tensor([dx, dy], dtype = torch.float32)
-
     def run(self):
         running = True
         clock = pygame.time.Clock()
@@ -164,20 +152,15 @@ class Simulation:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-
-                # Check UI interactions (Save/Play-Pause)
                 self.ui_manager.handle_event(event, self)
 
-            # Update simulation if not paused
             if not self.paused:
-                self.things.update_positions(self.handle_input())
+                self.things.update_positions()
                 self.update_state()
 
-            # Draw everything
-            self.screen.fill((0, 0, 0))
+            self.screen.fill(BLACK)
             self.things.draw(self.screen)
             self.ui_manager.draw(self.get_state(), self.things.num_things)
-
             pygame.display.flip()
             clock.tick(60)
 
