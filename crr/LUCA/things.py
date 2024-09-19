@@ -94,17 +94,28 @@ class Things:
             dim = 1
         )
 
-        # Prevent overlaps
+        # Detect collisions
         diffs = provisional_positions.unsqueeze(1) - self.positions.unsqueeze(0)
         distances = torch.norm(diffs, dim = 2)
         size_sums = self.sizes.unsqueeze(1) + self.sizes.unsqueeze(0)
-        overlap_mask = distances < size_sums
-        overlap_mask.fill_diagonal_(False)
+        overlap_mask = (distances < size_sums).fill_diagonal_(False)
+
+        # Prevent overlaps
         pairwise_overlap = overlap.unsqueeze(1) | overlap.unsqueeze(0)
         stoppable_mask = torch.logical_and(overlap_mask, ~pairwise_overlap)
         overlap_detected = stoppable_mask.any(dim = 1)
         final_apply_mask = torch.logical_or(overlap,
                                             ~overlap_detected).unsqueeze(1)
+
+        # Allow movement only if energy is > 0 or if type is 'sugar'
+        energy_mask = (self.energies > 0).unsqueeze(1)
+        sugar_mask = torch.tensor(
+            [thing_type == "sugar" for thing_type in self.thing_types]
+        )
+        move_condition_mask = torch.logical_or(energy_mask,
+                                               sugar_mask.unsqueeze(1))
+        final_apply_mask = torch.logical_and(final_apply_mask,
+                                             move_condition_mask)
 
         # Apply the movements
         self.positions = torch.where(
@@ -113,7 +124,30 @@ class Things:
             self.positions
         )
 
-        #self.energies[valid_movements & ~is_sugar] -= SPEED_CONSTANT
+        speeds = torch.where(
+            final_apply_mask.squeeze(),
+            torch.diag(distances),
+            torch.tensor(0.)
+        )
+        self.energies -= speeds
+
+        # Handle sugar vs cell collisions
+        sugar_vs_cell = (
+            overlap_mask &
+            sugar_mask.unsqueeze(1) &
+            ~sugar_mask.unsqueeze(0)
+        )
+
+        if sugar_vs_cell.any():
+            sugar_idx, cell_idx = sugar_vs_cell.nonzero(as_tuple = True)
+            num_non_sugar_collisions = sugar_vs_cell.sum(dim = 1)[sugar_idx]
+            energy_per_non_sugar = 1000 / num_non_sugar_collisions
+            self.energies = self.energies.scatter_add(
+                0,
+                cell_idx,
+                energy_per_non_sugar
+            )
+            self.remove_things(sugar_idx.tolist())
 
     def add_things(self, types):
         self.types += types
@@ -132,13 +166,13 @@ class Things:
         self.num_things += len(types)
 
     def remove_things(self, indices):
-        mask = torch.ones(self.num_things, dtype = torch.bool)
-        mask[indices] = False
         self.thing_types = [
             thing
             for i, thing in enumerate(self.thing_types)
             if i not in set(indices)
         ]
+        mask = torch.ones(self.num_things, dtype = torch.bool)
+        mask[indices] = False
         self.sizes = self.sizes[mask]
         self.positions = self.positions[mask]
         self.energies = self.energies[mask]
