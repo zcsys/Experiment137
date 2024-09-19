@@ -5,22 +5,11 @@ from base_vars import *
 from action_functions import *
 from thing_types import THING_TYPES
 
-def generate_position(size,
-                      width = SCREEN_WIDTH - MENU_WIDTH,
-                      height = SCREEN_HEIGHT):
-    return torch.tensor(
-        [
-            random.randint(int(size), int(width - size)),
-            random.randint(int(size), int(height - size))
-        ],
-        dtype = torch.float32
-    ).unsqueeze(0)
-
 def add_positions(sizes,
                   existing_sizes = torch.empty(0),
                   existing_positions = torch.empty((0, 2)),
-                  width = SCREEN_WIDTH - MENU_WIDTH,
-                  height = SCREEN_HEIGHT):
+                  width = SIMUL_WIDTH,
+                  height = SIMUL_HEIGHT):
     existing_N = len(existing_positions)
     total_N = len(sizes) + existing_N
 
@@ -57,18 +46,87 @@ class Things:
         self.thing_types = thing_types
         self.sizes = torch.tensor([THING_TYPES[x]["size"] for x in thing_types])
         _, self.positions = add_positions(self.sizes)
+        self.diffs = self.positions.unsqueeze(1) - self.positions.unsqueeze(0)
         self.energies = torch.tensor(
             [THING_TYPES[x]["initial_energy"] for x in thing_types]
         )
-        self.num_things = len(thing_types)
+        self.N = len(thing_types)
+        self.E = 0.
         pygame.font.init()
-        self.font = pygame.font.SysFont(None, 24)
+        self.font = pygame.font.SysFont(None, 16)
 
-    def update_positions(self):
-        movement_tensor = torch.tensor(
-            [THING_TYPES[thing_type]["action_function"]()
-             for thing_type in self.thing_types]
+        self.genomes = torch.zeros((self.N, 9))
+        self.lineages = [[] for _ in range(self.N)]
+        self.apply_genomes()
+
+    def apply_genomes(self):
+        self.weights_i_1 = self.genomes[:, 0:4]
+        self.weights_1_o = self.genomes[:, 4:6]
+        self.biases_i_1 = self.genomes[:, 6:8]
+        self.biases_1_o = self.genomes[:, 8:9]
+
+    def sensory_inputs(self):
+        # Tensor masks that will be useful
+        self_mask = torch.eye(self.N, dtype = torch.bool)
+        sugar_mask = torch.tensor(
+            [thing_type == "sugar" for thing_type in self.thing_types]
         )
+
+        # For each thing, there's a vector pointing towards the center of the
+        # universe, with increasing magnitude as the thing gets closer to edges.
+        # This is the first input vector for each particle.
+        midpoint = torch.tensor([SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2])
+        col1 = (1 - self.positions[~sugar_mask] / midpoint)
+
+        # For each non-sugar, the combined effect of sugar particles in their
+        # vicinity is calculated. This is the second input vector for particles.
+        distances = torch.norm(self.diffs, dim = 2)
+        in_sight = ((distances <= SIGHT) & ~self_mask) & sugar_mask.unsqueeze(0)
+        effect_of_sugars = torch.where(
+            in_sight,
+            -1. / (distances + 1e-7),
+            torch.tensor(0.)
+        )
+        normalized_diffs = self.diffs / (torch.norm(self.diffs, dim = 2,
+                                         keepdim = True) + 1e-7)
+        col2 = (
+            normalized_diffs * effect_of_sugars.unsqueeze(2)
+        )[~sugar_mask].sum(dim = 1)
+
+        # Combine the inputs to create (N, 2, 2)-shaped final input tensor
+        self.input_vectors = torch.stack([col1, col2], dim = 1)
+
+    def neural_action(self):
+        pass
+
+    def neural_action_placeholder(self):
+        self.sensory_inputs()
+
+        values = torch.tensor([-1, 0, 1], dtype = torch.float32)
+        weights = torch.tensor([1, 3, 1], dtype = torch.float32)
+        indices = torch.multinomial(weights, (self.N - 1) * 2,
+                                    replacement = True)
+        indices = indices.view(self.N - 1, 2)
+        return torch.cat(
+            (
+                torch.tensor(
+                    controlled_action(),
+                    dtype = torch.float32
+                ).unsqueeze(0),
+                values[indices]
+            ),
+            dim = 0
+        )
+
+    def final_action(self):
+        movement_tensor = self.neural_action_placeholder()
+        self.update_positions(movement_tensor)
+
+    def update_positions(self, movement_tensor):
+        #movement_tensor = torch.tensor(
+        #    [THING_TYPES[thing_type]["action_function"]()
+        #     for thing_type in self.thing_types]
+        #)
 
         overlap = torch.tensor(
             [THING_TYPES[thing_type]["overlap"]
@@ -83,12 +141,12 @@ class Things:
                 torch.clamp(
                     provisional_positions[:, 0],
                     min = self.sizes,
-                    max = SCREEN_WIDTH - MENU_WIDTH - self.sizes
+                    max = SIMUL_WIDTH - self.sizes
                 ),
                 torch.clamp(
                     provisional_positions[:, 1],
                     min = self.sizes,
-                    max = SCREEN_HEIGHT - self.sizes
+                    max = SIMUL_HEIGHT - self.sizes
                 )
             ],
             dim = 1
@@ -125,12 +183,14 @@ class Things:
             self.positions
         )
 
+        # Reduce energies
         actual_magnitudes = torch.where(
             final_apply_mask.squeeze(),
             movement_magnitudes,
             torch.tensor(0.)
-        )
+        )[~sugar_mask]
         self.energies[~sugar_mask] -= actual_magnitudes
+        self.E += actual_magnitudes.sum()
 
         # Handle sugar vs cell collisions
         sugar_vs_cell = (
@@ -149,10 +209,16 @@ class Things:
             )
             self.remove_things(sugar_idx.tolist())
 
+        # Update diffs
+        self.diffs = self.positions.unsqueeze(1) - self.positions.unsqueeze(0)
+
+    def cell_division(self):
+        pass
+
     def add_things(self, types):
-        self.types += types
+        self.thing_types += types
         self.sizes, self.positions = add_positions(
-            [THING_TYPES[x]["size"] for x in types],
+            torch.tensor([THING_TYPES[x]["size"] for x in types]),
             self.sizes,
             self.positions
         )
@@ -163,7 +229,7 @@ class Things:
             ),
             dim = 0
         )
-        self.num_things += len(types)
+        self.N += len(types)
 
     def remove_things(self, indices):
         self.thing_types = [
@@ -171,12 +237,12 @@ class Things:
             for i, thing in enumerate(self.thing_types)
             if i not in set(indices)
         ]
-        mask = torch.ones(self.num_things, dtype = torch.bool)
+        mask = torch.ones(self.N, dtype = torch.bool)
         mask[indices] = False
         self.sizes = self.sizes[mask]
         self.positions = self.positions[mask]
         self.energies = self.energies[mask]
-        self.num_things = mask.sum().item()
+        self.N = mask.sum().item()
 
     def draw(self, screen):
         for i, pos in enumerate(self.positions):
@@ -203,7 +269,8 @@ class Things:
         return {
             'types': self.thing_types,
             'positions': self.positions.tolist(),
-            'energies': self.energies.tolist()
+            'energies': self.energies.tolist(),
+            'E': self.E
         }
 
     def load_state(self, state):
@@ -213,4 +280,5 @@ class Things:
         )
         self.positions = torch.tensor(state['positions'])
         self.energies = torch.tensor(state['energies'])
-        self.num_things = len(self.positions)
+        self.N = len(self.positions)
+        self.E = state['E']

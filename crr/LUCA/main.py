@@ -14,8 +14,7 @@ if __name__ == "__main__":
 
     things_instance = Things(
         ["controlled_cell"] +
-        ["cell"] * POP_0 +
-        ["sugar"] * POP_0
+        ["cell"]
     )
 
     simulation = Simulation(things_instance, load_file = args.load)

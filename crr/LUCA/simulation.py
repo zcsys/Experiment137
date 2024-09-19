@@ -3,6 +3,7 @@ import time
 import json
 import torch
 from base_vars import *
+from rules import Rules
 
 class Button:
     def __init__(self, screen, x, y, width, height, label, font,
@@ -66,7 +67,7 @@ class UIManager:
             self.play_pause_button.label = ("Play" if simulation.paused
                                             else "Pause")
 
-    def draw(self, state, num_things):
+    def draw(self, state, N, E):
         # Draw the right menu section (white background)
         pygame.draw.rect(self.screen, (255, 255, 255),
                          (self.screen.get_width() - self.menu_width, 0,
@@ -86,8 +87,8 @@ class UIManager:
                                        True, (0, 0, 0))
         steps_text = self.font.render(f"Steps: {state.get('steps', 0)}", True,
                                       (0, 0, 0))
-        population_text = self.font.render(f"Pop.: {num_things}", True,
-                                           (0, 0, 0))
+        N_text = self.font.render(f"Pop.: {N}", True, (0, 0, 0))
+        E_text = self.font.render(f"E: {int(E)}", True, (0, 0, 0))
 
         self.screen.blit(epoch_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y))
@@ -95,15 +96,15 @@ class UIManager:
                          self.menu_width + 10, start_y + 30))
         self.screen.blit(steps_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y + 60))
-        self.screen.blit(population_text, (self.screen.get_width() -
+        self.screen.blit(N_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y + 90))
+        self.screen.blit(E_text, (self.screen.get_width() -
+                         self.menu_width + 10, start_y + 120))
 
 class Simulation:
     def __init__(self, things_object, load_file = None):
         pygame.init()
-        self.screen = pygame.display.set_mode(
-            (SCREEN_WIDTH, SCREEN_HEIGHT)
-        )
+        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         pygame.display.set_caption("Experiment 137.03: LUCA")
         self.ui_manager = UIManager(self.screen, MENU_WIDTH)
         self.paused = False
@@ -154,12 +155,18 @@ class Simulation:
                 self.ui_manager.handle_event(event, self)
 
             if not self.paused:
-                self.things.update_positions()
+                self.things.final_action()
                 self.update_state()
+
+                Rules(self, 0)
 
             self.screen.fill(BLACK)
             self.things.draw(self.screen)
-            self.ui_manager.draw(self.get_state(), self.things.num_things)
+            self.ui_manager.draw(
+                self.get_state(),
+                self.things.N,
+                self.things.E
+            )
             pygame.display.flip()
             clock.tick(60)
 
