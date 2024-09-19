@@ -107,8 +107,9 @@ class Things:
         final_apply_mask = torch.logical_or(overlap,
                                             ~overlap_detected).unsqueeze(1)
 
-        # Allow movement only if energy is > 0 or if type is 'sugar'
-        energy_mask = (self.energies > 0).unsqueeze(1)
+        # Allow movement only if there's enough energy or if type is 'sugar'
+        movement_magnitudes = torch.diag(distances)
+        energy_mask = torch.gt(self.energies, movement_magnitudes).unsqueeze(1)
         sugar_mask = torch.tensor(
             [thing_type == "sugar" for thing_type in self.thing_types]
         )
@@ -124,12 +125,12 @@ class Things:
             self.positions
         )
 
-        speeds = torch.where(
+        actual_magnitudes = torch.where(
             final_apply_mask.squeeze(),
-            torch.diag(distances),
+            movement_magnitudes,
             torch.tensor(0.)
         )
-        self.energies -= speeds
+        self.energies[~sugar_mask] -= actual_magnitudes
 
         # Handle sugar vs cell collisions
         sugar_vs_cell = (
@@ -140,8 +141,7 @@ class Things:
 
         if sugar_vs_cell.any():
             sugar_idx, cell_idx = sugar_vs_cell.nonzero(as_tuple = True)
-            num_non_sugar_collisions = sugar_vs_cell.sum(dim = 1)[sugar_idx]
-            energy_per_non_sugar = 1000 / num_non_sugar_collisions
+            energy_per_non_sugar = 1000 / sugar_vs_cell.sum(dim = 1)[sugar_idx]
             self.energies = self.energies.scatter_add(
                 0,
                 cell_idx,
@@ -184,21 +184,17 @@ class Things:
             thing_color = THING_TYPES[thing_type]["color"]
             size = THING_TYPES[thing_type]["size"]
 
-            if THING_TYPES[thing_type]["draw_as"] == "line":
-                size /= SQRT2
-                start_pos = (int(pos[0].item() - size),
-                             int(pos[1].item() + size))
-                end_pos = (int(pos[0].item() + size),
-                           int(pos[1].item() - size))
-                pygame.draw.line(
-                    screen, thing_color, start_pos, end_pos, width = 2
-                )
-            else:
-                pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
-                                   int(pos[1].item())), size)
-                energy_text = self.font.render(
-                    f"{self.energies[i].item() / 1000:.1f}k", True, (0, 0, 0)
-                )
+            pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
+                               int(pos[1].item())), size)
+            if thing_type != "sugar":
+                energy_text = self.energies[i].item()
+                if energy_text < 1000:
+                    energy_text = str(int(energy_text))
+                elif energy_text < 10000:
+                    energy_text = f"{int(energy_text / 100) / 10:.1f}k"
+                else:
+                    energy_text = f"{int(energy_text / 1000)}k"
+                energy_text = self.font.render(energy_text, True, (0, 0, 0))
                 text_rect = energy_text.get_rect(center = (int(pos[0].item()),
                                                            int(pos[1].item())))
                 screen.blit(energy_text, text_rect)

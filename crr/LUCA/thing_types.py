@@ -7,23 +7,20 @@ THING_TYPES = {
         "size": 20,
         "initial_energy": 10000.,
         "action_function": controlled_action,
-        "overlap": False,
-        "draw_as": "circle"
+        "overlap": False
     },
     "cell": {
         "color": GREEN,
         "size": 20,
         "initial_energy": 1000.,
         "action_function": move_random,
-        "overlap": False,
-        "draw_as": "circle"
+        "overlap": False
     },
     "sugar": {
         "color": YELLOW,
         "size": 1,
         "initial_energy": 0.,
         "action_function": move_random,
-        "overlap": True,
-        "draw_as": "line"
+        "overlap": True
     }
 }
