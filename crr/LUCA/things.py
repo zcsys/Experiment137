@@ -5,6 +5,17 @@ from base_vars import *
 from action_functions import *
 from thing_types import THING_TYPES
 
+def generate_position(size,
+                      width = SCREEN_WIDTH - MENU_WIDTH,
+                      height = SCREEN_HEIGHT):
+    return torch.tensor(
+        [
+            random.randint(int(size), int(width - size)),
+            random.randint(int(size), int(height - size))
+        ],
+        dtype = torch.float32
+    ).unsqueeze(0)
+
 def add_positions(sizes,
                   existing_sizes = torch.empty(0),
                   existing_positions = torch.empty((0, 2)),
@@ -65,15 +76,39 @@ class Things:
         )
 
         provisional_positions = self.positions + movement_tensor
+
+        # Prevent moving beyond the edges
+        provisional_positions = torch.stack(
+            [
+                torch.clamp(
+                    provisional_positions[:, 0],
+                    min = self.sizes,
+                    max = SCREEN_WIDTH - MENU_WIDTH - self.sizes
+                ),
+                torch.clamp(
+                    provisional_positions[:, 1],
+                    min = self.sizes,
+                    max = SCREEN_HEIGHT - self.sizes
+                )
+            ],
+            dim = 1
+        )
+
+        # Prevent overlaps
         diffs = provisional_positions.unsqueeze(1) - self.positions.unsqueeze(0)
-        distances = torch.norm(diffs, dim = 1)
+        distances = torch.norm(diffs, dim = 2)
         size_sums = self.sizes.unsqueeze(1) + self.sizes.unsqueeze(0)
         overlap_mask = distances < size_sums
         overlap_mask.fill_diagonal_(False)
-        overlap_detected = overlap_mask.any(dim = 1)
-        final_apply_mask = torch.logical_or(overlap, ~overlap_detected)
-        new_positions = torch.where(
-            final_apply_mask.unsqueeze(1),
+        pairwise_overlap = overlap.unsqueeze(1) | overlap.unsqueeze(0)
+        stoppable_mask = torch.logical_and(overlap_mask, ~pairwise_overlap)
+        overlap_detected = stoppable_mask.any(dim = 1)
+        final_apply_mask = torch.logical_or(overlap,
+                                            ~overlap_detected).unsqueeze(1)
+
+        # Apply the movements
+        self.positions = torch.where(
+            final_apply_mask,
             provisional_positions,
             self.positions
         )
@@ -81,6 +116,7 @@ class Things:
         #self.energies[valid_movements & ~is_sugar] -= SPEED_CONSTANT
 
     def add_things(self, types):
+        self.types += types
         self.sizes, self.positions = add_positions(
             [THING_TYPES[x]["size"] for x in types],
             self.sizes,
@@ -93,6 +129,7 @@ class Things:
             ),
             dim = 0
         )
+        self.num_things += len(types)
 
     def remove_things(self, indices):
         mask = torch.ones(self.num_things, dtype = torch.bool)
@@ -125,9 +162,8 @@ class Things:
             else:
                 pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
                                    int(pos[1].item())), size)
-
                 energy_text = self.font.render(
-                    f"{int(self.energies[i].item())}", True, (0, 0, 0)
+                    f"{self.energies[i].item() / 1000:.1f}k", True, (0, 0, 0)
                 )
                 text_rect = energy_text.get_rect(center = (int(pos[0].item()),
                                                            int(pos[1].item())))
@@ -142,7 +178,9 @@ class Things:
 
     def load_state(self, state):
         self.thing_types = state['types']
-        self.sizes = [THINGS[x]["size"] for x in self.thing_types]
+        self.sizes = torch.tensor(
+            [THING_TYPES[x]["size"] for x in self.thing_types]
+        )
         self.positions = torch.tensor(state['positions'])
         self.energies = torch.tensor(state['energies'])
         self.num_things = len(self.positions)

@@ -99,7 +99,7 @@ class UIManager:
                          self.menu_width + 10, start_y + 90))
 
 class Simulation:
-    def __init__(self, things_object = None, load_file = None):
+    def __init__(self, things_object, load_file = None):
         pygame.init()
         self.screen = pygame.display.set_mode(
             (SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -107,12 +107,11 @@ class Simulation:
         pygame.display.set_caption("Experiment 137.03: LUCA")
         self.ui_manager = UIManager(self.screen, MENU_WIDTH)
         self.paused = False
-        if things_object:
-            self.things = things_object
-            self.steps, self.periods, self.epochs = 0, 0, 0
-            self.period_start_time = time.time()
-            self.crr_period_dur = 0
-        else:
+        self.things = things_object
+        self.steps, self.periods, self.epochs = 0, 0, 0
+        self.period_start_time = time.time()
+        self.crr_period_dur = 0
+        if load_file:
             self.load_simulation(load_file)
 
     def update_state(self):

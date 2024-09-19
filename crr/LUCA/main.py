@@ -13,7 +13,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     things_instance = Things(
-        ["controlled_cell"]
+        ["controlled_cell"] +
+        ["cell"] * POP_0 +
+        ["sugar"] * POP_0
     )
 
     simulation = Simulation(things_instance, load_file = args.load)

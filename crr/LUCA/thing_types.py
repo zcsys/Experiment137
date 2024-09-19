@@ -14,7 +14,7 @@ THING_TYPES = {
         "color": GREEN,
         "size": 20,
         "initial_energy": 1000.,
-        "action_function": move_southeast,
+        "action_function": move_random,
         "overlap": False,
         "draw_as": "circle"
     },
