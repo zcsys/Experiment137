@@ -221,8 +221,8 @@ class Simulation:
             self.ui_manager.draw(
                 self.get_state(),
                 self.things.N,
-                self.things.Pop,
-                self.things.E
+                self.things.E,
+                self.things.Pop
             )
             pygame.display.flip()
             # clock.tick(60)
