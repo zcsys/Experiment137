@@ -4,6 +4,7 @@ import random
 from base_vars import *
 from action_functions import *
 from thing_types import THING_TYPES
+from simulation import draw_dashed_circle
 
 def add_positions(sizes,
                   existing_sizes = torch.empty(0),
@@ -52,6 +53,7 @@ class Things:
         )
         self.N = len(thing_types)
         self.E = 0.
+        self.movement_tensor = torch.tensor([[0., 0.] for _ in range(self.N)])
         pygame.font.init()
         self.font = pygame.font.SysFont(None, 16)
 
@@ -64,6 +66,18 @@ class Things:
         self.weights_1_o = self.genomes[:, 4:6]
         self.biases_i_1 = self.genomes[:, 6:8]
         self.biases_1_o = self.genomes[:, 8:9]
+
+    def mutate(self, i, probability = 0.1, strength = 1.):
+        genomes_after_mutation = self.genomes.clone()
+        genome_to_mutate = genomes_after_mutation[i]
+        mutation_mask = torch.rand_like(genome_to_mutate) < probability
+        mutations = torch.rand_like(genome_to_mutate) * 2 - 1
+        genome_to_mutate += mutation_mask * mutations * strength
+        if mutation_mask.any():
+            print(f"Original genome {i}: {self.genomes[i].tolist()}")
+            print(f"Mutated genome {i}: {genomes_after_mutation.tolist()}")
+            print("========")
+        return genomes_after_mutation
 
     def sensory_inputs(self):
         # Tensor masks that will be useful
@@ -107,33 +121,29 @@ class Things:
         indices = torch.multinomial(weights, (self.N - 1) * 2,
                                     replacement = True)
         indices = indices.view(self.N - 1, 2)
-        return torch.cat(
+        return values[indices]
+
+    def final_action(self):
+        self.movement_tensor = torch.cat(
             (
                 torch.tensor(
                     controlled_action(),
                     dtype = torch.float32
                 ).unsqueeze(0),
-                values[indices]
+                self.neural_action_placeholder()
             ),
             dim = 0
         )
 
-    def final_action(self):
-        movement_tensor = self.neural_action_placeholder()
-        self.update_positions(movement_tensor)
+        self.update_positions()
 
-    def update_positions(self, movement_tensor):
-        #movement_tensor = torch.tensor(
-        #    [THING_TYPES[thing_type]["action_function"]()
-        #     for thing_type in self.thing_types]
-        #)
-
+    def update_positions(self):
         overlap = torch.tensor(
             [THING_TYPES[thing_type]["overlap"]
             for thing_type in self.thing_types]
         )
 
-        provisional_positions = self.positions + movement_tensor
+        provisional_positions = self.positions + self.movement_tensor
 
         # Prevent moving beyond the edges
         provisional_positions = torch.stack(
@@ -190,7 +200,7 @@ class Things:
             torch.tensor(0.)
         )[~sugar_mask]
         self.energies[~sugar_mask] -= actual_magnitudes
-        self.E += actual_magnitudes.sum()
+        self.E += actual_magnitudes.sum().item()
 
         # Handle sugar vs cell collisions
         sugar_vs_cell = (
@@ -244,7 +254,7 @@ class Things:
         self.energies = self.energies[mask]
         self.N = mask.sum().item()
 
-    def draw(self, screen):
+    def draw(self, screen, show_sight = False, show_forces = False):
         for i, pos in enumerate(self.positions):
             thing_type = self.thing_types[i]
             thing_color = THING_TYPES[thing_type]["color"]
@@ -265,12 +275,37 @@ class Things:
                                                            int(pos[1].item())))
                 screen.blit(energy_text, text_rect)
 
+            if show_sight and thing_type != "sugar":
+                draw_dashed_circle(screen, (0, 255, 0), (int(pos[0].item()),
+                                   int(pos[1].item())), SIGHT)
+
+            if show_forces and thing_type != "sugar":
+                input_vector_1 = self.input_vectors[i, 0]
+                input_vector_2 = self.input_vectors[i, 1]
+                movement_vector = self.movement_tensor[i]
+
+                end_pos_1 = pos + input_vector_1 * 80
+                end_pos_2 = pos + input_vector_2 * 2500
+                end_pos_3 = pos + movement_vector * 50
+
+                pygame.draw.line(screen, RED, (int(pos[0].item()),
+                                 int(pos[1].item())), (int(end_pos_1[0].item()),
+                                 int(end_pos_1[1].item())), 1)
+                pygame.draw.line(screen, CYAN, (int(pos[0].item()),
+                                 int(pos[1].item())), (int(end_pos_2[0].item()),
+                                 int(end_pos_2[1].item())), 1)
+                pygame.draw.line(screen, WHITE, (int(pos[0].item()),
+                                 int(pos[1].item())), (int(end_pos_3[0].item()),
+                                 int(end_pos_3[1].item())), 2)
+
     def get_state(self):
         return {
             'types': self.thing_types,
             'positions': self.positions.tolist(),
             'energies': self.energies.tolist(),
-            'E': self.E
+            'E': self.E,
+            'genomes': self.genomes.tolist(),
+            'lineages': self.lineages
         }
 
     def load_state(self, state):
@@ -282,3 +317,5 @@ class Things:
         self.energies = torch.tensor(state['energies'])
         self.N = len(self.positions)
         self.E = state['E']
+        self.genomes = torch.tensor(state['genomes'])
+        self.lineages = state['lineages']

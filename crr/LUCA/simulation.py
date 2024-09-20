@@ -2,8 +2,44 @@ import pygame
 import time
 import json
 import torch
+import math
+import numpy as np
 from base_vars import *
 from rules import Rules
+
+def draw_dashed_circle(surface, color, center, radius, dash_length = 5,
+                       gap_length = 5):
+    angle = 0
+    total_circumference = 2 * math.pi * radius
+    dash_angle = (dash_length / total_circumference) * 360
+    gap_angle = (gap_length / total_circumference) * 360
+    while angle < 360:
+        start_x = center[0] + radius * math.cos(math.radians(angle))
+        start_y = center[1] + radius * math.sin(math.radians(angle))
+        end_angle = angle + dash_angle
+        end_x = center[0] + radius * math.cos(math.radians(end_angle))
+        end_y = center[1] + radius * math.sin(math.radians(end_angle))
+        pygame.draw.line(surface, color, (start_x, start_y), (end_x, end_y), 1)
+        angle += dash_angle + gap_angle
+
+def generate_wave(frequency, duration, waveform = "sine", sample_rate = 44100,
+                  amplitude = 400):
+    t = np.linspace(0, duration, int(sample_rate * duration), False)
+    if waveform == "sine":
+        wave = np.sin(2 * np.pi * frequency * t) * amplitude
+    elif waveform == "square":
+        wave = amplitude * np.sign(np.sin(2 * np.pi * frequency * t))
+    elif waveform == "sawtooth":
+        wave = 2 * amplitude * (t * frequency - np.floor(1/2 + t * frequency))
+    elif waveform == "noise":
+        wave = np.random.uniform(-1, 1, size=t.shape) * amplitude
+    else:
+        raise ValueError("Invalid waveform type. Choose 'sine', 'square'," +
+                         "'sawtooth', or 'noise'.")
+    wave = wave.astype(np.int16)
+    sound_array = np.array([wave, wave]).T
+    sound_array = np.ascontiguousarray(sound_array)
+    return pygame.sndarray.make_sound(sound_array)
 
 class Button:
     def __init__(self, screen, x, y, width, height, label, font,
@@ -58,6 +94,15 @@ class UIManager:
         self.play_pause_button = Button(self.screen,
                                         screen.get_width() - menu_width + 10,
                                         60, 160, 40, "Pause", self.font)
+        self.sight_toggle_button = Button(self.screen, screen.get_width() -
+                                          menu_width + 10, 110, 160, 40,
+                                          "Toggle Sight", self.font)
+        self.input_toggle_button = Button(self.screen, screen.get_width() -
+                                          menu_width + 10, 160, 160, 40,
+                                          "Toggle Forces", self.font)
+
+        self.show_sight = False
+        self.show_forces = False
 
     def handle_event(self, event, simulation):
         if self.save_button.handle_event(event):
@@ -66,6 +111,11 @@ class UIManager:
             simulation.toggle_pause()
             self.play_pause_button.label = ("Play" if simulation.paused
                                             else "Pause")
+
+        if self.sight_toggle_button.handle_event(event):
+            self.show_sight = not self.show_sight
+        if self.input_toggle_button.handle_event(event):
+            self.show_forces = not self.show_forces
 
     def draw(self, state, N, E):
         # Draw the right menu section (white background)
@@ -76,6 +126,8 @@ class UIManager:
         # Draw buttons
         self.save_button.draw()
         self.play_pause_button.draw()
+        self.sight_toggle_button.draw()
+        self.input_toggle_button.draw()
 
         # Display simulation state (Epochs, Periods, Steps)
         start_y = self.screen.get_height() // 2
@@ -161,14 +213,15 @@ class Simulation:
                 Rules(self, 0)
 
             self.screen.fill(BLACK)
-            self.things.draw(self.screen)
+            self.things.draw(self.screen, self.ui_manager.show_sight,
+                             self.ui_manager.show_forces)
             self.ui_manager.draw(
                 self.get_state(),
                 self.things.N,
                 self.things.E
             )
             pygame.display.flip()
-            clock.tick(60)
+            # clock.tick(60)
 
         pygame.quit()
 
