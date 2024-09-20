@@ -117,7 +117,7 @@ class UIManager:
         if self.input_toggle_button.handle_event(event):
             self.show_forces = not self.show_forces
 
-    def draw(self, state, N, E):
+    def draw(self, state, N, E, Pop):
         # Draw the right menu section (white background)
         pygame.draw.rect(self.screen, (255, 255, 255),
                          (self.screen.get_width() - self.menu_width, 0,
@@ -139,7 +139,8 @@ class UIManager:
                                        True, (0, 0, 0))
         steps_text = self.font.render(f"Steps: {state.get('steps', 0)}", True,
                                       (0, 0, 0))
-        N_text = self.font.render(f"Pop.: {N}", True, (0, 0, 0))
+        N_text = self.font.render(f"N.: {N}", True, (0, 0, 0))
+        Pop_text = self.font.render(f"Pop.: {Pop}", True, (0, 0, 0))
         E_text = self.font.render(f"E: {int(E)}", True, (0, 0, 0))
 
         self.screen.blit(epoch_text, (self.screen.get_width() -
@@ -150,8 +151,10 @@ class UIManager:
                          self.menu_width + 10, start_y + 60))
         self.screen.blit(N_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y + 90))
-        self.screen.blit(E_text, (self.screen.get_width() -
+        self.screen.blit(Pop_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y + 120))
+        self.screen.blit(E_text, (self.screen.get_width() -
+                         self.menu_width + 10, start_y + 150))
 
 class Simulation:
     def __init__(self, things_object, load_file = None):
@@ -218,6 +221,7 @@ class Simulation:
             self.ui_manager.draw(
                 self.get_state(),
                 self.things.N,
+                self.things.Pop,
                 self.things.E
             )
             pygame.display.flip()
