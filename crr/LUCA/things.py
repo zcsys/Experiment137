@@ -43,6 +43,7 @@ def add_positions(sizes,
 
 class Things:
     def __init__(self, thing_types):
+        # Main attributes
         self.thing_types = thing_types
         self.sizes, self.positions = add_positions(
             torch.tensor([THING_TYPES[x]["size"] for x in thing_types])
@@ -52,21 +53,39 @@ class Things:
         )
         self.N = len(thing_types)
         self.E = 0.
+        self.calc_state()
 
-        self.sensory_inputs()
-        self.genomes = torch.zeros((self.Pop, 30))
+        self.last_movement_was_successful = torch.ones((self.Pop, 1),
+                                                       dtype = bool)
+        #self.genomes = torch.zeros((self.Pop, 30)) # GENOME210_0
+        self.genomes = torch.rand((self.Pop, 34)) * 2 - 1
         self.lineages = []
         self.apply_genomes()
+        self.sensory_inputs()
 
         pygame.font.init()
         self.font = pygame.font.SysFont(None, 16)
 
+    def calc_state(self):
+        # Tensor masks that will be useful
+        self.self_mask = torch.eye(self.N, dtype = torch.bool)
+        self.sugar_mask = torch.tensor(
+            [thing_type == "sugar" for thing_type in self.thing_types]
+        )
+        self.cell_mask = torch.tensor(
+            [thing_type == "cell" for thing_type in self.thing_types]
+        )
+
+        # Calculate state vars
+        self.diffs = self.positions.unsqueeze(1) - self.positions.unsqueeze(0)
+        self.Pop = self.cell_mask.sum().item()
+
     def apply_genomes(self):
-        # Monad210 neurogenetics
-        self.weights_i_1 = self.genomes[:, 0:16].view(self.Pop, 4, 4)
-        self.weights_1_o = self.genomes[:, 16:24].view(self.Pop, 2, 4)
-        self.biases_i_1 = self.genomes[:, 24:28].view(self.Pop, 4, 1)
-        self.biases_1_o = self.genomes[:, 28:30].view(self.Pop, 2, 1)
+        # Monad211 neurogenetics
+        self.weights_i_1 = self.genomes[:, 0:20].view(self.Pop, 4, 5)
+        self.weights_1_o = self.genomes[:, 20:28].view(self.Pop, 2, 4)
+        self.biases_i_1 = self.genomes[:, 28:32].view(self.Pop, 4, 1)
+        self.biases_1_o = self.genomes[:, 32:34].view(self.Pop, 2, 1)
 
     def mutate(self, i, probability = 0.1, strength = 1.):
         genomes_after_mutation = self.genomes.clone()
@@ -81,19 +100,6 @@ class Things:
         return genomes_after_mutation
 
     def sensory_inputs(self):
-        # Tensor masks that will be useful
-        self.self_mask = torch.eye(self.N, dtype = torch.bool)
-        self.sugar_mask = torch.tensor(
-            [thing_type == "sugar" for thing_type in self.thing_types]
-        )
-        self.cell_mask = torch.tensor(
-            [thing_type == "cell" for thing_type in self.thing_types]
-        )
-
-        # Update state vars
-        self.diffs = self.positions.unsqueeze(1) - self.positions.unsqueeze(0)
-        self.Pop = self.cell_mask.sum().item()
-
         # For each non-sugar, there's a vector pointing towards the center of
         # the universe, with increasing magnitude as the thing gets closer to
         # edges. This is the first input vector for each particle.
@@ -119,11 +125,18 @@ class Things:
             normalized_diffs * effect_of_sugars.unsqueeze(2)
         )[self.cell_mask].sum(dim = 1) * 20.
 
-        # Combine the inputs to create (Pop, 2, 2)-shaped final input tensor
-        self.input_vectors = torch.stack([col1, col2], dim = 1)
+        # Combine the inputs to create (Pop, 5, 1)-shaped final input tensor
+        self.input_vectors = torch.cat(
+            [
+                col1,
+                col2,
+                self.last_movement_was_successful
+            ],
+            dim = 1
+        ).view(self.Pop, 5, 1)
 
     def neural_action(self):
-        input_tensor = self.input_vectors.view(self.Pop, 4, 1)
+        input_tensor = self.input_vectors
         layer_1 = torch.tanh((torch.bmm(self.weights_i_1, input_tensor) +
                    self.biases_i_1))
         return torch.tanh((torch.bmm(self.weights_1_o, layer_1) +
@@ -166,6 +179,7 @@ class Things:
         self.movement_tensor[self.sugar_mask] = self.random_action()
 
         self.update_positions()
+        self.calc_state()
 
     def update_positions(self):
         overlap = torch.tensor(
@@ -222,6 +236,12 @@ class Things:
             provisional_positions,
             self.positions
         )
+
+        self.last_movement_was_successful = torch.where(
+            final_apply_mask,
+            True,
+            False
+        )[self.cell_mask]
 
         # Reduce energies
         actual_magnitudes = torch.where(
