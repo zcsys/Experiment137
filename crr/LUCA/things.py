@@ -119,12 +119,12 @@ class Things:
             normalized_diffs * effect_of_sugars.unsqueeze(2)
         )[self.cell_mask].sum(dim = 1) * 20.
 
-        # Combine the inputs to create (N, 2, 2)-shaped final input tensor
+        # Combine the inputs to create (Pop, 2, 2)-shaped final input tensor
         self.input_vectors = torch.stack([col1, col2], dim = 1)
 
     def neural_action(self):
-        self.input_vectors = self.input_vectors.view(self.Pop, 4, 1)
-        layer_1 = torch.tanh((torch.bmm(self.weights_i_1, self.input_vectors) +
+        input_tensor = self.input_vectors.view(self.Pop, 4, 1)
+        layer_1 = torch.tanh((torch.bmm(self.weights_i_1, input_tensor) +
                    self.biases_i_1))
         return torch.tanh((torch.bmm(self.weights_1_o, layer_1) +
                    self.biases_1_o)).view(self.Pop, 2)
@@ -282,10 +282,13 @@ class Things:
         self.N = mask.sum().item()
 
     def draw(self, screen, show_sight = False, show_forces = False):
+        masked_indices = torch.nonzero(self.cell_mask,
+                                       as_tuple = False).squeeze()
+
         for i, pos in enumerate(self.positions):
             thing_type = self.thing_types[i]
             thing_color = THING_TYPES[thing_type]["color"]
-            size = THING_TYPES[thing_type]["size"]
+            size = self.sizes[i].item()
 
             pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
                                int(pos[1].item())), size)
@@ -302,13 +305,15 @@ class Things:
                                                            int(pos[1].item())))
                 screen.blit(energy_text, text_rect)
 
-            if show_sight and thing_type != "sugar":
+            if show_sight and thing_type == "cell":
                 draw_dashed_circle(screen, GREEN, (int(pos[0].item()),
                                    int(pos[1].item())), SIGHT)
 
-            if show_forces and thing_type != "sugar":
-                input_vector_1 = self.input_vectors[i, 0]
-                input_vector_2 = self.input_vectors[i, 1]
+            if show_forces and thing_type == "cell":
+                idx = (masked_indices == i).nonzero(as_tuple = False).item()
+
+                input_vector_1 = self.input_vectors[idx, 0]
+                input_vector_2 = self.input_vectors[idx, 1]
                 movement_vector = self.movement_tensor[i]
 
                 end_pos_1 = pos + input_vector_1 * 50
