@@ -2,7 +2,7 @@ from simulation import Simulation
 from things import Things
 import argparse
 
-POP_0 = 100
+POP_0 = 2
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -14,8 +14,7 @@ if __name__ == "__main__":
 
     things_instance = Things(
         ["controlled_cell"] +
-        ["cell"] * POP_0 +
-        ["sugar"] * POP_0 * 2
+        ["cell"] * POP_0
     )
 
     simulation = Simulation(things_instance, load_file = args.load)

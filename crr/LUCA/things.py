@@ -1,8 +1,8 @@
 import torch
 import pygame
 import random
+import math
 from base_vars import *
-from thing_types import THING_TYPES
 from simulation import draw_dashed_circle
 
 def add_positions(sizes,
@@ -64,7 +64,7 @@ class Things:
         self.sensory_inputs()
 
         pygame.font.init()
-        self.font = pygame.font.SysFont(None, 16)
+        self.font = pygame.font.SysFont(None, 24)
 
     def calc_state(self):
         # Tensor masks that will be useful
@@ -79,6 +79,8 @@ class Things:
         # Calculate state vars
         self.diffs = self.positions.unsqueeze(1) - self.positions.unsqueeze(0)
         self.Pop = self.cell_mask.sum().item()
+
+        print(torch.norm(self.diffs[self.cell_mask], dim = 2))
 
     def apply_genomes(self):
         # Monad211 neurogenetics
@@ -144,6 +146,8 @@ class Things:
 
     def random_action(self):
         numberOf_sugars = self.sugar_mask.sum().item()
+        if numberOf_sugars == 0:
+            return
         values = torch.tensor([-1, 0, 1], dtype = torch.float32)
         weights = torch.tensor([1, 3, 1], dtype = torch.float32)
         indices = torch.multinomial(
@@ -165,19 +169,23 @@ class Things:
             dy += -1
         if keys[pygame.K_DOWN]:
             dy += 1
+        if keys[pygame.K_SPACE]:
+            self.cell_division(0)
         return torch.tensor([dx, dy], dtype = torch.float32)
 
     def final_action(self):
         self.sensory_inputs()
-
-        self.movement_tensor = torch.tensor([[0., 0.] for _ in range(self.N)])
-
-        self.movement_tensor[self.thing_types.index("controlled_cell")] = (
-            self.controlled_action()
-        )
-        self.movement_tensor[self.cell_mask] = self.neural_action()
-        self.movement_tensor[self.sugar_mask] = self.random_action()
-
+        if self.N > 0:
+            self.movement_tensor = torch.tensor([[0., 0.]
+                                                 for _ in range(self.N)])
+        if "controlled_cell" in self.thing_types:
+            self.movement_tensor[self.thing_types.index("controlled_cell")] = (
+                self.controlled_action()
+            )
+        if self.cell_mask.any():
+            self.movement_tensor[self.cell_mask] = self.neural_action()
+        if self.sugar_mask.any():
+            self.movement_tensor[self.sugar_mask] = self.random_action()
         self.update_positions()
         self.calc_state()
 
@@ -237,11 +245,7 @@ class Things:
             self.positions
         )
 
-        self.last_movement_was_successful = torch.where(
-            final_apply_mask,
-            True,
-            False
-        )[self.cell_mask]
+        self.last_movement_was_successful = final_apply_mask[self.cell_mask]
 
         # Reduce energies
         actual_magnitudes = torch.where(
@@ -269,8 +273,77 @@ class Things:
             )
             self.remove_things(sugar_idx.tolist())
 
-    def cell_division(self):
-        pass
+    def cell_division(self, i):
+        thing_type = self.thing_types[i]
+        if thing_type == "controlled_cell":
+            thing_type = "cell"
+        initial_energy = torch.tensor(THING_TYPES[thing_type]["initial_energy"])
+        if self.energies[i] < 2 * initial_energy:
+            return
+        size = THING_TYPES[thing_type]["size"]
+        x, y = tuple(self.positions[i].tolist())
+        angle = random.random() * 2 * math.pi
+        new_position = torch.tensor([
+            x + math.cos(angle) * (size + 1) * 2,
+            y + math.sin(angle) * (size + 1) * 2
+        ])
+        distances = torch.norm(
+            self.positions[self.cell_mask] - new_position, dim = 1
+        )
+        if (distances < self.sizes[self.cell_mask] + size).any():
+            return
+
+        self.thing_types += [thing_type]
+        self.sizes = torch.cat(
+            (
+                self.sizes,
+                torch.tensor(size).unsqueeze(0)
+            ),
+            dim = 0
+        )
+        self.positions = torch.cat(
+            (
+                self.positions,
+                new_position.unsqueeze(0)
+            ),
+            dim = 0
+        )
+        self.energies[i] -= initial_energy.squeeze()
+        self.energies = torch.cat(
+            (
+                self.energies,
+                initial_energy.unsqueeze(0)
+            ),
+            dim = 0
+        )
+        self.genomes = torch.cat(
+            (
+                self.genomes,
+                torch.rand((1, 34)) * 2 - 1
+            ),
+            dim = 0
+        )
+        self.movement_tensor = torch.cat(
+            (
+                self.movement_tensor,
+                torch.tensor([0., 0.]).unsqueeze(0)
+            ),
+            dim = 0
+        )
+        self.last_movement_was_successful = torch.cat(
+            (
+                self.last_movement_was_successful,
+                torch.tensor([True]).unsqueeze(0)
+            ),
+            dim = 0
+        )
+
+        self.N += 1
+        self.calc_state()
+        # The following two should be optimized. No need to calculate everything
+        # all over. The same may also be true for the calc_state() above.
+        self.sensory_inputs()
+        self.apply_genomes()
 
     def add_things(self, types):
         self.thing_types += types
@@ -330,10 +403,9 @@ class Things:
                                    int(pos[1].item())), SIGHT)
 
             if show_forces and thing_type == "cell":
-                idx = (masked_indices == i).nonzero(as_tuple = False).item()
-
-                input_vector_1 = self.input_vectors[idx, 0]
-                input_vector_2 = self.input_vectors[idx, 1]
+                idx = self.cell_mask[:i].sum().item()
+                input_vector_1 = self.input_vectors[idx, 0:2].squeeze(1)
+                input_vector_2 = self.input_vectors[idx, 2:4].squeeze(1)
                 movement_vector = self.movement_tensor[i]
 
                 end_pos_1 = pos + input_vector_1 * 50
