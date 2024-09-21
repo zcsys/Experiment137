@@ -160,7 +160,7 @@ class Simulation:
     def __init__(self, things_object, load_file = None):
         pygame.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        pygame.display.set_caption("Experiment 137.03: LUCA")
+        pygame.display.set_caption("Experiment 137.03: FUCA")
         self.ui_manager = UIManager(self.screen, MENU_WIDTH)
         self.paused = False
         self.things = things_object
@@ -213,7 +213,7 @@ class Simulation:
                 self.things.final_action()
                 self.update_state()
 
-                Rules(self, [0, 1, 2])
+                Rules(self, [0, 1, 2, 3])
 
             self.screen.fill(BLACK)
             self.things.draw(self.screen, self.ui_manager.show_sight,

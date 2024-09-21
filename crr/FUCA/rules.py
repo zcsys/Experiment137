@@ -1,4 +1,5 @@
 from base_vars import *
+import torch
 
 def Rules(simul, n):
     # Accumulated system energy pops out sugars
@@ -6,13 +7,11 @@ def Rules(simul, n):
         if simul.things.E > 1000:
             number_of_new, simul.things.E = divmod(simul.things.E, 1000)
             simul.things.add_things(["sugar"] * int(number_of_new))
-            simul.things.calc_state()
 
     # Populate universe with sugars until N_TARGET is reached
     if 1 in n:
         if simul.things.N < N_TARGET:
             simul.things.add_things(["sugar"])
-            simul.things.calc_state()
 
     # Auto fission
     if 2 in n:
@@ -21,4 +20,14 @@ def Rules(simul, n):
             if i == 0:
                 continue
             if mask:
-                simul.things.cell_division(i)
+                if simul.things.cell_division(i):
+                    print("cell division at:", i)
+
+    # Aging and death
+    if 3 in n:
+        energies = simul.things.energies[simul.things.cell_mask]
+        energies -= METABOLIC_ACTIVITY_CONSTANT
+        simul.things.remove_things(
+            torch.nonzero(energies <= 0, as_tuple = False).squeeze(1).tolist()
+        )
+        simul.things.energies[simul.things.cell_mask] = energies

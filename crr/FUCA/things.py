@@ -48,39 +48,41 @@ class Things:
         self.sizes, self.positions = add_positions(
             torch.tensor([THING_TYPES[x]["size"] for x in thing_types])
         )
-        self.energies = torch.tensor(
-            [THING_TYPES[x]["initial_energy"] for x in thing_types]
+
+        # Initialize tensor masks
+        self.cell_mask = torch.tensor(
+            [thing_type == "cell" or thing_type == "controlled_cell"
+             for thing_type in self.thing_types]
         )
-        self.N = len(thing_types)
-        self.E = 0.
-        self.calc_state()
-
-        self.last_movement_was_successful = torch.ones((self.Pop, 1),
-                                                       dtype = bool)
-        #self.genomes = torch.zeros((self.Pop, 30)) # GENOME210_0
-        self.genomes = torch.rand((self.Pop, 34)) * 2 - 1
-        self.lineages = []
-        self.apply_genomes()
-        self.sensory_inputs()
-
-        pygame.font.init()
-        self.font = pygame.font.SysFont(None, 24)
-
-    def calc_state(self):
-        # Tensor masks that will be useful
-        self.self_mask = torch.eye(self.N, dtype = torch.bool)
         self.sugar_mask = torch.tensor(
             [thing_type == "sugar" for thing_type in self.thing_types]
         )
-        self.cell_mask = torch.tensor(
-            [thing_type == "cell" for thing_type in self.thing_types]
+
+        # Initialize state vars
+        self.E = 0.
+        self.N = len(self.thing_types)
+        self.Pop = self.cell_mask.sum().item()
+        self.energies = torch.tensor(
+            [THING_TYPES[thing_type]["initial_energy"]
+            for thing_type in thing_types
+            if thing_type == "cell" or thing_type == "controlled_cell"]
         )
 
-        # Calculate state vars
-        self.diffs = self.positions.unsqueeze(1) - self.positions.unsqueeze(0)
-        self.Pop = self.cell_mask.sum().item()
+        # Initialize genomes and lineages
+        self.genomes = torch.zeros((self.Pop, 34)) # GENOME211_0
+        self.lineages = []
+        self.apply_genomes()
 
-        print(torch.norm(self.diffs[self.cell_mask], dim = 2))
+        # Initialize sensory input data
+        self.last_movement_was_successful = torch.ones(
+            self.Pop,
+            dtype = bool
+        ).view(self.Pop, 1)
+        self.sensory_inputs()
+
+        # Initialize font
+        pygame.font.init()
+        self.font = pygame.font.SysFont(None, 24)
 
     def apply_genomes(self):
         # Monad211 neurogenetics
@@ -89,43 +91,41 @@ class Things:
         self.biases_i_1 = self.genomes[:, 28:32].view(self.Pop, 4, 1)
         self.biases_1_o = self.genomes[:, 32:34].view(self.Pop, 2, 1)
 
-    def mutate(self, i, probability = 0.1, strength = 1.):
-        genomes_after_mutation = self.genomes.clone()
-        genome_to_mutate = genomes_after_mutation[i]
-        mutation_mask = torch.rand_like(genome_to_mutate) < probability
-        mutations = torch.rand_like(genome_to_mutate) * 2 - 1
-        genome_to_mutate += mutation_mask * mutations * strength
-        if mutation_mask.any():
-            print(f"Original genome {i}: {self.genomes[i].tolist()}")
-            print(f"Mutated genome {i}: {genomes_after_mutation.tolist()}")
+    def mutate(self, i, probability = 0.1, strength = 1., show = False):
+        idx = self.cell_mask[:i].sum().item()
+        mutated_genome = self.genomes[idx].clone()
+        mutation_mask = torch.rand_like(mutated_genome) < probability
+        mutations = torch.rand_like(mutated_genome) * 2 - 1
+        mutated_genome += mutation_mask * mutations * strength
+        if mutation_mask.any() and show:
+            print(f"Original genome {idx}: {self.genomes[idx].tolist()}")
+            print(f"Mutated genome {idx}: {mutated_genome.tolist()}")
             print("========")
-        return genomes_after_mutation
+        return mutated_genome
 
     def sensory_inputs(self):
         # For each non-sugar, there's a vector pointing towards the center of
         # the universe, with increasing magnitude as the thing gets closer to
         # edges. This is the first input vector for each particle.
-        midpoint = torch.tensor([SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2])
-        col1 = (1 - self.positions[self.cell_mask] / midpoint)
+        if self.cell_mask.any():
+            midpoint = torch.tensor([SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2])
+            col1 = (1 - self.positions[self.cell_mask] / midpoint)
+        else:
+            col1 = torch.zeros((self.Pop, 2))
 
         # For each non-sugar, the combined effect of sugar particles in their
         # vicinity is calculated. This is the second input vector for particles.
-        distances = torch.norm(self.diffs, dim = 2)
-        in_sight = (
-            (distances <= SIGHT) &
-            ~self.self_mask &
-            self.sugar_mask.unsqueeze(0)
-        )
-        effect_of_sugars = torch.where(
-            in_sight,
-            -1. / (distances + 1e-7),
-            torch.tensor(0.)
-        )
-        normalized_diffs = self.diffs / (torch.norm(self.diffs, dim = 2,
-                                         keepdim = True) + 1e-7)
-        col2 = (
-            normalized_diffs * effect_of_sugars.unsqueeze(2)
-        )[self.cell_mask].sum(dim = 1) * 20.
+        if self.cell_mask.any() and self.sugar_mask.any():
+            self.diffs = (self.positions[self.sugar_mask].unsqueeze(0) -
+                          self.positions[self.cell_mask].unsqueeze(1))
+            distances = torch.norm(self.diffs, dim = 2)
+            col2 = torch.where(
+                distances <= SIGHT,
+                self.diffs / (distances.unsqueeze(2) + 1e-7) ** 2,
+                torch.tensor(0.)
+            ).sum(dim = 1) * 20.
+        else:
+            col2 = torch.zeros((self.Pop, 2))
 
         # Combine the inputs to create (Pop, 5, 1)-shaped final input tensor
         self.input_vectors = torch.cat(
@@ -148,14 +148,15 @@ class Things:
         numberOf_sugars = self.sugar_mask.sum().item()
         if numberOf_sugars == 0:
             return
-        values = torch.tensor([-1, 0, 1], dtype = torch.float32)
-        weights = torch.tensor([1, 3, 1], dtype = torch.float32)
+        values = torch.tensor([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5],
+                              dtype = torch.float32)
+        weights = torch.tensor([1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1],
+                               dtype = torch.float32)
         indices = torch.multinomial(
             weights,
             numberOf_sugars * 2,
             replacement = True
-        )
-        indices = indices.view(numberOf_sugars, 2)
+        ).view(numberOf_sugars, 2)
         return values[indices]
 
     def controlled_action(self):
@@ -187,7 +188,6 @@ class Things:
         if self.sugar_mask.any():
             self.movement_tensor[self.sugar_mask] = self.random_action()
         self.update_positions()
-        self.calc_state()
 
     def update_positions(self):
         overlap = torch.tensor(
@@ -230,11 +230,8 @@ class Things:
         # Allow movement only if there's enough energy or if type is 'sugar'
         movement_magnitudes = torch.diag(distances)
         energy_mask = torch.gt(self.energies, movement_magnitudes).unsqueeze(1)
-        sugar_mask = torch.tensor(
-            [thing_type == "sugar" for thing_type in self.thing_types]
-        )
         move_condition_mask = torch.logical_or(energy_mask,
-                                               sugar_mask.unsqueeze(1))
+                                               self.sugar_mask.unsqueeze(1))
         final_apply_mask = torch.logical_and(final_apply_mask,
                                              move_condition_mask)
 
@@ -252,15 +249,15 @@ class Things:
             final_apply_mask.squeeze(),
             movement_magnitudes,
             torch.tensor(0.)
-        )[~sugar_mask]
-        self.energies[~sugar_mask] -= actual_magnitudes
+        )[~self.sugar_mask]
+        self.energies[~self.sugar_mask] -= actual_magnitudes
         self.E += actual_magnitudes.sum().item()
 
         # Handle sugar vs cell collisions
         sugar_vs_cell = (
             overlap_mask &
-            sugar_mask.unsqueeze(1) &
-            ~sugar_mask.unsqueeze(0)
+            self.sugar_mask.unsqueeze(1) &
+            self.cell_mask.unsqueeze(0)
         )
 
         if sugar_vs_cell.any():
@@ -279,7 +276,7 @@ class Things:
             thing_type = "cell"
         initial_energy = torch.tensor(THING_TYPES[thing_type]["initial_energy"])
         if self.energies[i] < 2 * initial_energy:
-            return
+            return 0
         size = THING_TYPES[thing_type]["size"]
         x, y = tuple(self.positions[i].tolist())
         angle = random.random() * 2 * math.pi
@@ -290,8 +287,10 @@ class Things:
         distances = torch.norm(
             self.positions[self.cell_mask] - new_position, dim = 1
         )
-        if (distances < self.sizes[self.cell_mask] + size).any():
-            return
+        if (new_position[0] < size or new_position[0] > SIMUL_WIDTH - size or
+            new_position[1] < size or new_position[1] > SIMUL_HEIGHT - size or
+            (distances < self.sizes[self.cell_mask] + size).any()):
+            return 0
 
         self.thing_types += [thing_type]
         self.sizes = torch.cat(
@@ -316,13 +315,6 @@ class Things:
             ),
             dim = 0
         )
-        self.genomes = torch.cat(
-            (
-                self.genomes,
-                torch.rand((1, 34)) * 2 - 1
-            ),
-            dim = 0
-        )
         self.movement_tensor = torch.cat(
             (
                 self.movement_tensor,
@@ -338,14 +330,49 @@ class Things:
             dim = 0
         )
 
-        self.N += 1
-        self.calc_state()
-        # The following two should be optimized. No need to calculate everything
-        # all over. The same may also be true for the calc_state() above.
-        self.sensory_inputs()
-        self.apply_genomes()
+        genome = self.mutate(i)
+        self.genomes = torch.cat(
+            (
+                self.genomes,
+                genome.unsqueeze(0)
+            ),
+            dim = 0
+        )
+        self.weights_i_1 = torch.cat(
+            (
+                self.weights_i_1,
+                genome[0:20].view(self.Pop, 4, 5)
+            ),
+            dim = 0
+        )
+        self.weights_1_o = torch.cat(
+            (
+                self.weights_1_o,
+                genome[20:28].view(self.Pop, 2, 4)
+            ),
+            dim = 0
+        )
+        self.biases_i_1 = torch.cat(
+            (
+                self.biases_i_1,
+                genome[28:32].view(self.Pop, 4, 1)
+            ),
+            dim = 0
+        )
+        self.biases_1_o = torch.cat(
+            (
+                self.biases_1_o,
+                genome[32:34].view(self.Pop, 2, 1)
+            ),
+            dim = 0
+        )
 
-    def add_things(self, types):
+        self.N += 1
+        self.Pop += 1
+
+        return 1
+
+    def add_sugars(self, types):
         self.thing_types += types
         self.sizes, self.positions = add_positions(
             torch.tensor([THING_TYPES[x]["size"] for x in types]),
@@ -372,6 +399,7 @@ class Things:
         self.sizes = self.sizes[mask]
         self.positions = self.positions[mask]
         self.energies = self.energies[mask]
+        #self.movement_tensor = self.movement_tensor[mask]
         self.N = mask.sum().item()
 
     def draw(self, screen, show_sight = False, show_forces = False):
