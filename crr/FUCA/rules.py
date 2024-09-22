@@ -6,7 +6,7 @@ def Rules(simul, n):
     if 0 in n:
         if simul.things.E > 1000:
             number_of_new, simul.things.E = divmod(simul.things.E, 1000)
-            simul.things.add_sugars(number_of_new)
+            simul.things.add_sugars(int(number_of_new))
 
     # Populate universe with sugars until N_TARGET is reached
     if 1 in n:
@@ -20,14 +20,13 @@ def Rules(simul, n):
             if i == 0:
                 continue
             if mask:
-                if simul.things.cell_division(i):
-                    print("cell division at:", i)
+                simul.things.cell_division(i)
 
     # Aging and death
     if 3 in n:
         energies = simul.things.energies[simul.things.cell_mask]
         energies -= METABOLIC_ACTIVITY_CONSTANT
-        simul.things.remove_things(
+        simul.things.cell_death(
             torch.nonzero(energies <= 0, as_tuple = False).squeeze(1).tolist()
         )
         simul.things.energies[simul.things.cell_mask] = energies

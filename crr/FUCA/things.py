@@ -63,7 +63,7 @@ class Things:
 
         # Initialize genomes and lineages
         self.genomes = torch.zeros((self.Pop, 34)) # GENOME211_0
-        self.lineages = []
+        self.lineages = torch.zeros((self.Pop, 1), dtype = torch.int32)
         self.apply_genomes()
 
         # Initialize sensory input data
@@ -113,9 +113,9 @@ class Things:
                           self.positions[self.cell_mask].unsqueeze(1))
             distances = torch.norm(self.diffs, dim = 2)
             col2 = torch.where(
-                distances <= SIGHT,
+                (distances <= SIGHT).unsqueeze(2),
                 self.diffs / (distances.unsqueeze(2) + 1e-7) ** 2,
-                torch.tensor(0.)
+                torch.tensor([0., 0.])
             ).sum(dim = 1) * 21.
         else:
             col2 = torch.zeros((self.Pop, 2))
@@ -226,15 +226,16 @@ class Things:
             self.positions
         )
 
-        self.last_movement_was_successful = final_apply_mask[self.cell_mask]
+        self.last_movement_was_successful = final_apply_mask[
+            self.cell_mask
+        ].unsqueeze(1)
 
-        # Reduce energies
+        # Reduce energies from cells and give to system
         actual_magnitudes = torch.where(
-            final_apply_mask,
+            final_apply_mask & self.cell_mask,
             movement_magnitudes,
             torch.tensor(0.)
         )
-
         self.energies -= actual_magnitudes
         self.E += actual_magnitudes.sum().item()
 
@@ -253,7 +254,7 @@ class Things:
                 cell_idx,
                 energy_per_non_sugar
             )
-            self.remove_things(sugar_idx.tolist())
+            self.remove_sugars(sugar_idx.tolist())
 
     def cell_division(self, i):
         thing_type = self.thing_types[i]
@@ -292,7 +293,7 @@ class Things:
             ),
             dim = 0
         )
-        self.energies[i] -= initial_energy.squeeze()
+        self.energies[i] -= initial_energy
         self.energies = torch.cat(
             (
                 self.energies,
@@ -303,14 +304,14 @@ class Things:
         self.movement_tensor = torch.cat(
             (
                 self.movement_tensor,
-                torch.tensor([0., 0.]).unsqueeze(0)
+                torch.tensor([[0., 0.]])
             ),
             dim = 0
         )
         self.last_movement_was_successful = torch.cat(
             (
                 self.last_movement_was_successful,
-                torch.tensor([True]).unsqueeze(0)
+                torch.tensor([[True]])
             ),
             dim = 0
         )
@@ -326,36 +327,54 @@ class Things:
         self.weights_i_1 = torch.cat(
             (
                 self.weights_i_1,
-                genome[0:20].view(self.Pop, 4, 5)
+                genome[0:20].view(1, 4, 5)
             ),
             dim = 0
         )
         self.weights_1_o = torch.cat(
             (
                 self.weights_1_o,
-                genome[20:28].view(self.Pop, 2, 4)
+                genome[20:28].view(1, 2, 4)
             ),
             dim = 0
         )
         self.biases_i_1 = torch.cat(
             (
                 self.biases_i_1,
-                genome[28:32].view(self.Pop, 4, 1)
+                genome[28:32].view(1, 4, 1)
             ),
             dim = 0
         )
         self.biases_1_o = torch.cat(
             (
                 self.biases_1_o,
-                genome[32:34].view(self.Pop, 2, 1)
+                genome[32:34].view(1, 2, 1)
             ),
             dim = 0
         )
 
+        self.cell_mask = torch.cat(
+            (
+                self.cell_mask,
+                torch.tensor([True])
+            ),
+            dim = 0
+        )
+        self.sugar_mask = torch.cat(
+            (
+                self.sugar_mask,
+                torch.tensor([False])
+            ),
+            dim = 0
+        )
         self.N += 1
         self.Pop += 1
 
         return 1
+
+    def cell_death(self, i):
+        #del self.thing_types[i]
+        pass
 
     def add_sugars(self, N):
         self.thing_types += ["sugar" for _ in range(N)]
@@ -365,6 +384,14 @@ class Things:
             self.positions
         )
         self.N += N
+        self.energies = torch.cat(
+            (
+                self.energies,
+                torch.tensor([THING_TYPES["sugar"]["initial_energy"]
+                              for _ in range(N)])
+            ),
+            dim = 0
+        )
         self.cell_mask = torch.cat(
             (
                 self.cell_mask,
@@ -380,7 +407,7 @@ class Things:
             dim = 0
         )
 
-    def remove_things(self, indices):
+    def remove_sugars(self, indices):
         self.thing_types = [
             thing_type
             for i, thing_type in enumerate(self.thing_types)
@@ -394,9 +421,6 @@ class Things:
         self.sizes = self.sizes[mask]
         self.positions = self.positions[mask]
         self.energies = self.energies[mask]
-
-        self.genomes = self.genomes[mask]
-        self.apply_genomes()
 
         self.cell_mask = self.cell_mask[mask]
         self.sugar_mask = self.sugar_mask[mask]
@@ -432,6 +456,8 @@ class Things:
 
             if show_forces and thing_type == "cell":
                 idx = self.cell_mask[:i].sum().item()
+                if idx >= len(self.input_vectors):
+                    return
                 input_vector_1 = self.input_vectors[idx, 0:2].squeeze(1)
                 input_vector_2 = self.input_vectors[idx, 2:4].squeeze(1)
                 movement_vector = self.movement_tensor[i]
