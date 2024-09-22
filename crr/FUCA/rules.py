@@ -6,12 +6,12 @@ def Rules(simul, n):
     if 0 in n:
         if simul.things.E > 1000:
             number_of_new, simul.things.E = divmod(simul.things.E, 1000)
-            simul.things.add_things(["sugar"] * int(number_of_new))
+            simul.things.add_sugars(number_of_new)
 
     # Populate universe with sugars until N_TARGET is reached
     if 1 in n:
         if simul.things.N < N_TARGET:
-            simul.things.add_things(["sugar"])
+            simul.things.add_sugars(N_TARGET - simul.things.N)
 
     # Auto fission
     if 2 in n:

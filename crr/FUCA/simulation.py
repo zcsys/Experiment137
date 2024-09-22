@@ -213,7 +213,7 @@ class Simulation:
                 self.things.final_action()
                 self.update_state()
 
-                Rules(self, [0, 1, 2, 3])
+                Rules(self, [0, 2])
 
             self.screen.fill(BLACK)
             self.things.draw(self.screen, self.ui_manager.show_sight,

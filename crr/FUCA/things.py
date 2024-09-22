@@ -26,14 +26,8 @@ def add_positions(sizes,
             dtype = torch.float32
         ).unsqueeze(0)
 
-        distances = torch.norm(positions - new_position, dim = 1)
-
-        overlap = False
-        for j, distance in enumerate(distances):
-            if distance < sizes[i] + sizes[j]:
-                overlap = True
-                break
-        if overlap:
+        distances = torch.norm(new_position - positions, dim = 1)
+        if (distances < sizes[i] + sizes[:i]).any():
             continue
 
         positions = torch.cat((positions, new_position), dim = 0)
@@ -64,8 +58,7 @@ class Things:
         self.Pop = self.cell_mask.sum().item()
         self.energies = torch.tensor(
             [THING_TYPES[thing_type]["initial_energy"]
-            for thing_type in thing_types
-            if thing_type == "cell" or thing_type == "controlled_cell"]
+            for thing_type in thing_types]
         )
 
         # Initialize genomes and lineages
@@ -123,7 +116,7 @@ class Things:
                 distances <= SIGHT,
                 self.diffs / (distances.unsqueeze(2) + 1e-7) ** 2,
                 torch.tensor(0.)
-            ).sum(dim = 1) * 20.
+            ).sum(dim = 1) * 21.
         else:
             col2 = torch.zeros((self.Pop, 2))
 
@@ -179,22 +172,15 @@ class Things:
         if self.N > 0:
             self.movement_tensor = torch.tensor([[0., 0.]
                                                  for _ in range(self.N)])
-        if "controlled_cell" in self.thing_types:
-            self.movement_tensor[self.thing_types.index("controlled_cell")] = (
-                self.controlled_action()
-            )
         if self.cell_mask.any():
             self.movement_tensor[self.cell_mask] = self.neural_action()
+        if "controlled_cell" in self.thing_types:
+            self.movement_tensor[0] = self.controlled_action()
         if self.sugar_mask.any():
             self.movement_tensor[self.sugar_mask] = self.random_action()
         self.update_positions()
 
     def update_positions(self):
-        overlap = torch.tensor(
-            [THING_TYPES[thing_type]["overlap"]
-            for thing_type in self.thing_types]
-        )
-
         provisional_positions = self.positions + self.movement_tensor
 
         # Prevent moving beyond the edges
@@ -219,25 +205,23 @@ class Things:
         distances = torch.norm(diffs, dim = 2)
         size_sums = self.sizes.unsqueeze(1) + self.sizes.unsqueeze(0)
         overlap_mask = (distances < size_sums).fill_diagonal_(False)
-
-        # Prevent overlaps
-        pairwise_overlap = overlap.unsqueeze(1) | overlap.unsqueeze(0)
-        stoppable_mask = torch.logical_and(overlap_mask, ~pairwise_overlap)
-        overlap_detected = stoppable_mask.any(dim = 1)
-        final_apply_mask = torch.logical_or(overlap,
-                                            ~overlap_detected).unsqueeze(1)
+        cell_vs_cell = (
+            self.cell_mask.unsqueeze(1) &
+            self.cell_mask.unsqueeze(0) &
+            overlap_mask
+        ).any(dim = 1)
 
         # Allow movement only if there's enough energy or if type is 'sugar'
         movement_magnitudes = torch.diag(distances)
-        energy_mask = torch.gt(self.energies, movement_magnitudes).unsqueeze(1)
-        move_condition_mask = torch.logical_or(energy_mask,
-                                               self.sugar_mask.unsqueeze(1))
-        final_apply_mask = torch.logical_and(final_apply_mask,
-                                             move_condition_mask)
+        final_apply_mask = (
+            (self.energies > movement_magnitudes) &
+            ~cell_vs_cell |
+            self.sugar_mask
+        )
 
         # Apply the movements
         self.positions = torch.where(
-            final_apply_mask,
+            final_apply_mask.unsqueeze(1),
             provisional_positions,
             self.positions
         )
@@ -246,11 +230,12 @@ class Things:
 
         # Reduce energies
         actual_magnitudes = torch.where(
-            final_apply_mask.squeeze(),
+            final_apply_mask,
             movement_magnitudes,
             torch.tensor(0.)
-        )[~self.sugar_mask]
-        self.energies[~self.sugar_mask] -= actual_magnitudes
+        )
+
+        self.energies -= actual_magnitudes
         self.E += actual_magnitudes.sum().item()
 
         # Handle sugar vs cell collisions
@@ -372,21 +357,28 @@ class Things:
 
         return 1
 
-    def add_sugars(self, types):
-        self.thing_types += types
+    def add_sugars(self, N):
+        self.thing_types += ["sugar" for _ in range(N)]
         self.sizes, self.positions = add_positions(
-            torch.tensor([THING_TYPES[x]["size"] for x in types]),
+            torch.tensor([THING_TYPES["sugar"]["size"] for _ in range(N)]),
             self.sizes,
             self.positions
         )
-        self.energies = torch.cat(
+        self.N += N
+        self.cell_mask = torch.cat(
             (
-                self.energies,
-                torch.tensor([THING_TYPES[x]["initial_energy"] for x in types])
+                self.cell_mask,
+                torch.zeros(N, dtype = torch.bool)
             ),
             dim = 0
         )
-        self.N += len(types)
+        self.sugar_mask = torch.cat(
+            (
+                self.sugar_mask,
+                torch.ones(N, dtype = torch.bool)
+            ),
+            dim = 0
+        )
 
     def remove_things(self, indices):
         self.thing_types = [
@@ -394,13 +386,21 @@ class Things:
             for i, thing_type in enumerate(self.thing_types)
             if i not in set(indices)
         ]
+
         mask = torch.ones(self.N, dtype = torch.bool)
         mask[indices] = False
+        self.N = mask.sum().item()
+
         self.sizes = self.sizes[mask]
         self.positions = self.positions[mask]
         self.energies = self.energies[mask]
-        #self.movement_tensor = self.movement_tensor[mask]
-        self.N = mask.sum().item()
+
+        self.genomes = self.genomes[mask]
+        self.apply_genomes()
+
+        self.cell_mask = self.cell_mask[mask]
+        self.sugar_mask = self.sugar_mask[mask]
+        self.Pop = self.cell_mask.sum().item()
 
     def draw(self, screen, show_sight = False, show_forces = False):
         masked_indices = torch.nonzero(self.cell_mask,
