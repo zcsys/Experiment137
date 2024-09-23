@@ -11,7 +11,7 @@ def add_positions(sizes,
                   width = SIMUL_WIDTH,
                   height = SIMUL_HEIGHT):
     existing_N = len(existing_positions)
-    total_N = len(sizes) + existing_N
+    total_N = existing_N + len(sizes)
 
     positions = existing_positions
     sizes = torch.cat((existing_sizes, sizes), dim = 0)
@@ -63,7 +63,7 @@ class Things:
 
         # Initialize genomes and lineages
         self.genomes = torch.zeros((self.Pop, 34)) # GENOME211_0
-        self.lineages = torch.zeros((self.Pop, 1), dtype = torch.int32)
+        self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
         # Initialize sensory input data
@@ -75,7 +75,7 @@ class Things:
 
         # Initialize font
         pygame.font.init()
-        self.font = pygame.font.SysFont(None, 24)
+        self.font = pygame.font.SysFont(None, 12)
 
     def apply_genomes(self):
         # Monad211 neurogenetics
@@ -85,14 +85,13 @@ class Things:
         self.biases_1_o = self.genomes[:, 32:34].view(self.Pop, 2, 1)
 
     def mutate(self, i, probability = 0.1, strength = 1., show = False):
-        idx = self.cell_mask[:i].sum().item()
-        mutated_genome = self.genomes[idx].clone()
+        mutated_genome = self.genomes[i].clone()
         mutation_mask = torch.rand_like(mutated_genome) < probability
         mutations = torch.rand_like(mutated_genome) * 2 - 1
         mutated_genome += mutation_mask * mutations * strength
         if mutation_mask.any() and show:
-            print(f"Original genome {idx}: {self.genomes[idx].tolist()}")
-            print(f"Mutated genome {idx}: {mutated_genome.tolist()}")
+            print(f"Original genome {i}: {self.genomes[i].tolist()}")
+            print(f"Mutated genome {i}: {mutated_genome.tolist()}")
             print("========")
         return mutated_genome
 
@@ -316,6 +315,7 @@ class Things:
             dim = 0
         )
 
+        i = self.cell_mask[:i].sum().item()
         genome = self.mutate(i)
         self.genomes = torch.cat(
             (
@@ -352,6 +352,13 @@ class Things:
             ),
             dim = 0
         )
+        if not genome is self.genomes[i]:
+            new_lineage = self.lineages[i] + [0]
+            while True:
+                new_lineage[-1] += 1
+                if new_lineage not in self.lineages:
+                    break
+            self.lineages += [new_lineage]
 
         self.cell_mask = torch.cat(
             (
@@ -464,7 +471,7 @@ class Things:
 
                 end_pos_1 = pos + input_vector_1 * 50
                 end_pos_2 = pos + input_vector_2 * 50
-                end_pos_3 = pos + movement_vector * 50
+                end_pos_3 = pos + movement_vector * 20
 
                 pygame.draw.line(screen, RED, (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_1[0].item()),

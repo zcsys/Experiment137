@@ -21,13 +21,13 @@ WHITE = (255, 255, 255)
 THING_TYPES = {
     "controlled_cell": {
         "color": BLUE,
-        "size": 20,
+        "size": 10,
         "initial_energy": 10000.,
         "overlap": False
     },
     "cell": {
         "color": GREEN,
-        "size": 20,
+        "size": 10,
         "initial_energy": 1000.,
         "overlap": False
     },
