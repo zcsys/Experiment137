@@ -24,9 +24,11 @@ def Rules(simul, n):
 
     # Aging and death
     if 3 in n:
-        energies = simul.things.energies[simul.things.cell_mask]
-        energies -= METABOLIC_ACTIVITY_CONSTANT
-        simul.things.cell_death(
-            torch.nonzero(energies <= 0, as_tuple = False).squeeze(1).tolist()
+        simul.things.energies[simul.things.cell_mask] -= (
+            METABOLIC_ACTIVITY_CONSTANT
         )
-        simul.things.energies[simul.things.cell_mask] = energies
+        to_remove = torch.nonzero(
+            simul.things.energies[simul.things.cell_mask] <= 0
+        )
+        if to_remove.any():
+            simul.things.cell_death(to_remove.squeeze(1).tolist())
