@@ -149,10 +149,8 @@ class Things:
         numberOf_sugars = self.sugar_mask.sum().item()
         if numberOf_sugars == 0:
             return
-        values = torch.tensor([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5],
-                              dtype = torch.float32)
-        weights = torch.tensor([1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1],
-                               dtype = torch.float32)
+        values = torch.tensor([-1, 0, 1], dtype = torch.float32)
+        weights = torch.tensor([1, 3, 1], dtype = torch.float32)
         indices = torch.multinomial(
             weights,
             numberOf_sugars * 2,

@@ -1,7 +1,10 @@
 from base_vars import *
+from base_vars import METABOLIC_ACTIVITY_CONSTANT
 import torch
 
 def Rules(simul, n):
+    global METABOLIC_ACTIVITY_CONSTANT
+
     # Accumulated system energy pops out sugars
     if 0 in n:
         if simul.things.E > 1000:
@@ -32,3 +35,12 @@ def Rules(simul, n):
         )
         if len(to_remove) > 0:
             simul.things.cell_death(to_remove.squeeze(1).tolist())
+
+    # Living conditions get harder as population goes high
+    if 4 in n:
+        if simul.things.Pop <= 20:
+            METABOLIC_ACTIVITY_CONSTANT = 0.1
+        elif simul.things.Pop > 20 and simul.things.Pop <= 30:
+            METABOLIC_ACTIVITY_CONSTANT = 0.1 * (simul.things.Pop - 20)
+        elif simul.things.Pop > 30:
+            METABOLIC_ACTIVITY_CONSTANT = 1. * (simul.things.Pop - 30)
