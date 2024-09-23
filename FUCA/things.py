@@ -11,7 +11,7 @@ def add_positions(sizes,
                   width = SIMUL_WIDTH,
                   height = SIMUL_HEIGHT):
     existing_N = len(existing_positions)
-    total_N = len(sizes) + existing_N
+    total_N = existing_N + len(sizes)
 
     positions = existing_positions
     sizes = torch.cat((existing_sizes, sizes), dim = 0)
@@ -34,6 +34,9 @@ def add_positions(sizes,
         i += 1
 
     return sizes, positions
+
+def remove_element(tensor, i):
+    return torch.cat((tensor[:i], tensor[i + 1:]), dim = 0)
 
 class Things:
     def __init__(self, thing_types):
@@ -63,19 +66,25 @@ class Things:
 
         # Initialize genomes and lineages
         self.genomes = torch.zeros((self.Pop, 34)) # GENOME211_0
-        self.lineages = torch.zeros((self.Pop, 1), dtype = torch.int32)
+        self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
         # Initialize sensory input data
         self.last_movement_was_successful = torch.ones(
             self.Pop,
             dtype = bool
-        ).view(self.Pop, 1)
+        ).unsqueeze(1)
         self.sensory_inputs()
 
         # Initialize font
         pygame.font.init()
-        self.font = pygame.font.SysFont(None, 24)
+        self.font = pygame.font.SysFont(None, 12)
+
+    def from_general_to_cell_idx(self, i):
+        return self.cell_mask[:i].sum().item()
+
+    def from_cell_to_general_idx(self, i):
+        return torch.nonzero(self.cell_mask)[i].item()
 
     def apply_genomes(self):
         # Monad211 neurogenetics
@@ -85,14 +94,13 @@ class Things:
         self.biases_1_o = self.genomes[:, 32:34].view(self.Pop, 2, 1)
 
     def mutate(self, i, probability = 0.1, strength = 1., show = False):
-        idx = self.cell_mask[:i].sum().item()
-        mutated_genome = self.genomes[idx].clone()
+        mutated_genome = self.genomes[i].clone()
         mutation_mask = torch.rand_like(mutated_genome) < probability
         mutations = torch.rand_like(mutated_genome) * 2 - 1
         mutated_genome += mutation_mask * mutations * strength
         if mutation_mask.any() and show:
-            print(f"Original genome {idx}: {self.genomes[idx].tolist()}")
-            print(f"Mutated genome {idx}: {mutated_genome.tolist()}")
+            print(f"Original genome {i}: {self.genomes[i].tolist()}")
+            print(f"Mutated genome {i}: {mutated_genome.tolist()}")
             print("========")
         return mutated_genome
 
@@ -141,10 +149,8 @@ class Things:
         numberOf_sugars = self.sugar_mask.sum().item()
         if numberOf_sugars == 0:
             return
-        values = torch.tensor([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5],
-                              dtype = torch.float32)
-        weights = torch.tensor([1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1],
-                               dtype = torch.float32)
+        values = torch.tensor([-1, 0, 1], dtype = torch.float32)
+        weights = torch.tensor([1, 3, 1], dtype = torch.float32)
         indices = torch.multinomial(
             weights,
             numberOf_sugars * 2,
@@ -257,6 +263,7 @@ class Things:
             self.remove_sugars(sugar_idx.tolist())
 
     def cell_division(self, i):
+        # See if division is possible
         thing_type = self.thing_types[i]
         if thing_type == "controlled_cell":
             thing_type = "cell"
@@ -316,7 +323,8 @@ class Things:
             dim = 0
         )
 
-        genome = self.mutate(i)
+        idx = self.from_general_to_cell_idx(i)
+        genome = self.mutate(idx)
         self.genomes = torch.cat(
             (
                 self.genomes,
@@ -352,6 +360,15 @@ class Things:
             ),
             dim = 0
         )
+        if genome is self.genomes[idx]:
+            self.lineages += self.lineages[idx]
+        else:
+            new_lineage = self.lineages[idx] + [0]
+            while True:
+                new_lineage[-1] += 1
+                if new_lineage not in self.lineages:
+                    break
+            self.lineages += [new_lineage]
 
         self.cell_mask = torch.cat(
             (
@@ -372,9 +389,33 @@ class Things:
 
         return 1
 
-    def cell_death(self, i):
-        #del self.thing_types[i]
-        pass
+    def cell_death(self, indices):
+        for i in indices[::-1]:
+            # Remove cell-only attributes
+            self.last_movement_was_successful = remove_element(
+                self.last_movement_was_successful, i
+            )
+            self.genomes = remove_element(self.genomes, i)
+            del self.lineages[i]
+
+            # Get general index to remove universal attributes
+            idx = self.from_cell_to_general_idx(i)
+
+            # Update main attributes
+            del self.thing_types[idx]
+            self.sizes = remove_element(self.sizes, idx)
+            self.positions = remove_element(self.positions, idx)
+            self.energies = remove_element(self.energies, idx)
+
+            # Update state vars
+            self.cell_mask = remove_element(self.cell_mask, idx)
+            self.sugar_mask = remove_element(self.sugar_mask, idx)
+
+        # Update collective state vars
+        self.N -= len(indices)
+        self.Pop -= len(indices)
+
+        self.apply_genomes()
 
     def add_sugars(self, N):
         self.thing_types += ["sugar" for _ in range(N)]
@@ -426,7 +467,8 @@ class Things:
         self.sugar_mask = self.sugar_mask[mask]
         self.Pop = self.cell_mask.sum().item()
 
-    def draw(self, screen, show_sight = False, show_forces = False):
+    def draw(self, screen, show_energy = True, show_sight = False,
+             show_forces = False):
         masked_indices = torch.nonzero(self.cell_mask,
                                        as_tuple = False).squeeze()
 
@@ -437,7 +479,8 @@ class Things:
 
             pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
                                int(pos[1].item())), size)
-            if thing_type != "sugar":
+
+            if show_energy and thing_type != "sugar":
                 energy_text = self.energies[i].item()
                 if energy_text < 1000:
                     energy_text = str(int(energy_text))
@@ -450,12 +493,12 @@ class Things:
                                                            int(pos[1].item())))
                 screen.blit(energy_text, text_rect)
 
-            if show_sight and thing_type == "cell":
+            if show_sight and thing_type != "sugar":
                 draw_dashed_circle(screen, GREEN, (int(pos[0].item()),
                                    int(pos[1].item())), SIGHT)
 
-            if show_forces and thing_type == "cell":
-                idx = self.cell_mask[:i].sum().item()
+            if show_forces and thing_type != "sugar":
+                idx = self.from_general_to_cell_idx(i)
                 if idx >= len(self.input_vectors):
                     return
                 input_vector_1 = self.input_vectors[idx, 0:2].squeeze(1)
@@ -464,7 +507,7 @@ class Things:
 
                 end_pos_1 = pos + input_vector_1 * 50
                 end_pos_2 = pos + input_vector_2 * 50
-                end_pos_3 = pos + movement_vector * 50
+                end_pos_3 = pos + movement_vector * 20
 
                 pygame.draw.line(screen, RED, (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_1[0].item()),

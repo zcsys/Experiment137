@@ -100,7 +100,11 @@ class UIManager:
         self.input_toggle_button = Button(self.screen, screen.get_width() -
                                           menu_width + 10, 160, 160, 40,
                                           "Toggle Forces", self.font)
+        self.energy_toggle_button = Button(self.screen, screen.get_width() -
+                                          menu_width + 10, 210, 160, 40,
+                                          "Toggle Energy", self.font)
 
+        self.show_energy = True
         self.show_sight = False
         self.show_forces = False
 
@@ -111,11 +115,12 @@ class UIManager:
             simulation.toggle_pause()
             self.play_pause_button.label = ("Play" if simulation.paused
                                             else "Pause")
-
         if self.sight_toggle_button.handle_event(event):
             self.show_sight = not self.show_sight
         if self.input_toggle_button.handle_event(event):
             self.show_forces = not self.show_forces
+        if self.energy_toggle_button.handle_event(event):
+            self.show_energy = not self.show_energy
 
     def draw(self, state, N, E, Pop):
         # Draw the right menu section (white background)
@@ -128,6 +133,7 @@ class UIManager:
         self.play_pause_button.draw()
         self.sight_toggle_button.draw()
         self.input_toggle_button.draw()
+        self.energy_toggle_button.draw()
 
         # Display simulation state (Epochs, Periods, Steps)
         start_y = self.screen.get_height() // 2
@@ -213,10 +219,11 @@ class Simulation:
                 self.things.final_action()
                 self.update_state()
 
-                Rules(self, [0, 1, 2, 3])
+                Rules(self, [0, 1, 2, 3, 4])
 
             self.screen.fill(BLACK)
-            self.things.draw(self.screen, self.ui_manager.show_sight,
+            self.things.draw(self.screen, self.ui_manager.show_energy,
+                             self.ui_manager.show_sight,
                              self.ui_manager.show_forces)
             self.ui_manager.draw(
                 self.get_state(),

@@ -1,8 +1,8 @@
-SCREEN_WIDTH = 1920
-SCREEN_HEIGHT = 1080
+SIMUL_WIDTH = 1920
+SIMUL_HEIGHT = 1080
 MENU_WIDTH = 180
-SIMUL_WIDTH = SCREEN_WIDTH - MENU_WIDTH
-SIMUL_HEIGHT = SCREEN_HEIGHT
+SCREEN_WIDTH = SIMUL_WIDTH + MENU_WIDTH
+SCREEN_HEIGHT = SIMUL_HEIGHT
 
 SIGHT = 120
 N_TARGET = 500
@@ -21,13 +21,13 @@ WHITE = (255, 255, 255)
 THING_TYPES = {
     "controlled_cell": {
         "color": BLUE,
-        "size": 20,
+        "size": 10,
         "initial_energy": 10000.,
         "overlap": False
     },
     "cell": {
         "color": GREEN,
-        "size": 20,
+        "size": 10,
         "initial_energy": 1000.,
         "overlap": False
     },
