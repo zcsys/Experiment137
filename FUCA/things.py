@@ -80,6 +80,12 @@ class Things:
         pygame.font.init()
         self.font = pygame.font.SysFont(None, 12)
 
+    def from_general_to_cell_idx(self, i):
+        return self.cell_mask[:i].sum().item()
+
+    def from_cell_to_general_idx(self, i):
+        return torch.nonzero(self.cell_mask)[i].item()
+
     def apply_genomes(self):
         # Monad211 neurogenetics
         self.weights_i_1 = self.genomes[:, 0:20].view(self.Pop, 4, 5)
@@ -319,8 +325,8 @@ class Things:
             dim = 0
         )
 
-        i = self.cell_mask[:i].sum().item()
-        genome = self.mutate(i)
+        idx = self.from_general_to_cell_idx(i)
+        genome = self.mutate(idx)
         self.genomes = torch.cat(
             (
                 self.genomes,
@@ -356,8 +362,10 @@ class Things:
             ),
             dim = 0
         )
-        if not genome is self.genomes[i]:
-            new_lineage = self.lineages[i] + [0]
+        if genome is self.genomes[idx]:
+            self.lineages += self.lineages[idx]
+        else:
+            new_lineage = self.lineages[idx] + [0]
             while True:
                 new_lineage[-1] += 1
                 if new_lineage not in self.lineages:
@@ -384,31 +392,26 @@ class Things:
         return 1
 
     def cell_death(self, indices):
-        # Remove cell-only attributes
-        for i in indices:
-            # Get cell-only index from general index
-            idx = self.cell_mask[:i].sum().item()
-
-            # Remove attributes
+        for i in indices[::-1]:
+            # Remove cell-only attributes
             self.last_movement_was_successful = remove_element(
-                self.last_movement_was_successful, idx
+                self.last_movement_was_successful, i
             )
-
-        # Remove universal attributes
-        for i in indices:
-            # Update main attributes
-            del self.thing_types[i]
-            self.sizes = remove_element(self.sizes, i)
-            self.positions = remove_element(self.positions, i)
-            self.energies = remove_element(self.energies, i)
-
-            # Update genomics
             self.genomes = remove_element(self.genomes, i)
             del self.lineages[i]
 
+            # Get general index to remove universal attributes
+            idx = self.from_cell_to_general_idx(i)
+
+            # Update main attributes
+            del self.thing_types[idx]
+            self.sizes = remove_element(self.sizes, idx)
+            self.positions = remove_element(self.positions, idx)
+            self.energies = remove_element(self.energies, idx)
+
             # Update state vars
-            self.cell_mask = remove_element(self.cell_mask, i)
-            self.sugar_mask = remove_element(self.sugar_mask, i)
+            self.cell_mask = remove_element(self.cell_mask, idx)
+            self.sugar_mask = remove_element(self.sugar_mask, idx)
 
         # Update collective state vars
         self.N -= len(indices)
@@ -497,7 +500,7 @@ class Things:
                                    int(pos[1].item())), SIGHT)
 
             if show_forces and thing_type != "sugar":
-                idx = self.cell_mask[:i].sum().item()
+                idx = self.from_general_to_cell_idx(i)
                 if idx >= len(self.input_vectors):
                     return
                 input_vector_1 = self.input_vectors[idx, 0:2].squeeze(1)

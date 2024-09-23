@@ -30,5 +30,5 @@ def Rules(simul, n):
         to_remove = torch.nonzero(
             simul.things.energies[simul.things.cell_mask] <= 0
         )
-        if to_remove.any():
+        if len(to_remove) > 0:
             simul.things.cell_death(to_remove.squeeze(1).tolist())
