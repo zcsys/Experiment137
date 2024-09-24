@@ -65,8 +65,9 @@ class Things:
         )
 
         # Initialize genomes and lineages
-        self.genomes = torch.zeros((self.Pop, 34)) # GENOME211_0
-        self.lineages = [[0] for _ in range(self.Pop)]
+        # self.genomes = torch.zeros((self.Pop, 34)) # GENOME211_0
+        self.genomes = torch.tensor([GENOME211_11 for _ in range(self.Pop)])
+        self.lineages = [[11] for _ in range(self.Pop)]
         self.apply_genomes()
 
         # Initialize sensory input data
@@ -85,6 +86,9 @@ class Things:
 
     def from_cell_to_general_idx(self, i):
         return torch.nonzero(self.cell_mask)[i].item()
+
+    def get_generation(self, i):
+        return self.lineages[i][0] + len(self.lineages[i])
 
     def apply_genomes(self):
         # Monad211 neurogenetics
