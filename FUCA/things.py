@@ -3,40 +3,8 @@ import pygame
 import random
 import math
 from base_vars import *
+from helpers import *
 from simulation import draw_dashed_circle
-
-def add_positions(sizes,
-                  existing_sizes = torch.empty(0),
-                  existing_positions = torch.empty((0, 2)),
-                  width = SIMUL_WIDTH,
-                  height = SIMUL_HEIGHT):
-    existing_N = len(existing_positions)
-    total_N = existing_N + len(sizes)
-
-    positions = existing_positions
-    sizes = torch.cat((existing_sizes, sizes), dim = 0)
-
-    i = existing_N
-    while i < total_N:
-        new_position = torch.tensor(
-            [
-                random.randint(int(sizes[i]), int(width - sizes[i])),
-                random.randint(int(sizes[i]), int(height - sizes[i]))
-            ],
-            dtype = torch.float32
-        ).unsqueeze(0)
-
-        distances = torch.norm(new_position - positions, dim = 1)
-        if (distances < sizes[i] + sizes[:i]).any():
-            continue
-
-        positions = torch.cat((positions, new_position), dim = 0)
-        i += 1
-
-    return sizes, positions
-
-def remove_element(tensor, i):
-    return torch.cat((tensor[:i], tensor[i + 1:]), dim = 0)
 
 class Things:
     def __init__(self, thing_types):
@@ -63,6 +31,7 @@ class Things:
             [THING_TYPES[thing_type]["initial_energy"]
             for thing_type in thing_types]
         )
+        self.colors = [THING_TYPES[x]["color"] for x in self.thing_types]
 
         # Initialize genomes and lineages
         # self.genomes = torch.zeros((self.Pop, 34)) # GENOME211_0
@@ -264,7 +233,7 @@ class Things:
                 cell_idx,
                 energy_per_non_sugar
             )
-            self.remove_sugars(sugar_idx.tolist())
+            self.remove_sugars(unique(sugar_idx.tolist()))
 
     def cell_division(self, i):
         # See if division is possible
@@ -289,7 +258,8 @@ class Things:
             (distances < self.sizes[self.cell_mask] + size).any()):
             return 0
 
-        self.thing_types += [thing_type]
+        # Create a new set of attributes
+        self.thing_types.append(thing_type)
         self.sizes = torch.cat(
             (
                 self.sizes,
@@ -327,6 +297,7 @@ class Things:
             dim = 0
         )
 
+        # Mutate the old genome & apply the new genome
         idx = self.from_general_to_cell_idx(i)
         genome = self.mutate(idx)
         self.genomes = torch.cat(
@@ -365,15 +336,18 @@ class Things:
             dim = 0
         )
         if genome is self.genomes[idx]:
-            self.lineages += self.lineages[idx]
+            self.lineages.append(self.lineages[idx])
+            self.colors.append(self.color[i])
         else:
             new_lineage = self.lineages[idx] + [0]
             while True:
                 new_lineage[-1] += 1
                 if new_lineage not in self.lineages:
                     break
-            self.lineages += [new_lineage]
+            self.lineages.append(new_lineage)
+            self.colors.append(get_color_by_genome(genome))
 
+        # Update state vars
         self.cell_mask = torch.cat(
             (
                 self.cell_mask,
@@ -407,6 +381,7 @@ class Things:
 
             # Update main attributes
             del self.thing_types[idx]
+            del self.colors[idx]
             self.sizes = remove_element(self.sizes, idx)
             self.positions = remove_element(self.positions, idx)
             self.energies = remove_element(self.energies, idx)
@@ -422,7 +397,9 @@ class Things:
         self.apply_genomes()
 
     def add_sugars(self, N):
-        self.thing_types += ["sugar" for _ in range(N)]
+        for _ in range(N):
+            self.thing_types.append("sugar")
+            self.colors.append(THING_TYPES["sugar"]["color"])
         self.sizes, self.positions = add_positions(
             torch.tensor([THING_TYPES["sugar"]["size"] for _ in range(N)]),
             self.sizes,
@@ -453,11 +430,9 @@ class Things:
         )
 
     def remove_sugars(self, indices):
-        self.thing_types = [
-            thing_type
-            for i, thing_type in enumerate(self.thing_types)
-            if i not in set(indices)
-        ]
+        for i in indices[::-1]:
+            del self.thing_types[i]
+            del self.colors[i]
 
         mask = torch.ones(self.N, dtype = torch.bool)
         mask[indices] = False
@@ -478,7 +453,7 @@ class Things:
 
         for i, pos in enumerate(self.positions):
             thing_type = self.thing_types[i]
-            thing_color = THING_TYPES[thing_type]["color"]
+            thing_color = self.colors[i]
             size = self.sizes[i].item()
 
             pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
@@ -510,7 +485,7 @@ class Things:
                 movement_vector = self.movement_tensor[i]
 
                 end_pos_1 = pos + input_vector_1 * 50
-                end_pos_2 = pos + input_vector_2 * 50
+                end_pos_2 = pos + input_vector_2 * 20
                 end_pos_3 = pos + movement_vector * 20
 
                 pygame.draw.line(screen, RED, (int(pos[0].item()),
@@ -530,7 +505,8 @@ class Things:
             'energies': self.energies.tolist(),
             'E': self.E,
             'genomes': self.genomes.tolist(),
-            'lineages': self.lineages
+            'lineages': self.lineages,
+            'colors': self.colors
         }
 
     def load_state(self, state):
@@ -544,3 +520,4 @@ class Things:
         self.E = state['E']
         self.genomes = torch.tensor(state['genomes'])
         self.lineages = state['lineages']
+        self.colors = state['colors']
