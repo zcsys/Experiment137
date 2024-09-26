@@ -1,8 +1,11 @@
 import torch
 import random
+import math
+import numpy as np
 from base_vars import *
 
 def unique(x):
+    """Gets a list and returns its unique values as a list in same order"""
     seen = set()
     result = []
     for item in x:
@@ -41,6 +44,25 @@ def add_positions(sizes,
 
     return sizes, positions
 
+def generate_wave(frequency, duration, waveform = "sine", sample_rate = 44100,
+                  amplitude = 400):
+    t = np.linspace(0, duration, int(sample_rate * duration), False)
+    if waveform == "sine":
+        wave = np.sin(2 * np.pi * frequency * t) * amplitude
+    elif waveform == "square":
+        wave = amplitude * np.sign(np.sin(2 * np.pi * frequency * t))
+    elif waveform == "sawtooth":
+        wave = 2 * amplitude * (t * frequency - np.floor(1/2 + t * frequency))
+    elif waveform == "noise":
+        wave = np.random.uniform(-1, 1, size=t.shape) * amplitude
+    else:
+        raise ValueError("Invalid waveform type. Choose 'sine', 'square'," +
+                         "'sawtooth', or 'noise'.")
+    wave = wave.astype(np.int16)
+    sound_array = np.array([wave, wave]).T
+    sound_array = np.ascontiguousarray(sound_array)
+    return pygame.sndarray.make_sound(sound_array)
+
 def remove_element(tensor, i):
     return torch.cat((tensor[:i], tensor[i + 1:]), dim = 0)
 
@@ -53,8 +75,7 @@ def hex_to_rgb(hex_color):
 
 def get_color_by_genome(genome, scale = 10, base_color = GRAY):
     n = len(genome) // 3
-
-    a = (
+    return (
         max(min(base_color[0] + int(scale * genome[:n].sum().item()),
             255), 64),
         max(min(base_color[1] + int(scale * genome[n:2 * n].sum().item()),
@@ -62,7 +83,3 @@ def get_color_by_genome(genome, scale = 10, base_color = GRAY):
         max(min(base_color[2] + int(scale * genome[2 * n:].sum().item()),
             255), 64)
     )
-
-    print(a)
-
-    return a

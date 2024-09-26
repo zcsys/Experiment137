@@ -3,7 +3,6 @@ import time
 import json
 import torch
 import math
-import numpy as np
 from base_vars import *
 from rules import Rules
 
@@ -21,25 +20,6 @@ def draw_dashed_circle(surface, color, center, radius, dash_length = 5,
         end_y = center[1] + radius * math.sin(math.radians(end_angle))
         pygame.draw.line(surface, color, (start_x, start_y), (end_x, end_y), 1)
         angle += dash_angle + gap_angle
-
-def generate_wave(frequency, duration, waveform = "sine", sample_rate = 44100,
-                  amplitude = 400):
-    t = np.linspace(0, duration, int(sample_rate * duration), False)
-    if waveform == "sine":
-        wave = np.sin(2 * np.pi * frequency * t) * amplitude
-    elif waveform == "square":
-        wave = amplitude * np.sign(np.sin(2 * np.pi * frequency * t))
-    elif waveform == "sawtooth":
-        wave = 2 * amplitude * (t * frequency - np.floor(1/2 + t * frequency))
-    elif waveform == "noise":
-        wave = np.random.uniform(-1, 1, size=t.shape) * amplitude
-    else:
-        raise ValueError("Invalid waveform type. Choose 'sine', 'square'," +
-                         "'sawtooth', or 'noise'.")
-    wave = wave.astype(np.int16)
-    sound_array = np.array([wave, wave]).T
-    sound_array = np.ascontiguousarray(sound_array)
-    return pygame.sndarray.make_sound(sound_array)
 
 class Button:
     def __init__(self, screen, x, y, width, height, label, font,
@@ -83,7 +63,7 @@ class Button:
         return False
 
 class UIManager:
-    def __init__(self, screen, menu_width):
+    def __init__(self, screen, menu_width, paused):
         self.screen = screen
         self.menu_width = menu_width
         self.font = pygame.font.Font(None, 24)
@@ -93,7 +73,8 @@ class UIManager:
                                   40, "Save", self.font)
         self.play_pause_button = Button(self.screen,
                                         screen.get_width() - menu_width + 10,
-                                        60, 160, 40, "Pause", self.font)
+                                        60, 160, 40, "Play" if paused else
+                                        "Pause", self.font)
         self.sight_toggle_button = Button(self.screen, screen.get_width() -
                                           menu_width + 10, 110, 160, 40,
                                           "Toggle Sight", self.font)
@@ -167,14 +148,21 @@ class Simulation:
         pygame.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         pygame.display.set_caption("Experiment 137.03: FUCA")
-        self.ui_manager = UIManager(self.screen, MENU_WIDTH)
-        self.paused = False
         self.things = things_object
-        self.steps, self.periods, self.epochs = 0, 0, 0
         self.period_start_time = time.time()
-        self.crr_period_dur = 0
+
         if load_file:
-            self.load_simulation(load_file)
+            with open(load_file, 'r') as f:
+                saved_data = json.load(f)
+                self.load_state(saved_data["simulation_state"])
+            self.paused = True
+            self.ui_manager = UIManager(self.screen, MENU_WIDTH, self.paused)
+            return
+
+        self.paused = False
+        self.ui_manager = UIManager(self.screen, MENU_WIDTH, self.paused)
+        self.steps, self.periods, self.epochs = 0, 0, 0
+        self.crr_period_dur = 0
 
     def update_state(self):
         self.steps += 1
@@ -202,7 +190,6 @@ class Simulation:
         self.steps = state.get('steps', 0)
         self.periods = state.get('periods', 0)
         self.epochs = state.get('epochs', 0)
-        self.period_start_time = time.time()
         self.crr_period_dur = state.get('crr_period_dur', 0)
 
     def run(self):
@@ -245,12 +232,6 @@ class Simulation:
         with open(filename, 'w') as f:
             json.dump(combined_state, f)
         print(f"Simulation saved to {filename}")
-
-    def load_simulation(self, filename):
-        with open(filename, 'r') as f:
-            saved_data = json.load(f)
-            self.load_state(saved_data["simulation_state"])
-            self.things.load_state(saved_data["things_state"])
 
     def toggle_pause(self):
         self.paused = not self.paused

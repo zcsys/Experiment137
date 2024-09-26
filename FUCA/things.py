@@ -2,12 +2,17 @@ import torch
 import pygame
 import random
 import math
+import json
 from base_vars import *
 from helpers import *
 from simulation import draw_dashed_circle
 
 class Things:
-    def __init__(self, thing_types):
+    def __init__(self, thing_types = None, state_file = None):
+        if state_file:
+            self.load_state(state_file)
+            return
+
         # Main attributes
         self.thing_types = thing_types
         self.sizes, self.positions = add_positions(
@@ -205,6 +210,7 @@ class Things:
             self.positions
         )
 
+        # Update the LMWS input neuron
         self.last_movement_was_successful = final_apply_mask[
             self.cell_mask
         ].unsqueeze(1)
@@ -507,10 +513,15 @@ class Things:
             'E': self.E,
             'genomes': self.genomes.tolist(),
             'lineages': self.lineages,
-            'colors': self.colors
+            'colors': self.colors,
+            'LMWS': self.last_movement_was_successful.tolist()
         }
 
-    def load_state(self, state):
+    def load_state(self, state_file):
+        print("Here is state file:", state_file)
+        with open(state_file, 'r') as f:
+            state = json.load(f)["things_state"]
+
         self.thing_types = state['types']
         self.sizes = torch.tensor(
             [THING_TYPES[x]["size"] for x in self.thing_types]
@@ -522,3 +533,19 @@ class Things:
         self.genomes = torch.tensor(state['genomes'])
         self.lineages = state['lineages']
         self.colors = state['colors']
+        self.last_movement_was_successful = torch.tensor(state['LMWS'])
+
+        self.cell_mask = torch.tensor(
+            [thing_type == "cell" or thing_type == "controlled_cell"
+             for thing_type in self.thing_types]
+        )
+        self.sugar_mask = torch.tensor(
+            [thing_type == "sugar" for thing_type in self.thing_types]
+        )
+        self.Pop = self.cell_mask.sum().item()
+
+        self.apply_genomes()
+        self.sensory_inputs()
+
+        pygame.font.init()
+        self.font = pygame.font.SysFont(None, 12)
