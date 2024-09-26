@@ -478,7 +478,8 @@ class Things:
 
             if show_forces and thing_type != "sugar":
                 idx = self.from_general_to_cell_idx(i)
-                if idx >= len(self.input_vectors):
+                if (idx >= len(self.input_vectors) or
+                    i >= len(self.movement_tensor)):
                     return
                 input_vector_1 = self.input_vectors[idx, 0:2].squeeze(1)
                 input_vector_2 = self.input_vectors[idx, 2:4].squeeze(1)

@@ -15,8 +15,9 @@ GREEN = (0, 255, 0)
 CYAN = (0, 255, 255)
 RED = (255, 0, 0)
 MAGENTA = (255, 0, 255)
-YELLOW = (255, 255, 0)
+YELLOW = (160, 160, 0)
 WHITE = (255, 255, 255)
+GRAY = (160, 160, 160)
 
 THING_TYPES = {
     "controlled_cell": {
