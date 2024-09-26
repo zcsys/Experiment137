@@ -36,7 +36,7 @@ def Rules(simul, n):
         if len(to_remove) > 0:
             simul.things.cell_death(to_remove.squeeze(1).tolist())
 
-    # Living conditions get harder as population goes high
+    # Living conditions get harder as population goes high and as epochs pass
     if 4 in n:
         if simul.things.Pop <= 20:
             METABOLIC_ACTIVITY_CONSTANT = 0.1
@@ -44,3 +44,6 @@ def Rules(simul, n):
             METABOLIC_ACTIVITY_CONSTANT = 0.1 * (simul.things.Pop - 20)
         elif simul.things.Pop > 30:
             METABOLIC_ACTIVITY_CONSTANT = 1. * (simul.things.Pop - 30)
+
+        if simul.epochs != 0:
+            simul.things.heat = 0

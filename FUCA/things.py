@@ -9,6 +9,13 @@ from simulation import draw_dashed_circle
 
 class Things:
     def __init__(self, thing_types = None, state_file = None):
+        # Initialize font
+        pygame.font.init()
+        self.font = pygame.font.SysFont(None, 12)
+
+        # Initialize system heat
+        self.heat = 11
+
         if state_file:
             self.load_state(state_file)
             return
@@ -39,9 +46,9 @@ class Things:
         self.colors = [THING_TYPES[x]["color"] for x in self.thing_types]
 
         # Initialize genomes and lineages
-        # self.genomes = torch.zeros((self.Pop, 34)) # GENOME211_0
-        self.genomes = torch.tensor([GENOME211_11 for _ in range(self.Pop)])
-        self.lineages = [[11] for _ in range(self.Pop)]
+        self.genomes = torch.zeros((self.Pop, 34)) # GENOME211_0
+        #self.genomes = torch.tensor([GENOME211_11 for _ in range(self.Pop)])
+        self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
         # Initialize sensory input data
@@ -50,10 +57,6 @@ class Things:
             dtype = bool
         ).unsqueeze(1)
         self.sensory_inputs()
-
-        # Initialize font
-        pygame.font.init()
-        self.font = pygame.font.SysFont(None, 12)
 
     def from_general_to_cell_idx(self, i):
         return self.cell_mask[:i].sum().item()
@@ -125,10 +128,12 @@ class Things:
 
     def random_action(self):
         numberOf_sugars = self.sugar_mask.sum().item()
-        if numberOf_sugars == 0:
-            return
-        values = torch.tensor([-1, 0, 1], dtype = torch.float32)
-        weights = torch.tensor([1, 3, 1], dtype = torch.float32)
+        if self.heat == 0:
+            return torch.tensor([[0, 0] for _ in range(numberOf_sugars)],
+                                dtype = torch.float32)
+        values = (torch.tensor(list(range(self.heat)), dtype = torch.float32) -
+                  (self.heat - 1) / 2)
+        weights = torch.ones(self.heat, dtype = torch.float32)
         indices = torch.multinomial(
             weights,
             numberOf_sugars * 2,
@@ -352,6 +357,7 @@ class Things:
                     break
             self.lineages.append(new_lineage)
             self.colors.append(get_color_by_genome(genome))
+            # print(new_lineage)
 
         # Update state vars
         self.cell_mask = torch.cat(
