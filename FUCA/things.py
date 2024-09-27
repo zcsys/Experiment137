@@ -46,8 +46,7 @@ class Things:
         self.colors = [THING_TYPES[x]["color"] for x in self.thing_types]
 
         # Initialize genomes and lineages
-        self.genomes = torch.zeros((self.Pop, 34)) # GENOME211_0
-        #self.genomes = torch.tensor([GENOME211_11 for _ in range(self.Pop)])
+        self.genomes = torch.zeros((self.Pop, 43)) # GENOME213_0
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
@@ -68,11 +67,11 @@ class Things:
         return self.lineages[i][0] + len(self.lineages[i])
 
     def apply_genomes(self):
-        # Monad211 neurogenetics
-        self.weights_i_1 = self.genomes[:, 0:20].view(self.Pop, 4, 5)
-        self.weights_1_o = self.genomes[:, 20:28].view(self.Pop, 2, 4)
-        self.biases_i_1 = self.genomes[:, 28:32].view(self.Pop, 4, 1)
-        self.biases_1_o = self.genomes[:, 32:34].view(self.Pop, 2, 1)
+        # Monad213 neurogenetics
+        self.weights_i_1 = self.genomes[:, 0:24].view(self.Pop, 4, 6)
+        self.weights_1_o = self.genomes[:, 24:36].view(self.Pop, 3, 4)
+        self.biases_i_1 = self.genomes[:, 36:40].view(self.Pop, 4, 1)
+        self.biases_1_o = self.genomes[:, 40:43].view(self.Pop, 3, 1)
 
     def mutate(self, i, probability = 0.1, strength = 1., show = False):
         mutated_genome = self.genomes[i].clone()
@@ -114,17 +113,18 @@ class Things:
             [
                 col1,
                 col2,
-                self.last_movement_was_successful
+                self.last_movement_was_successful,
+                (self.energies[self.cell_mask] / 10000).unsqueeze(1)
             ],
             dim = 1
-        ).view(self.Pop, 5, 1)
+        ).view(self.Pop, 6, 1)
 
     def neural_action(self):
         input_tensor = self.input_vectors
         layer_1 = torch.tanh((torch.bmm(self.weights_i_1, input_tensor) +
                    self.biases_i_1))
         return torch.tanh((torch.bmm(self.weights_1_o, layer_1) +
-                   self.biases_1_o)).view(self.Pop, 2)
+                   self.biases_1_o)).view(self.Pop, 3)
 
     def random_action(self):
         numberOf_sugars = self.sugar_mask.sum().item()
@@ -162,7 +162,10 @@ class Things:
             self.movement_tensor = torch.tensor([[0., 0.]
                                                  for _ in range(self.N)])
         if self.cell_mask.any():
-            self.movement_tensor[self.cell_mask] = self.neural_action()
+            neural_action = self.neural_action()
+            self.movement_tensor[self.cell_mask] = neural_action[:, :2]
+            for i in (neural_action[:, 2] > 0).nonzero():
+                self.cell_division(self.from_cell_to_general_idx(i))
         if "controlled_cell" in self.thing_types:
             self.movement_tensor[0] = self.controlled_action()
         if self.sugar_mask.any():
@@ -321,28 +324,28 @@ class Things:
         self.weights_i_1 = torch.cat(
             (
                 self.weights_i_1,
-                genome[0:20].view(1, 4, 5)
+                genome[0:24].view(1, 4, 6)
             ),
             dim = 0
         )
         self.weights_1_o = torch.cat(
             (
                 self.weights_1_o,
-                genome[20:28].view(1, 2, 4)
+                genome[24:36].view(1, 3, 4)
             ),
             dim = 0
         )
         self.biases_i_1 = torch.cat(
             (
                 self.biases_i_1,
-                genome[28:32].view(1, 4, 1)
+                genome[36:40].view(1, 4, 1)
             ),
             dim = 0
         )
         self.biases_1_o = torch.cat(
             (
                 self.biases_1_o,
-                genome[32:34].view(1, 2, 1)
+                genome[40:43].view(1, 3, 1)
             ),
             dim = 0
         )
