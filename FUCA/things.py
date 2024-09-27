@@ -14,7 +14,7 @@ class Things:
         self.font = pygame.font.SysFont(None, 12)
 
         # Initialize system heat
-        self.heat = 11
+        self.heat = 21
 
         if state_file:
             self.load_state(state_file)
@@ -120,11 +120,10 @@ class Things:
         ).view(self.Pop, 6, 1)
 
     def neural_action(self):
-        input_tensor = self.input_vectors
-        layer_1 = torch.tanh((torch.bmm(self.weights_i_1, input_tensor) +
-                   self.biases_i_1))
-        return torch.tanh((torch.bmm(self.weights_1_o, layer_1) +
-                   self.biases_1_o)).view(self.Pop, 3)
+        layer_1 = torch.tanh(torch.bmm(self.weights_i_1, self.input_vectors) +
+                             self.biases_i_1)
+        return torch.tanh(torch.bmm(self.weights_1_o, layer_1) +
+                          self.biases_1_o).view(self.Pop, 3)
 
     def random_action(self):
         numberOf_sugars = self.sugar_mask.sum().item()
@@ -250,12 +249,13 @@ class Things:
             self.remove_sugars(unique(sugar_idx.tolist()))
 
     def cell_division(self, i):
-        # See if division is possible
+        # Set out main attributes and see if division is possible
         thing_type = self.thing_types[i]
         if thing_type == "controlled_cell":
             thing_type = "cell"
-        initial_energy = torch.tensor(THING_TYPES[thing_type]["initial_energy"])
-        if self.energies[i] < 2 * initial_energy:
+        initial_energy = self.energies[i] / 2
+        if (initial_energy <
+            torch.tensor(THING_TYPES[thing_type]["initial_energy"])):
             return 0
         size = THING_TYPES[thing_type]["size"]
         x, y = tuple(self.positions[i].tolist())
@@ -527,7 +527,6 @@ class Things:
         }
 
     def load_state(self, state_file):
-        print("Here is state file:", state_file)
         with open(state_file, 'r') as f:
             state = json.load(f)["things_state"]
 

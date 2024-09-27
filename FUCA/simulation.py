@@ -157,6 +157,7 @@ class Simulation:
                 self.load_state(saved_data["simulation_state"])
             self.paused = True
             self.ui_manager = UIManager(self.screen, MENU_WIDTH, self.paused)
+            print(f"Simulation restored from {load_file}")
             return
 
         self.paused = False
@@ -206,7 +207,7 @@ class Simulation:
                 self.things.final_action()
                 self.update_state()
 
-                Rules(self, [0, 1, 2, 3, 4])
+                Rules(self, [1, 2, 3, 4, 5])
 
             self.screen.fill(BLACK)
             self.things.draw(self.screen, self.ui_manager.show_energy,
