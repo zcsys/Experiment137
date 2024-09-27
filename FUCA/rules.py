@@ -50,9 +50,9 @@ def Rules(simul, n):
     if 5 in n:
         if simul.epochs == 1:
             simul.things.heat = 11
+            N_TARGET = 350
             AUTO_FISSION_THRESHOLD = 20000
-            N_TARGET = 150
-        elif simul.epochs > 1:
-            simul.things.heat = 0
+        if simul.epochs > 1:
+            simul.things.heat = 3
+            N_TARGET = 200
             AUTO_FISSION_THRESHOLD = 40000
-            N_TARGET = 100

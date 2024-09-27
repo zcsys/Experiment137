@@ -44,9 +44,10 @@ class Things:
             for thing_type in thing_types]
         )
         self.colors = [THING_TYPES[x]["color"] for x in self.thing_types]
+        self.hidden_1 = torch.zeros((self.Pop, 4, 1), dtype = torch.float32)
 
         # Initialize genomes and lineages
-        self.genomes = torch.zeros((self.Pop, 43)) # GENOME213_0
+        self.genomes = torch.zeros((self.Pop, 59)) # GENOME313_0
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
@@ -67,11 +68,12 @@ class Things:
         return self.lineages[i][0] + len(self.lineages[i])
 
     def apply_genomes(self):
-        # Monad213 neurogenetics
+        # Monad313 neurogenetics
         self.weights_i_1 = self.genomes[:, 0:24].view(self.Pop, 4, 6)
-        self.weights_1_o = self.genomes[:, 24:36].view(self.Pop, 3, 4)
-        self.biases_i_1 = self.genomes[:, 36:40].view(self.Pop, 4, 1)
-        self.biases_1_o = self.genomes[:, 40:43].view(self.Pop, 3, 1)
+        self.weights_h_1 = self.genomes[:, 24:40].view(self.Pop, 4, 4)
+        self.weights_1_o = self.genomes[:, 40:52].view(self.Pop, 3, 4)
+        self.biases_i_1 = self.genomes[:, 52:56].view(self.Pop, 4, 1)
+        self.biases_1_o = self.genomes[:, 56:59].view(self.Pop, 3, 1)
 
     def mutate(self, i, probability = 0.1, strength = 1., show = False):
         mutated_genome = self.genomes[i].clone()
@@ -120,10 +122,16 @@ class Things:
         ).view(self.Pop, 6, 1)
 
     def neural_action(self):
-        layer_1 = torch.tanh(torch.bmm(self.weights_i_1, self.input_vectors) +
-                             self.biases_i_1)
-        return torch.tanh(torch.bmm(self.weights_1_o, layer_1) +
-                          self.biases_1_o).view(self.Pop, 3)
+        self.hidden_1 = torch.tanh(
+            torch.bmm(self.weights_i_1, self.input_vectors) +
+            torch.bmm(self.weights_h_1, self.hidden_1) +
+            self.biases_i_1
+        )
+
+        return torch.tanh(
+            torch.bmm(self.weights_1_o, self.hidden_1) +
+            self.biases_1_o
+        ).view(self.Pop, 3)
 
     def random_action(self):
         numberOf_sugars = self.sugar_mask.sum().item()
@@ -229,7 +237,7 @@ class Things:
             torch.tensor(0.)
         )
         self.energies -= actual_magnitudes
-        self.E += actual_magnitudes.sum().item()
+        # self.E += actual_magnitudes.sum().item() # Works with Rules(0)
 
         # Handle sugar vs cell collisions
         sugar_vs_cell = (
@@ -257,6 +265,7 @@ class Things:
         if (initial_energy <
             torch.tensor(THING_TYPES[thing_type]["initial_energy"])):
             return 0
+        print("Cell division at energy", int(initial_energy.item()))
         size = THING_TYPES[thing_type]["size"]
         x, y = tuple(self.positions[i].tolist())
         angle = random.random() * 2 * math.pi
@@ -328,24 +337,38 @@ class Things:
             ),
             dim = 0
         )
+        self.weights_h_1 = torch.cat(
+            (
+                self.weights_h_1,
+                genome[24:40].view(1, 4, 4)
+            ),
+            dim = 0
+        )
         self.weights_1_o = torch.cat(
             (
                 self.weights_1_o,
-                genome[24:36].view(1, 3, 4)
+                genome[40:52].view(1, 3, 4)
             ),
             dim = 0
         )
         self.biases_i_1 = torch.cat(
             (
                 self.biases_i_1,
-                genome[36:40].view(1, 4, 1)
+                genome[52:56].view(1, 4, 1)
             ),
             dim = 0
         )
         self.biases_1_o = torch.cat(
             (
                 self.biases_1_o,
-                genome[40:43].view(1, 3, 1)
+                genome[56:59].view(1, 3, 1)
+            ),
+            dim = 0
+        )
+        self.hidden_1 = torch.cat(
+            (
+                self.hidden_1,
+                torch.zeros((1, 4, 1), dtype = torch.float32)
             ),
             dim = 0
         )
@@ -389,6 +412,7 @@ class Things:
                 self.last_movement_was_successful, i
             )
             self.genomes = remove_element(self.genomes, i)
+            self.hidden_1 = remove_element(self.hidden_1, i)
             del self.lineages[i]
 
             # Get general index to remove universal attributes
@@ -523,7 +547,8 @@ class Things:
             'genomes': self.genomes.tolist(),
             'lineages': self.lineages,
             'colors': self.colors,
-            'LMWS': self.last_movement_was_successful.tolist()
+            'LMWS': self.last_movement_was_successful.tolist(),
+            'hidden_1': self.hidden_1.tolist()
         }
 
     def load_state(self, state_file):
@@ -542,6 +567,7 @@ class Things:
         self.lineages = state['lineages']
         self.colors = state['colors']
         self.last_movement_was_successful = torch.tensor(state['LMWS'])
+        self.hidden_1 = torch.tensor(state['hidden_1'])
 
         self.cell_mask = torch.tensor(
             [thing_type == "cell" or thing_type == "controlled_cell"
