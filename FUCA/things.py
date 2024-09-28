@@ -44,10 +44,11 @@ class Things:
             for thing_type in thing_types]
         )
         self.colors = [THING_TYPES[x]["color"] for x in self.thing_types]
-        self.hidden_1 = torch.zeros((self.Pop, 4, 1), dtype = torch.float32)
+        self.hidden_1 = torch.zeros((self.Pop, 8, 1), dtype = torch.float32)
+        self.hidden_2 = torch.zeros((self.Pop, 8, 1), dtype = torch.float32)
 
         # Initialize genomes and lineages
-        self.genomes = torch.zeros((self.Pop, 59)) # GENOME313_0
+        self.genomes = torch.zeros((self.Pop, 315)) # GENOME429_0
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
@@ -62,6 +63,10 @@ class Things:
             self.Pop,
             dtype = torch.bool
         ).unsqueeze(1)
+        self.incoming_messages = torch.zeros(
+            (self.Pop, 4),
+            dtype = torch.bool
+        )
         self.sensory_inputs()
 
     def from_general_to_cell_idx(self, i):
@@ -74,14 +79,22 @@ class Things:
         return self.lineages[i][0] + len(self.lineages[i])
 
     def apply_genomes(self):
-        # Monad313 neurogenetics
-        self.weights_i_1 = self.genomes[:, 0:24].view(self.Pop, 4, 6)
-        self.weights_h_1 = self.genomes[:, 24:40].view(self.Pop, 4, 4)
-        self.weights_1_o = self.genomes[:, 40:52].view(self.Pop, 3, 4)
-        self.biases_i_1 = self.genomes[:, 52:56].view(self.Pop, 4, 1)
-        self.biases_1_o = self.genomes[:, 56:59].view(self.Pop, 3, 1)
+        """Monad429 neurogenetics"""
+        # Layer 1
+        self.weights_i_1 = self.genomes[:, 0:80].view(self.Pop, 8, 10)
+        self.weights_h_1 = self.genomes[:, 80:144].view(self.Pop, 8, 8)
+        self.biases_i_1 = self.genomes[:, 144:152].view(self.Pop, 8, 1)
 
-    def mutate(self, i, probability = 0.1, strength = 1., show = False):
+        # Layer 2
+        self.weights_1_2 = self.genomes[:, 152:216].view(self.Pop, 8, 8)
+        self.weights_h_2 = self.genomes[:, 216:280].view(self.Pop, 8, 8)
+        self.biases_1_2 = self.genomes[:, 280:288].view(self.Pop, 8, 1)
+
+        # Output layer
+        self.weights_2_o = self.genomes[:, 288:312].view(self.Pop, 3, 8)
+        self.biases_2_o = self.genomes[:, 312:315].view(self.Pop, 3, 1)
+
+    def mutate(self, i, probability = 0.05, strength = 1., show = False):
         mutated_genome = self.genomes[i].clone()
         mutation_mask = torch.rand_like(mutated_genome) < probability
         mutations = torch.rand_like(mutated_genome) * 2 - 1
@@ -122,10 +135,11 @@ class Things:
                 col1,
                 col2,
                 self.last_movement_was_successful,
-                (self.energies[self.cell_mask] / 10000).unsqueeze(1)
+                (self.energies[self.cell_mask] / 10000).unsqueeze(1),
+                self.incoming_messages
             ],
             dim = 1
-        ).view(self.Pop, 6, 1)
+        ).view(self.Pop, 10, 1)
 
     def neural_action(self):
         self.hidden_1 = torch.tanh(
@@ -134,9 +148,15 @@ class Things:
             self.biases_i_1
         )
 
+        self.hidden_2 = torch.tanh(
+            torch.bmm(self.weights_1_2, self.hidden_1) +
+            torch.bmm(self.weights_h_2, self.hidden_2) +
+            self.biases_1_2
+        )
+
         return torch.tanh(
-            torch.bmm(self.weights_1_o, self.hidden_1) +
-            self.biases_1_o
+            torch.bmm(self.weights_2_o, self.hidden_2) +
+            self.biases_2_o
         ).view(self.Pop, 3)
 
     def random_action(self):
@@ -199,6 +219,11 @@ class Things:
             overlap_mask
         ).any(dim = 1)
 
+        # Detect cells with overlapping sights
+        sight_overlap_mask = (
+            distances[self.cell_mask][:, self.cell_mask] < 2 * SIGHT
+        ).fill_diagonal_(False)
+
         # Allow movement only if there's enough energy or if type is 'sugar'
         movement_magnitudes = torch.diag(distances)
         final_apply_mask = (
@@ -244,6 +269,10 @@ class Things:
                 energy_per_non_sugar
             )
             self.remove_sugars(unique(sugar_idx.tolist()))
+
+        # Deliver messages
+        if sight_overlap_mask.any():
+            print(torch.unique(sight_overlap_mask.nonzero()))
 
     def cell_division(self, i):
         # Set out main attributes and see if division is possible
@@ -315,6 +344,13 @@ class Things:
             ),
             dim = 0
         )
+        self.incoming_messages = torch.cat(
+            (
+                self.incoming_messages,
+                torch.empty((1, 4), dtype = torch.bool)
+            ),
+            dim = 0
+        )
 
         # Mutate the old genome & apply the new genome
         idx = self.from_general_to_cell_idx(i)
@@ -329,42 +365,70 @@ class Things:
         self.weights_i_1 = torch.cat(
             (
                 self.weights_i_1,
-                genome[0:24].view(1, 4, 6)
+                genome[0:80].view(1, 8, 10)
             ),
             dim = 0
         )
         self.weights_h_1 = torch.cat(
             (
                 self.weights_h_1,
-                genome[24:40].view(1, 4, 4)
-            ),
-            dim = 0
-        )
-        self.weights_1_o = torch.cat(
-            (
-                self.weights_1_o,
-                genome[40:52].view(1, 3, 4)
+                genome[80:144].view(1, 8, 8)
             ),
             dim = 0
         )
         self.biases_i_1 = torch.cat(
             (
                 self.biases_i_1,
-                genome[52:56].view(1, 4, 1)
+                genome[144:152].view(1, 8, 1)
             ),
             dim = 0
         )
-        self.biases_1_o = torch.cat(
+        self.weights_1_2 = torch.cat(
             (
-                self.biases_1_o,
-                genome[56:59].view(1, 3, 1)
+                self.weights_1_2,
+                genome[152:216].view(1, 8, 8)
+            ),
+            dim = 0
+        )
+        self.weights_h_2 = torch.cat(
+            (
+                self.weights_h_2,
+                genome[216:280].view(1, 8, 8)
+            ),
+            dim = 0
+        )
+        self.biases_1_2 = torch.cat(
+            (
+                self.biases_1_2,
+                genome[280:288].view(1, 8, 1)
+            ),
+            dim = 0
+        )
+        self.weights_2_o = torch.cat(
+            (
+                self.weights_2_o,
+                genome[288:312].view(1, 3, 8)
+            ),
+            dim = 0
+        )
+        self.biases_2_o = torch.cat(
+            (
+                self.biases_2_o,
+                genome[312:315].view(1, 3, 1)
             ),
             dim = 0
         )
         self.hidden_1 = torch.cat(
             (
                 self.hidden_1,
-                torch.zeros((1, 4, 1), dtype = torch.float32)
+                torch.zeros((1, 8, 1), dtype = torch.float32)
+            ),
+            dim = 0
+        )
+        self.hidden_2 = torch.cat(
+            (
+                self.hidden_2,
+                torch.zeros((1, 8, 1), dtype = torch.float32)
             ),
             dim = 0
         )
@@ -409,7 +473,9 @@ class Things:
             )
             self.genomes = remove_element(self.genomes, i)
             self.hidden_1 = remove_element(self.hidden_1, i)
+            self.hidden_2 = remove_element(self.hidden_2, i)
             self.messages = remove_element(self.messages, i)
+            self.incoming_messages = remove_element(self.incoming_messages, i)
             del self.lineages[i]
 
             # Get general index to remove universal attributes
@@ -576,7 +642,10 @@ class Things:
             'lineages': self.lineages,
             'colors': self.colors,
             'LMWS': self.last_movement_was_successful.tolist(),
-            'hidden_1': self.hidden_1.tolist()
+            'hidden_1': self.hidden_1.tolist(),
+            'hidden_2': self.hidden_2.tolist(),
+            'messages': self.messages,
+            'incoming': self.incoming_messages
         }
 
     def load_state(self, state_file):
@@ -596,6 +665,9 @@ class Things:
         self.colors = state['colors']
         self.last_movement_was_successful = torch.tensor(state['LMWS'])
         self.hidden_1 = torch.tensor(state['hidden_1'])
+        self.hidden_2 = torch.tensor(state['hidden_2'])
+        self.messages = torch.tensor(state['messages'])
+        self.incoming_messages = torch.tensor(state['incoming'])
 
         self.cell_mask = torch.tensor(
             [thing_type == "cell" or thing_type == "controlled_cell"
