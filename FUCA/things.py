@@ -265,7 +265,7 @@ class Things:
         if (initial_energy <
             torch.tensor(THING_TYPES[thing_type]["initial_energy"])):
             return 0
-        print("Cell division at energy", int(initial_energy.item()))
+        # print("Cell division at energy", int(initial_energy.item()))
         size = THING_TYPES[thing_type]["size"]
         x, y = tuple(self.positions[i].tolist())
         angle = random.random() * 2 * math.pi
@@ -495,8 +495,15 @@ class Things:
             thing_color = self.colors[i]
             size = self.sizes[i].item()
 
-            pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
-                               int(pos[1].item())), size)
+            if thing_type == "sugar":
+                pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
+                                   int(pos[1].item())), size)
+            else:
+                nucleus_size = THING_TYPES[thing_type]["nucleus_size"]
+                draw_dashed_circle(screen, thing_color, (int(pos[0].item()),
+                                   int(pos[1].item())), size)
+                pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
+                                   int(pos[1].item())), nucleus_size)
 
             if show_energy and thing_type != "sugar":
                 energy_text = self.energies[i].item()
@@ -506,27 +513,34 @@ class Things:
                     energy_text = f"{int(energy_text / 100) / 10:.1f}k"
                 else:
                     energy_text = f"{int(energy_text / 1000)}k"
-                energy_text = self.font.render(energy_text, True, (0, 0, 0))
-                text_rect = energy_text.get_rect(center = (int(pos[0].item()),
-                                                           int(pos[1].item())))
+                energy_text = self.font.render(energy_text, True, WHITE)
+                text_rect = energy_text.get_rect(
+                    center = (
+                        int(pos[0].item()),
+                        int(pos[1].item() - 2 * nucleus_size)
+                    )
+                )
                 screen.blit(energy_text, text_rect)
 
             if show_sight and thing_type != "sugar":
-                draw_dashed_circle(screen, GREEN, (int(pos[0].item()),
+                draw_dashed_circle(screen, self.colors[i], (int(pos[0].item()),
                                    int(pos[1].item())), SIGHT)
 
-            if show_forces and thing_type != "sugar":
-                idx = self.from_general_to_cell_idx(i)
-                if (idx >= len(self.input_vectors) or
-                    i >= len(self.movement_tensor)):
-                    return
+            idx = self.from_general_to_cell_idx(i)
+            try:
                 input_vector_1 = self.input_vectors[idx, 0:2].squeeze(1)
                 input_vector_2 = self.input_vectors[idx, 2:4].squeeze(1)
                 movement_vector = self.movement_tensor[i]
+            except:
+                show_forces = False
+            if show_forces and thing_type != "sugar":
+                input_vector_1 /= (torch.norm(input_vector_1, dim = 0) + 1e-7)
+                input_vector_2 /= (torch.norm(input_vector_2, dim = 0) + 1e-7)
+                movement_vector /= (torch.norm(movement_vector, dim = 0) + 1e-7)
 
-                end_pos_1 = pos + input_vector_1 * 50
-                end_pos_2 = pos + input_vector_2 * 20
-                end_pos_3 = pos + movement_vector * 20
+                end_pos_1 = pos + input_vector_1 * self.sizes[i]
+                end_pos_2 = pos + input_vector_2 * self.sizes[i]
+                end_pos_3 = pos - movement_vector * self.sizes[i] * 2
 
                 pygame.draw.line(screen, RED, (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_1[0].item()),
@@ -536,7 +550,7 @@ class Things:
                                  int(end_pos_2[1].item())), 1)
                 pygame.draw.line(screen, WHITE, (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_3[0].item()),
-                                 int(end_pos_3[1].item())), 2)
+                                 int(end_pos_3[1].item())), 3)
 
     def get_state(self):
         return {

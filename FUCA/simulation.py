@@ -87,7 +87,7 @@ class UIManager:
 
         self.show_energy = True
         self.show_sight = False
-        self.show_forces = False
+        self.show_forces = True
 
     def handle_event(self, event, simulation):
         if self.save_button.handle_event(event):
