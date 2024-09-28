@@ -78,14 +78,14 @@ class UIManager:
         self.sight_toggle_button = Button(self.screen, screen.get_width() -
                                           menu_width + 10, 110, 160, 40,
                                           "Toggle Sight", self.font)
-        self.input_toggle_button = Button(self.screen, screen.get_width() -
+        self.force_toggle_button = Button(self.screen, screen.get_width() -
                                           menu_width + 10, 160, 160, 40,
                                           "Toggle Forces", self.font)
-        self.energy_toggle_button = Button(self.screen, screen.get_width() -
+        self.info_toggle_button = Button(self.screen, screen.get_width() -
                                           menu_width + 10, 210, 160, 40,
-                                          "Toggle Energy", self.font)
+                                          "Toggle Info", self.font)
 
-        self.show_energy = True
+        self.show_info = True
         self.show_sight = False
         self.show_forces = True
 
@@ -98,10 +98,10 @@ class UIManager:
                                             else "Pause")
         if self.sight_toggle_button.handle_event(event):
             self.show_sight = not self.show_sight
-        if self.input_toggle_button.handle_event(event):
+        if self.force_toggle_button.handle_event(event):
             self.show_forces = not self.show_forces
-        if self.energy_toggle_button.handle_event(event):
-            self.show_energy = not self.show_energy
+        if self.info_toggle_button.handle_event(event):
+            self.show_info = not self.show_info
 
     def draw(self, state, N, E, Pop):
         # Draw the right menu section (white background)
@@ -113,8 +113,8 @@ class UIManager:
         self.save_button.draw()
         self.play_pause_button.draw()
         self.sight_toggle_button.draw()
-        self.input_toggle_button.draw()
-        self.energy_toggle_button.draw()
+        self.force_toggle_button.draw()
+        self.info_toggle_button.draw()
 
         # Display simulation state (Epochs, Periods, Steps)
         start_y = self.screen.get_height() // 2
@@ -210,7 +210,7 @@ class Simulation:
                 Rules(self, [1, 2, 3, 4, 5])
 
             self.screen.fill(BLACK)
-            self.things.draw(self.screen, self.ui_manager.show_energy,
+            self.things.draw(self.screen, self.ui_manager.show_info,
                              self.ui_manager.show_sight,
                              self.ui_manager.show_forces)
             self.ui_manager.draw(

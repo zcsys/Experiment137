@@ -20,13 +20,6 @@ WHITE = (255, 255, 255)
 GRAY = (160, 160, 160)
 
 THING_TYPES = {
-    "controlled_cell": {
-        "color": BLUE,
-        "size": 20,
-        "nucleus_size": 5,
-        "initial_energy": 10000.,
-        "overlap": False
-    },
     "cell": {
         "color": GREEN,
         "size": 20,

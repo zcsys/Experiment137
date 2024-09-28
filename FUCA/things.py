@@ -51,10 +51,16 @@ class Things:
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
+        # Initialize the cell messages
+        self.messages = torch.zeros(
+            (self.Pop, 4),
+            dtype = torch.bool
+        )
+
         # Initialize sensory input data
         self.last_movement_was_successful = torch.ones(
             self.Pop,
-            dtype = bool
+            dtype = torch.bool
         ).unsqueeze(1)
         self.sensory_inputs()
 
@@ -148,21 +154,6 @@ class Things:
         ).view(numberOf_sugars, 2)
         return values[indices]
 
-    def controlled_action(self):
-        keys = pygame.key.get_pressed()
-        dx, dy = 0, 0
-        if keys[pygame.K_LEFT]:
-            dx += -1
-        if keys[pygame.K_RIGHT]:
-            dx += 1
-        if keys[pygame.K_UP]:
-            dy += -1
-        if keys[pygame.K_DOWN]:
-            dy += 1
-        if keys[pygame.K_SPACE]:
-            self.cell_division(0)
-        return torch.tensor([dx, dy], dtype = torch.float32)
-
     def final_action(self):
         self.sensory_inputs()
         if self.N > 0:
@@ -173,8 +164,6 @@ class Things:
             self.movement_tensor[self.cell_mask] = neural_action[:, :2]
             for i in (neural_action[:, 2] > 0).nonzero():
                 self.cell_division(self.from_cell_to_general_idx(i))
-        if "controlled_cell" in self.thing_types:
-            self.movement_tensor[0] = self.controlled_action()
         if self.sugar_mask.any():
             self.movement_tensor[self.sugar_mask] = self.random_action()
         self.update_positions()
@@ -319,6 +308,13 @@ class Things:
             ),
             dim = 0
         )
+        self.messages = torch.cat(
+            (
+                self.messages,
+                torch.zeros((1, 4), dtype = torch.bool)
+            ),
+            dim = 0
+        )
 
         # Mutate the old genome & apply the new genome
         idx = self.from_general_to_cell_idx(i)
@@ -413,6 +409,7 @@ class Things:
             )
             self.genomes = remove_element(self.genomes, i)
             self.hidden_1 = remove_element(self.hidden_1, i)
+            self.messages = remove_element(self.messages, i)
             del self.lineages[i]
 
             # Get general index to remove universal attributes
@@ -485,7 +482,7 @@ class Things:
         self.sugar_mask = self.sugar_mask[mask]
         self.Pop = self.cell_mask.sum().item()
 
-    def draw(self, screen, show_energy = True, show_sight = False,
+    def draw(self, screen, show_info = True, show_sight = False,
              show_forces = False):
         masked_indices = torch.nonzero(self.cell_mask,
                                        as_tuple = False).squeeze()
@@ -494,6 +491,7 @@ class Things:
             thing_type = self.thing_types[i]
             thing_color = self.colors[i]
             size = self.sizes[i].item()
+            idx = self.from_general_to_cell_idx(i)
 
             if thing_type == "sugar":
                 pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
@@ -505,7 +503,8 @@ class Things:
                 pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
                                    int(pos[1].item())), nucleus_size)
 
-            if show_energy and thing_type != "sugar":
+            if show_info and thing_type != "sugar":
+                # Show energy
                 energy_text = self.energies[i].item()
                 if energy_text < 1000:
                     energy_text = str(int(energy_text))
@@ -514,19 +513,34 @@ class Things:
                 else:
                     energy_text = f"{int(energy_text / 1000)}k"
                 energy_text = self.font.render(energy_text, True, WHITE)
-                text_rect = energy_text.get_rect(
+                energy_rect = energy_text.get_rect(
                     center = (
                         int(pos[0].item()),
                         int(pos[1].item() - 2 * nucleus_size)
                     )
                 )
-                screen.blit(energy_text, text_rect)
+                screen.blit(energy_text, energy_rect)
+
+                # Show message
+                try:
+                    message_text = boolean_list_to_str(
+                        self.messages[idx].tolist()
+                )
+                except:
+                    message_text = "0000"
+                message_text = self.font.render(message_text, True, WHITE)
+                message_rect = message_text.get_rect(
+                    center = (
+                        int(pos[0].item()),
+                        int(pos[1].item() + 2 * nucleus_size)
+                    )
+                )
+                screen.blit(message_text, message_rect)
 
             if show_sight and thing_type != "sugar":
                 draw_dashed_circle(screen, self.colors[i], (int(pos[0].item()),
                                    int(pos[1].item())), SIGHT)
 
-            idx = self.from_general_to_cell_idx(i)
             try:
                 input_vector_1 = self.input_vectors[idx, 0:2].squeeze(1)
                 input_vector_2 = self.input_vectors[idx, 2:4].squeeze(1)

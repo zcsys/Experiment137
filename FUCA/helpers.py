@@ -83,3 +83,6 @@ def get_color_by_genome(genome, scale = 100, base_color = GRAY):
         max(min(base_color[2] + int(scale * genome[2 * n:].sum().item()),
             255), 64)
     )
+
+def boolean_list_to_str(bool_list):
+    return ''.join(['1' if b else '0' for b in bool_list])
