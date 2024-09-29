@@ -13,8 +13,11 @@ class Things:
         pygame.font.init()
         self.font = pygame.font.SysFont(None, 12)
 
-        # Initialize system heat
+        # Initialize system heat and messaging network
         self.heat = 21
+
+        self.recipients = torch.tensor([])
+        self.first_senders = torch.tensor([])
 
         if state_file:
             self.load_state(state_file)
@@ -625,12 +628,7 @@ class Things:
                 screen.blit(energy_text, energy_rect)
 
                 # Show message
-                try:
-                    message_text = float_msg_to_str(
-                        self.messages[idx].item()
-                )
-                except:
-                    message_text = "0000"
+                message_text = float_msg_to_str(self.messages[idx].item())
                 message_text = self.font.render(message_text, True, WHITE)
                 message_rect = message_text.get_rect(
                     center = (
@@ -670,16 +668,10 @@ class Things:
                                  int(end_pos_3[1].item())), 3)
 
         # Draw communication network
-        try:
+        if show_communication:
             first_senders = self.first_senders.tolist()
             recipients = self.recipients.tolist()
 
-            if recipients[-1] >= self.Pop or first_senders[-1] >= self.Pop:
-                show_communication = False
-        except:
-            show_communication = False
-
-        if show_communication:
             for sender, recipient in zip(first_senders, recipients):
                 recipient_pos = self.positions[
                     self.from_cell_to_general_idx(recipient)

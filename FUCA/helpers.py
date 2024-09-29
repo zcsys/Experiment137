@@ -87,6 +87,5 @@ def get_color_by_genome(genome, scale = 100, base_color = GRAY):
     )
 
 def float_msg_to_str(float_msg):
-    float_val = np.float32(float_msg)
-    packed_bytes = struct.pack('>f', float_val)
+    packed_bytes = struct.pack('>f', np.float32(float_msg))
     return base64.b64encode(packed_bytes)[:4].decode('ascii')

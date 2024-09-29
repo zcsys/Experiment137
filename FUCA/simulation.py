@@ -216,20 +216,21 @@ class Simulation:
                 self.things.final_action()
                 self.update_state()
 
-                Rules(self, [1, 2, 3, 4, 5])
-
             self.screen.fill(BLACK)
             self.things.draw(self.screen, self.ui_manager.show_info,
                              self.ui_manager.show_sight,
                              self.ui_manager.show_forces,
                              self.ui_manager.show_network)
-
             self.ui_manager.draw(
                 self.get_state(),
                 self.things.N,
                 self.things.E,
                 self.things.Pop
             )
+
+            if not self.paused:
+                Rules(self, [1, 2, 3, 4, 5])
+
             pygame.display.flip()
             # clock.tick(60)
 
