@@ -84,10 +84,14 @@ class UIManager:
         self.info_toggle_button = Button(self.screen, screen.get_width() -
                                           menu_width + 10, 210, 160, 40,
                                           "Toggle Info", self.font)
+        self.network_toggle_button = Button(self.screen, screen.get_width() -
+                                          menu_width + 10, 260, 160, 40,
+                                          "Toggle Network", self.font)
 
         self.show_info = True
         self.show_sight = False
         self.show_forces = True
+        self.show_network = True
 
     def handle_event(self, event, simulation):
         if self.save_button.handle_event(event):
@@ -102,6 +106,8 @@ class UIManager:
             self.show_forces = not self.show_forces
         if self.info_toggle_button.handle_event(event):
             self.show_info = not self.show_info
+        if self.network_toggle_button.handle_event(event):
+            self.show_network = not self.show_network
 
     def draw(self, state, N, E, Pop):
         # Draw the right menu section (white background)
@@ -115,6 +121,7 @@ class UIManager:
         self.sight_toggle_button.draw()
         self.force_toggle_button.draw()
         self.info_toggle_button.draw()
+        self.network_toggle_button.draw()
 
         # Display simulation state (Epochs, Periods, Steps)
         start_y = self.screen.get_height() // 2
@@ -198,7 +205,7 @@ class Simulation:
         clock = pygame.time.Clock()
 
         while running:
-            print("\n\n==== BEGIN STEP ====\n")
+            # print("\n\n==== BEGIN STEP ====\n")
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -214,7 +221,9 @@ class Simulation:
             self.screen.fill(BLACK)
             self.things.draw(self.screen, self.ui_manager.show_info,
                              self.ui_manager.show_sight,
-                             self.ui_manager.show_forces)
+                             self.ui_manager.show_forces,
+                             self.ui_manager.show_network)
+
             self.ui_manager.draw(
                 self.get_state(),
                 self.things.N,

@@ -277,10 +277,13 @@ class Things:
         if sight_overlap_mask.any():
             sight_overlap_mask = sight_overlap_mask.int()
 
-            recipients = torch.unique(sight_overlap_mask.nonzero())
-            first_senders = torch.argmax(sight_overlap_mask[recipients],
-                                         dim = 1)
-            self.incoming_messages[recipients] = self.messages[first_senders]
+            self.recipients = torch.unique(sight_overlap_mask.nonzero())
+            self.first_senders = torch.argmax(
+                sight_overlap_mask[self.recipients], dim = 1
+            )
+            self.incoming_messages[self.recipients] = self.messages[
+                self.first_senders
+            ]
 
         # Handle sugar vs cell collisions
         sugar_vs_cell = (
@@ -572,10 +575,7 @@ class Things:
         self.Pop = self.cell_mask.sum().item()
 
     def draw(self, screen, show_info = True, show_sight = False,
-             show_forces = False):
-        masked_indices = torch.nonzero(self.cell_mask,
-                                       as_tuple = False).squeeze()
-
+             show_forces = True, show_communication = True):
         for i, pos in enumerate(self.positions):
             thing_type = self.thing_types[i]
             thing_color = self.colors[i]
@@ -654,6 +654,40 @@ class Things:
                 pygame.draw.line(screen, WHITE, (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_3[0].item()),
                                  int(end_pos_3[1].item())), 3)
+
+        # Draw communication network
+        try:
+            first_senders = self.first_senders.tolist()
+            recipients = self.recipients.tolist()
+
+            if recipients[-1] >= self.Pop or first_senders[-1] >= self.Pop:
+                show_communication = False
+        except:
+            show_communication = False
+
+        if show_communication:
+            for sender, recipient in zip(first_senders, recipients):
+                recipient_pos = self.positions[
+                    self.from_cell_to_general_idx(recipient)
+                ].tolist()
+
+                sender_pos = self.positions[
+                    self.from_cell_to_general_idx(sender)
+                ].tolist()
+
+                pygame.draw.line(
+                    screen,
+                    MAGENTA,
+                    (
+                        int(recipient_pos[0]),
+                        int(recipient_pos[1])
+                    ),
+                    (
+                        int(sender_pos[0]),
+                        int(sender_pos[1])
+                    ),
+                    1
+                )
 
     def get_state(self):
         return {
