@@ -133,7 +133,7 @@ class UIManager:
                                        True, (0, 0, 0))
         steps_text = self.font.render(f"Steps: {state.get('steps', 0)}", True,
                                       (0, 0, 0))
-        N_text = self.font.render(f"N.: {N}", True, (0, 0, 0))
+        N_text = self.font.render(f"N: {N}", True, (0, 0, 0))
         Pop_text = self.font.render(f"Pop.: {Pop}", True, (0, 0, 0))
         E_text = self.font.render(f"E: {int(E)}", True, (0, 0, 0))
 

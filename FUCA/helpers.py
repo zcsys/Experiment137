@@ -1,6 +1,8 @@
 import torch
 import random
 import math
+import struct
+import base64
 import numpy as np
 from base_vars import *
 
@@ -84,5 +86,7 @@ def get_color_by_genome(genome, scale = 100, base_color = GRAY):
             255), 64)
     )
 
-def boolean_list_to_str(bool_list):
-    return ''.join(['1' if b else '0' for b in bool_list])
+def float_msg_to_str(float_msg):
+    float_val = np.float32(float_msg)
+    packed_bytes = struct.pack('>f', float_val)
+    return base64.b64encode(packed_bytes)[:4].decode('ascii')
