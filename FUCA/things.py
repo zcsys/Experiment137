@@ -28,8 +28,7 @@ class Things:
 
         # Initialize tensor masks
         self.cell_mask = torch.tensor(
-            [thing_type == "cell" or thing_type == "controlled_cell"
-             for thing_type in self.thing_types]
+            [thing_type == "cell" for thing_type in self.thing_types]
         )
         self.sugar_mask = torch.tensor(
             [thing_type == "sugar" for thing_type in self.thing_types]
@@ -48,7 +47,7 @@ class Things:
         self.hidden_2 = torch.zeros((self.Pop, 8, 1), dtype = torch.float32)
 
         # Initialize genomes and lineages
-        self.genomes = torch.zeros((self.Pop, 351)) # GENOME429_0
+        self.genomes = torch.zeros((self.Pop, 351)) # GENOME433_0
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
@@ -79,7 +78,7 @@ class Things:
         return self.lineages[i][0] + len(self.lineages[i])
 
     def apply_genomes(self):
-        """Monad429 neurogenetics"""
+        """Monad433 neurogenetics"""
         # Layer 1
         self.weights_i_1 = self.genomes[:, 0:80].view(self.Pop, 8, 10)
         self.weights_h_1 = self.genomes[:, 80:144].view(self.Pop, 8, 8)
@@ -175,10 +174,15 @@ class Things:
         return values[indices]
 
     def final_action(self):
+        # Update sensory inputs
         self.sensory_inputs()
+
+        # Initialize the movement tensor for this step
         if self.N > 0:
             self.movement_tensor = torch.tensor([[0., 0.]
                                                  for _ in range(self.N)])
+
+        # Cell actions
         if self.cell_mask.any():
             # Get output tensor
             neural_action = self.neural_action()
@@ -186,13 +190,18 @@ class Things:
             # Apply movements
             self.movement_tensor[self.cell_mask] = neural_action[:, :2]
 
-            # Apply divisi
+            # Broadcast messages
+            self.messages = neural_action[:, 3:7] > 0
+
+            # Apply fissions
             for i in (neural_action[:, 2] > 0).nonzero():
                 self.cell_division(self.from_cell_to_general_idx(i))
 
-            self.messages = neural_action[:, 3:7] > 0
+        # Sugar movements
         if self.sugar_mask.any():
             self.movement_tensor[self.sugar_mask] = self.random_action()
+
+        # Apply changes in positions
         self.update_positions()
 
     def update_positions(self):
@@ -260,6 +269,19 @@ class Things:
         self.energies -= actual_magnitudes
         # self.E += actual_magnitudes.sum().item() # Works with Rules(0)
 
+        # Deliver messages
+        self.incoming_messages = torch.zeros(
+            (self.Pop, 4),
+            dtype = torch.bool
+        )
+        if sight_overlap_mask.any():
+            sight_overlap_mask = sight_overlap_mask.int()
+
+            recipients = torch.unique(sight_overlap_mask.nonzero())
+            first_senders = torch.argmax(sight_overlap_mask[recipients],
+                                         dim = 1)
+            self.incoming_messages[recipients] = self.messages[first_senders]
+
         # Handle sugar vs cell collisions
         sugar_vs_cell = (
             overlap_mask &
@@ -277,15 +299,9 @@ class Things:
             )
             self.remove_sugars(unique(sugar_idx.tolist()))
 
-        # Deliver messages
-        if sight_overlap_mask.any():
-            print(torch.unique(sight_overlap_mask.nonzero()))
-
     def cell_division(self, i):
         # Set out main attributes and see if division is possible
         thing_type = self.thing_types[i]
-        if thing_type == "controlled_cell":
-            thing_type = "cell"
         initial_energy = self.energies[i] / 2
         if (initial_energy <
             torch.tensor(THING_TYPES[thing_type]["initial_energy"])):
@@ -576,7 +592,7 @@ class Things:
                 pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
                                    int(pos[1].item())), nucleus_size)
 
-            if show_info and thing_type != "sugar":
+            if show_info and thing_type == "cell":
                 # Show energy
                 energy_text = self.energies[i].item()
                 if energy_text < 1000:
@@ -610,7 +626,7 @@ class Things:
                 )
                 screen.blit(message_text, message_rect)
 
-            if show_sight and thing_type != "sugar":
+            if show_sight and thing_type == "cell":
                 draw_dashed_circle(screen, self.colors[i], (int(pos[0].item()),
                                    int(pos[1].item())), SIGHT)
 
@@ -620,7 +636,7 @@ class Things:
                 movement_vector = self.movement_tensor[i]
             except:
                 show_forces = False
-            if show_forces and thing_type != "sugar":
+            if show_forces and thing_type == "cell":
                 input_vector_1 /= (torch.norm(input_vector_1, dim = 0) + 1e-7)
                 input_vector_2 /= (torch.norm(input_vector_2, dim = 0) + 1e-7)
                 movement_vector /= (torch.norm(movement_vector, dim = 0) + 1e-7)
@@ -678,8 +694,7 @@ class Things:
                                               dtype = torch.bool)
 
         self.cell_mask = torch.tensor(
-            [thing_type == "cell" or thing_type == "controlled_cell"
-             for thing_type in self.thing_types]
+            [thing_type == "cell" for thing_type in self.thing_types]
         )
         self.sugar_mask = torch.tensor(
             [thing_type == "sugar" for thing_type in self.thing_types]

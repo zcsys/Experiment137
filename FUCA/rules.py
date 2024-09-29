@@ -48,8 +48,6 @@ def Rules(simul, n):
     if 2 in n:
         fission_mask = simul.things.energies >= AUTO_FISSION_THRESHOLD
         for i, mask in enumerate(fission_mask):
-            if simul.things.thing_types[i] == "controlled_cell":
-                continue
             if mask:
                 simul.things.cell_division(i)
 
