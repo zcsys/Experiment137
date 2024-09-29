@@ -48,7 +48,7 @@ class Things:
         self.hidden_2 = torch.zeros((self.Pop, 8, 1), dtype = torch.float32)
 
         # Initialize genomes and lineages
-        self.genomes = torch.zeros((self.Pop, 315)) # GENOME429_0
+        self.genomes = torch.zeros((self.Pop, 351)) # GENOME429_0
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
@@ -91,8 +91,8 @@ class Things:
         self.biases_1_2 = self.genomes[:, 280:288].view(self.Pop, 8, 1)
 
         # Output layer
-        self.weights_2_o = self.genomes[:, 288:312].view(self.Pop, 3, 8)
-        self.biases_2_o = self.genomes[:, 312:315].view(self.Pop, 3, 1)
+        self.weights_2_o = self.genomes[:, 288:344].view(self.Pop, 7, 8)
+        self.biases_2_o = self.genomes[:, 344:351].view(self.Pop, 7, 1)
 
     def mutate(self, i, probability = 0.05, strength = 1., show = False):
         mutated_genome = self.genomes[i].clone()
@@ -157,7 +157,7 @@ class Things:
         return torch.tanh(
             torch.bmm(self.weights_2_o, self.hidden_2) +
             self.biases_2_o
-        ).view(self.Pop, 3)
+        ).view(self.Pop, 7)
 
     def random_action(self):
         numberOf_sugars = self.sugar_mask.sum().item()
@@ -180,10 +180,17 @@ class Things:
             self.movement_tensor = torch.tensor([[0., 0.]
                                                  for _ in range(self.N)])
         if self.cell_mask.any():
+            # Get output tensor
             neural_action = self.neural_action()
+
+            # Apply movements
             self.movement_tensor[self.cell_mask] = neural_action[:, :2]
+
+            # Apply divisi
             for i in (neural_action[:, 2] > 0).nonzero():
                 self.cell_division(self.from_cell_to_general_idx(i))
+
+            self.messages = neural_action[:, 3:7] > 0
         if self.sugar_mask.any():
             self.movement_tensor[self.sugar_mask] = self.random_action()
         self.update_positions()
@@ -407,14 +414,14 @@ class Things:
         self.weights_2_o = torch.cat(
             (
                 self.weights_2_o,
-                genome[288:312].view(1, 3, 8)
+                genome[288:344].view(1, 7, 8)
             ),
             dim = 0
         )
         self.biases_2_o = torch.cat(
             (
                 self.biases_2_o,
-                genome[312:315].view(1, 3, 1)
+                genome[344:351].view(1, 7, 1)
             ),
             dim = 0
         )
@@ -644,8 +651,8 @@ class Things:
             'LMWS': self.last_movement_was_successful.tolist(),
             'hidden_1': self.hidden_1.tolist(),
             'hidden_2': self.hidden_2.tolist(),
-            'messages': self.messages,
-            'incoming': self.incoming_messages
+            'messages': self.messages.tolist(),
+            'incoming': self.incoming_messages.tolist()
         }
 
     def load_state(self, state_file):
@@ -666,8 +673,9 @@ class Things:
         self.last_movement_was_successful = torch.tensor(state['LMWS'])
         self.hidden_1 = torch.tensor(state['hidden_1'])
         self.hidden_2 = torch.tensor(state['hidden_2'])
-        self.messages = torch.tensor(state['messages'])
-        self.incoming_messages = torch.tensor(state['incoming'])
+        self.messages = torch.tensor(state['messages'], dtype = torch.bool)
+        self.incoming_messages = torch.tensor(state['incoming'],
+                                              dtype = torch.bool)
 
         self.cell_mask = torch.tensor(
             [thing_type == "cell" or thing_type == "controlled_cell"
