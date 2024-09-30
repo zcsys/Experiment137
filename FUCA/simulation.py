@@ -88,9 +88,9 @@ class UIManager:
                                           menu_width + 10, 260, 160, 40,
                                           "Toggle Network", self.font)
 
-        self.show_info = True
+        self.show_info = False
         self.show_sight = False
-        self.show_forces = True
+        self.show_forces = False
         self.show_network = True
 
     def handle_event(self, event, simulation):

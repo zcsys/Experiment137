@@ -13,11 +13,8 @@ class Things:
         pygame.font.init()
         self.font = pygame.font.SysFont(None, 12)
 
-        # Initialize system heat and messaging network
+        # Initialize system heat
         self.heat = 21
-
-        self.recipients = torch.tensor([])
-        self.first_senders = torch.tensor([])
 
         if state_file:
             self.load_state(state_file)
@@ -51,6 +48,7 @@ class Things:
 
         # Initialize genomes and lineages
         self.genomes = torch.zeros((self.Pop, 316)) # GENOME429_0
+        #self.genomes = torch.rand((self.Pop, 316)) * 2 - 1 # GENOME429_1
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
@@ -96,7 +94,7 @@ class Things:
         self.weights_2_o = self.genomes[:, 280:312].view(self.Pop, 4, 8)
         self.biases_2_o = self.genomes[:, 312:316].view(self.Pop, 4, 1)
 
-    def mutate(self, i, probability = 0.05, strength = 1., show = False):
+    def mutate(self, i, probability = 0.09, strength = 1., show = False):
         mutated_genome = self.genomes[i].clone()
         mutation_mask = torch.rand_like(mutated_genome) < probability
         mutations = torch.rand_like(mutated_genome) * 2 - 1
@@ -197,7 +195,8 @@ class Things:
             self.messages = neural_action[:, 3]
 
             # Apply fissions
-            for i in (neural_action[:, 2] > 0).nonzero():
+            to_divide = (neural_action[:, 2] + 1) / 2 > torch.rand(self.Pop)
+            for i in to_divide.nonzero():
                 self.cell_division(self.from_cell_to_general_idx(i))
 
         # Sugar movements
@@ -668,10 +667,16 @@ class Things:
                                  int(end_pos_3[1].item())), 3)
 
         # Draw communication network
-        if show_communication:
+        try:
             first_senders = self.first_senders.tolist()
             recipients = self.recipients.tolist()
 
+            if recipients[-1] >= self.Pop or first_senders[-1] >= self.Pop:
+                show_communication = False
+        except:
+            show_communication = False
+
+        if show_communication:
             for sender, recipient in zip(first_senders, recipients):
                 recipient_pos = self.positions[
                     self.from_cell_to_general_idx(recipient)
