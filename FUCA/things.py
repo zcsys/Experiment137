@@ -617,7 +617,7 @@ class Things:
                     energy_text = f"{int(energy_text / 100) / 10:.1f}k"
                 else:
                     energy_text = f"{int(energy_text / 1000)}k"
-                energy_text = self.font.render(energy_text, True, WHITE)
+                energy_text = self.font.render(energy_text, True, colors["Z"])
                 energy_rect = energy_text.get_rect(
                     center = (
                         int(pos[0].item()),
@@ -628,7 +628,7 @@ class Things:
 
                 # Show message
                 message_text = float_msg_to_str(self.messages[idx].item())
-                message_text = self.font.render(message_text, True, WHITE)
+                message_text = self.font.render(message_text, True, colors["Z"])
                 message_rect = message_text.get_rect(
                     center = (
                         int(pos[0].item()),
@@ -656,13 +656,13 @@ class Things:
                 end_pos_2 = pos + input_vector_2 * self.sizes[i]
                 end_pos_3 = pos - movement_vector * self.sizes[i] * 2
 
-                pygame.draw.line(screen, RED, (int(pos[0].item()),
+                pygame.draw.line(screen, colors["R"], (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_1[0].item()),
                                  int(end_pos_1[1].item())), 1)
-                pygame.draw.line(screen, CYAN, (int(pos[0].item()),
+                pygame.draw.line(screen, colors["H"], (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_2[0].item()),
                                  int(end_pos_2[1].item())), 1)
-                pygame.draw.line(screen, WHITE, (int(pos[0].item()),
+                pygame.draw.line(screen, colors["Z"], (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_3[0].item()),
                                  int(end_pos_3[1].item())), 3)
 
@@ -688,7 +688,7 @@ class Things:
 
                 pygame.draw.line(
                     screen,
-                    MAGENTA,
+                    colors["T"],
                     (
                         int(recipient_pos[0]),
                         int(recipient_pos[1])

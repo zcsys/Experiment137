@@ -42,14 +42,14 @@ colors = {
 
 THING_TYPES = {
     "monad": {
-        "color": GREEN,
+        "color": colors["F"],
         "size": 20,
         "nucleus_size": 5,
         "initial_energy": 1000.,
         "overlap": False
     },
     "sugar": {
-        "color": YELLOW,
+        "color": colors["X"],
         "size": 1,
         "nucleus_size": "N/A",
         "initial_energy": 0.,
