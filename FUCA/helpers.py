@@ -6,6 +6,8 @@ import base64
 import numpy as np
 from base_vars import *
 
+identity = lambda x: x
+
 def unique(x):
     """Gets a list and returns its unique values as a list in same order"""
     seen = set()
@@ -75,7 +77,7 @@ def hex_to_rgb(hex_color):
     hex_color = hex_color.lstrip('#')
     return tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
 
-def get_color_by_genome(genome, scale = 100, base_color = (160, 160, 160)):
+def get_color_by_genome(genome, scale = 1., base_color = (160, 160, 160)):
     n = len(genome) // 3
     return (
         max(min(base_color[0] + int(scale * genome[:n].sum().item()),
@@ -85,6 +87,10 @@ def get_color_by_genome(genome, scale = 100, base_color = (160, 160, 160)):
         max(min(base_color[2] + int(scale * genome[2 * n:].sum().item()),
             255), 64)
     )
+
+def reverse_color(color):
+    r, g, b = color
+    return 255 - r, 255 - g, 255 - b
 
 def float_msg_to_str(float_msg):
     packed_bytes = struct.pack('>f', np.float32(float_msg))

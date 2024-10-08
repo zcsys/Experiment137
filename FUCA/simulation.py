@@ -224,12 +224,6 @@ class Simulation:
                              self.ui_manager.show_sight,
                              self.ui_manager.show_forces,
                              self.ui_manager.show_network)
-            self.ui_manager.draw(
-                self.get_state(),
-                self.things.N,
-                self.things.E,
-                self.things.Pop
-            )
 
             if not self.paused:
                 Rules(self, [1, 2, 3, 4, 5])
@@ -275,6 +269,14 @@ class Simulation:
             self.screen.blit(
                 self.transparent_surface,
                 (1570 - self.steps - (self.periods % 2) * 2400, 0)
+            )
+
+            # Draw the right pane
+            self.ui_manager.draw(
+                self.get_state(),
+                self.things.N,
+                self.things.E,
+                self.things.Pop
             )
 
             # Put it all on display and limit FPS

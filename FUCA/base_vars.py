@@ -57,28 +57,178 @@ THING_TYPES = {
     }
 }
 
-REGULATORY_GENOME_429_0 = [
-    # 1 sense organ active, 4 not: [[0, 0], [1, 1], [0], [0], [0, 0, 0]]
-    # Activation function for layer 1 is the identity function.
-    [[0, 0, 1, 1, 0, 0, 0, 0, 0] for i in range(2)] + # layer 1 active only for
-    [[0 for _ in range(9)] for i in range(6)],        # the active sense and
-                                                      # action organs
-    [[0 for _ in range(8)] for i in range(8)], # hidden state 1 not active
-    [[1], [1], [0], [0], [0], [0], [0], [0]], # bias search for layer 1 active
-                                              # only for the active action
-                                              # organs
+GENOME429_0 = [
+    # CODING PART
 
-    # W_1_2 is 8x8 identity martrix.
-    # Activation function for layer 2 is the identity function.
-    [[0 for _ in range(8)] for i in range(8)], # layer 2 not active
-    [[0 for _ in range(8)] for i in range(8)], # hidden state 2 not active
-    [[0] for i in range(8)], # bias search for layer 2 not active
+    # Sense organs
+    0, 0,                   # compass to layer 1 neuron 1
+    0, 0,                   # hunger to layer 1 neuron 1
+    0,                      # energy to layer 1 neuron 1
+    0,                      # LMWS neuron to layer 1 neuron 1
+    0, 0, 0,                # ear to layer 1 neuron 1
+    0, 0,                   # compass to layer 1 neuron 2
+    0, 0,                   # hunger to layer 1 neuron 2
+    0,                      # energy to layer 1 neuron 2
+    0,                      # LMWS neuron to layer 1 neuron 2
+    0, 0, 0,                # ear to layer 1 neuron 2
+    0, 0,                   # compass to layer 1 neuron 3
+    0, 0,                   # hunger to layer 1 neuron 3
+    0,                      # energy to layer 1 neuron 3
+    0,                      # LMWS neuron to layer 1 neuron 3
+    0, 0, 0,                # ear to layer 1 neuron 3
+    0, 0,                   # compass to layer 1 neuron 4
+    0, 0,                   # hunger to layer 1 neuron 4
+    0,                      # energy to layer 1 neuron 4
+    0,                      # LMWS neuron to layer 1 neuron 4
+    0, 0, 0,                # ear to layer 1 neuron 4
+    0, 0,                   # compass to layer 1 neuron 5
+    0, 0,                   # hunger to layer 1 neuron 5
+    0,                      # energy to layer 1 neuron 5
+    0,                      # LMWS neuron to layer 1 neuron 5
+    0, 0, 0,                # ear to layer 1 neuron 5
+    0, 0,                   # compass to layer 1 neuron 6
+    0, 0,                   # hunger to layer 1 neuron 6
+    0,                      # energy to layer 1 neuron 6
+    0,                      # LMWS neuron to layer 1 neuron 6
+    0, 0, 0,                # ear to layer 1 neuron 6
+    0, 0,                   # compass to layer 1 neuron 7
+    0, 0,                   # hunger to layer 1 neuron 7
+    0,                      # energy to layer 1 neuron 7
+    0,                      # LMWS neuron to layer 1 neuron 7
+    0, 0, 0,                # ear to layer 1 neuron 7
+    0, 0,                   # compass to layer 1 neuron 8
+    0, 0,                   # hunger to layer 1 neuron 8
+    0,                      # energy to layer 1 neuron 8
+    0,                      # LMWS neuron to layer 1 neuron 8
+    0, 0, 0,                # ear to layer 1 neuron 8
 
-    # W_2_o = [[1 if j == i and i in range(2) else 0 for j in range(8)]
-    #          for i in range(4)]
-    # Activation function for output layer is tanh.
-    [[0 for _ in range(8)] for i in range(4)], # weight and bias search for
-    [[0] for _ in range(4)]                    # output layer not active till
-                                               # all hidden layers are activated
+    # Hidden state and biases for layer 1
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 1 weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 1 weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 1 weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 1 weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 1 weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 1 weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 1 weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 1 weight 8
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 1 biases
 
+    # Layer 2
+    1, 0, 0, 0, 0, 0, 0, 0, # layer 1 to layer 2 neuron 1
+    0, 1, 0, 0, 0, 0, 0, 0, # layer 1 to layer 2 neuron 2
+    0, 0, 1, 0, 0, 0, 0, 0, # layer 1 to layer 2 neuron 3
+    0, 0, 0, 1, 0, 0, 0, 0, # layer 1 to layer 2 neuron 4
+    0, 0, 0, 0, 1, 0, 0, 0, # layer 1 to layer 2 neuron 5
+    0, 0, 0, 0, 0, 1, 0, 0, # layer 1 to layer 2 neuron 6
+    0, 0, 0, 0, 0, 0, 1, 0, # layer 1 to layer 2 neuron 7
+    0, 0, 0, 0, 0, 0, 0, 1, # layer 1 to layer 2 neuron 8
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 2 weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 2 weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 2 weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 2 weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 2 weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 2 weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 2 weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 2 weight 8
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 2 biases
+
+    # Action organs
+    # Flagellum
+    1, 0, 0, 0, 0, 0, 0, 0, # layer 2 to output layer neuron 1
+    0, 1, 0, 0, 0, 0, 0, 0, # layer 2 to output layer neuron 2
+
+    # Divisor
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 2 to output layer neuron 3
+
+    # Messager
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 2 to output layer neuron 4
+
+    0, 0, 0, 0, 0, 0, 0, 0,  # output layer biases
+
+    # REGULATORY PART
+
+    # Sense organs
+    0, 0,                   # compass to layer 1 neuron 1
+    1, 1,                   # hunger to layer 1 neuron 1
+    0,                      # energy to layer 1 neuron 1
+    0,                      # LMWS neuron to layer 1 neuron 1
+    0, 0, 0,                # ear to layer 1 neuron 1
+    0, 0,                   # compass to layer 1 neuron 2
+    1, 1,                   # hunger to layer 1 neuron 2
+    0,                      # energy to layer 1 neuron 2
+    0,                      # LMWS neuron to layer 1 neuron 2
+    0, 0, 0,                # ear to layer 1 neuron 2
+    0, 0,                   # compass to layer 1 neuron 3
+    0, 0,                   # hunger to layer 1 neuron 3
+    0,                      # energy to layer 1 neuron 3
+    0,                      # LMWS neuron to layer 1 neuron 3
+    0, 0, 0,                # ear to layer 1 neuron 3
+    0, 0,                   # compass to layer 1 neuron 4
+    0, 0,                   # hunger to layer 1 neuron 4
+    0,                      # energy to layer 1 neuron 4
+    0,                      # LMWS neuron to layer 1 neuron 4
+    0, 0, 0,                # ear to layer 1 neuron 4
+    0, 0,                   # compass to layer 1 neuron 5
+    0, 0,                   # hunger to layer 1 neuron 5
+    0,                      # energy to layer 1 neuron 5
+    0,                      # LMWS neuron to layer 1 neuron 5
+    0, 0, 0,                # ear to layer 1 neuron 5
+    0, 0,                   # compass to layer 1 neuron 6
+    0, 0,                   # hunger to layer 1 neuron 6
+    0,                      # energy to layer 1 neuron 6
+    0,                      # LMWS neuron to layer 1 neuron 6
+    0, 0, 0,                # ear to layer 1 neuron 6
+    0, 0,                   # compass to layer 1 neuron 7
+    0, 0,                   # hunger to layer 1 neuron 7
+    0,                      # energy to layer 1 neuron 7
+    0,                      # LMWS neuron to layer 1 neuron 7
+    0, 0, 0,                # ear to layer 1 neuron 7
+    0, 0,                   # compass to layer 1 neuron 8
+    0, 0,                   # hunger to layer 1 neuron 8
+    0,                      # energy to layer 1 neuron 8
+    0,                      # LMWS neuron to layer 1 neuron 8
+    0, 0, 0,                # ear to layer 1 neuron 8
+
+    # Hidden state and biases for layer 1
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 1 weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 1 weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 1 weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 1 weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 1 weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 1 weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 1 weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 1 weight 8
+    1, 1, 0, 0, 0, 0, 0, 0, # layer 1 biases
+
+    # Layer 2
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 1 to layer 2 neuron 1
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 1 to layer 2 neuron 2
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 1 to layer 2 neuron 3
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 1 to layer 2 neuron 4
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 1 to layer 2 neuron 5
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 1 to layer 2 neuron 6
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 1 to layer 2 neuron 7
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 1 to layer 2 neuron 8
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 2 weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 2 weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 2 weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 2 weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 2 weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 2 weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 2 weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # hidden state 2 weight 8
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 2 biases
+
+    # Action organs
+    # Flagellum
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 2 to output layer neuron 1
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 2 to output layer neuron 2
+
+    # Divisor
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 2 to output layer neuron 3
+
+    # Messager
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 2 to output layer neuron 4
+
+    0, 0, 0, 0, 0, 0, 0, 0  # output layer biases
 ]

@@ -17,12 +17,12 @@
 	* Monad211: 11-neuron monad with full IO flattening and LMWH sensory input neuron
 	* Monad313: 13-neuron monad with RNN
 	* Monad429: Evolvable architecture with a maximum of 29 neurons and 2 recurrent hidden layers, controlled by 316 parameters and 632 genes
+* Fully tensor-based spatial partitioning for collision detection
 
 ### Aeon of Abundance
 (*to come*)
 
 #### Experiment 4: LUCA
-* Fully tensor-based spatial partitioning for collision detection
 * Color-based periodic table and molecular interactions
 * Monad4280 to learn controlling *its* molecules to navigate through universe
 * Autogenetic breeding

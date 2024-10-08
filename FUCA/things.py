@@ -47,8 +47,9 @@ class Things:
         self.hidden_2 = torch.zeros((self.Pop, 8, 1), dtype = torch.float32)
 
         # Initialize genomes and lineages
-        self.genomes = torch.zeros((self.Pop, 316)) # GENOME429_0
-        #self.genomes = torch.rand((self.Pop, 316)) * 2 - 1 # GENOME429_1
+        self.genomes = torch.tensor(GENOME429_0, dtype = torch.float32).repeat(
+            self.Pop, 1
+        )
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
@@ -94,16 +95,26 @@ class Things:
         self.weights_2_o = self.genomes[:, 280:312].view(self.Pop, 4, 8)
         self.biases_2_o = self.genomes[:, 312:316].view(self.Pop, 4, 1)
 
-    def mutate(self, i, probability = 0.09, strength = 1., show = False):
-        mutated_genome = self.genomes[i].clone()
-        mutation_mask = torch.rand_like(mutated_genome) < probability
-        mutations = torch.rand_like(mutated_genome) * 2 - 1
-        mutated_genome += mutation_mask * mutations * strength
+    def mutate(self, i, show = False):
+        probability = 0.1
+        strength = 1.
+
+        original_genome = self.genomes[i].clone()
+        n = int(len(original_genome) / 2)
+        coding_part = original_genome[:n]
+        regulatory_part = original_genome[n:].int()
+        genome_to_mutate = coding_part[regulatory_part]
+
+        mutation_mask = torch.rand_like(genome_to_mutate) < probability
+        mutations = torch.rand_like(genome_to_mutate) * 2 - 1
+        coding_part[regulatory_part] = (
+            genome_to_mutate + mutation_mask * mutations * strength
+        )
+
         if mutation_mask.any() and show:
-            print(f"Original genome {i}: {self.genomes[i].tolist()}")
-            print(f"Mutated genome {i}: {mutated_genome.tolist()}")
-            print("========")
-        return mutated_genome
+            pass
+
+        return torch.cat((coding_part, regulatory_part.float()), dim = 0)
 
     def sensory_inputs(self):
         # For each non-sugar, there's a vector pointing towards the center of
@@ -142,13 +153,13 @@ class Things:
         ).view(self.Pop, 9, 1)
 
     def neural_action(self):
-        self.hidden_1 = torch.tanh(
+        self.hidden_1 = identity(
             torch.bmm(self.weights_i_1, self.input_vectors) +
             torch.bmm(self.weights_h_1, self.hidden_1) +
             self.biases_i_1
         )
 
-        self.hidden_2 = torch.tanh(
+        self.hidden_2 = identity(
             torch.bmm(self.weights_1_2, self.hidden_1) +
             torch.bmm(self.weights_h_2, self.hidden_2) +
             self.biases_1_2
@@ -325,7 +336,7 @@ class Things:
         if (initial_energy <
             torch.tensor(THING_TYPES[thing_type]["initial_energy"])):
             return 0
-        # print("monad division at energy", int(initial_energy.item()))
+        print("monad division at energy", int(initial_energy.item()))
         size = THING_TYPES[thing_type]["size"]
         x, y = tuple(self.positions[i].tolist())
         angle = random.random() * 2 * math.pi
@@ -601,8 +612,8 @@ class Things:
             if thing_type == "sugar":
                 pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
                                    int(pos[1].item())), size)
-            else:
-                nucleus_size = THING_TYPES[thing_type]["nucleus_size"]
+            elif thing_type == "monad":
+                nucleus_size = THING_TYPES["monad"]["nucleus_size"]
                 draw_dashed_circle(screen, thing_color, (int(pos[0].item()),
                                    int(pos[1].item())), size)
                 pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
