@@ -373,7 +373,7 @@ class Things:
         self.boxes = torch.cat(
             (
                 self.boxes,
-                get_box(new_position).unsqueeze(0)
+                get_box(new_position.unsqueeze(0))
             ),
             dim = 0
         )
