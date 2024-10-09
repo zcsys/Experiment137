@@ -229,6 +229,7 @@ class Simulation:
                 Rules(self, [1, 2, 3, 4, 5])
 
             # The Arbeitor of Truth
+            """
             self.transparent_surface.fill((0, 0, 0, 0))
             pygame.draw.circle(
                 self.transparent_surface,
@@ -270,6 +271,7 @@ class Simulation:
                 self.transparent_surface,
                 (1570 - self.steps - (self.periods % 2) * 2400, 0)
             )
+            """
 
             # Draw the right pane
             self.ui_manager.draw(

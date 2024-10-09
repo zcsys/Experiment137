@@ -45,6 +45,7 @@ class Things:
         self.colors = [THING_TYPES[x]["color"] for x in self.thing_types]
         self.hidden_1 = torch.zeros((self.Pop, 8, 1), dtype = torch.float32)
         self.hidden_2 = torch.zeros((self.Pop, 8, 1), dtype = torch.float32)
+        self.boxes = get_box(self.positions)
 
         # Initialize genomes and lineages
         self.genomes = torch.tensor(GENOME429_0, dtype = torch.float32).repeat(
@@ -153,13 +154,13 @@ class Things:
         ).view(self.Pop, 9, 1)
 
     def neural_action(self):
-        self.hidden_1 = identity(
+        self.hidden_1 = torch.tanh(
             torch.bmm(self.weights_i_1, self.input_vectors) +
             torch.bmm(self.weights_h_1, self.hidden_1) +
             self.biases_i_1
         )
 
-        self.hidden_2 = identity(
+        self.hidden_2 = torch.tanh(
             torch.bmm(self.weights_1_2, self.hidden_1) +
             torch.bmm(self.weights_h_2, self.hidden_2) +
             self.biases_1_2
@@ -206,7 +207,8 @@ class Things:
             self.messages = neural_action[:, 3]
 
             # Apply fissions
-            to_divide = (neural_action[:, 2] + 1) / 2 > torch.rand(self.Pop)
+            random_gen = torch.rand(self.Pop)
+            to_divide = neural_action[:, 2] > random_gen
             for i in to_divide.nonzero():
                 self.monad_division(self.from_monad_to_general_idx(i))
 
@@ -336,7 +338,7 @@ class Things:
         if (initial_energy <
             torch.tensor(THING_TYPES[thing_type]["initial_energy"])):
             return 0
-        print("monad division at energy", int(initial_energy.item()))
+        # print("Monad division at energy", int(initial_energy.item()))
         size = THING_TYPES[thing_type]["size"]
         x, y = tuple(self.positions[i].tolist())
         angle = random.random() * 2 * math.pi
@@ -365,6 +367,13 @@ class Things:
             (
                 self.positions,
                 new_position.unsqueeze(0)
+            ),
+            dim = 0
+        )
+        self.boxes = torch.cat(
+            (
+                self.boxes,
+                get_box(new_position).unsqueeze(0)
             ),
             dim = 0
         )
@@ -540,6 +549,7 @@ class Things:
             self.sizes = remove_element(self.sizes, idx)
             self.positions = remove_element(self.positions, idx)
             self.energies = remove_element(self.energies, idx)
+            self.boxes = remove_element(self.boxes, idx)
 
             # Update state vars
             self.monad_mask = remove_element(self.monad_mask, idx)
@@ -559,6 +569,13 @@ class Things:
             torch.tensor([THING_TYPES["sugar"]["size"] for _ in range(N)]),
             self.sizes,
             self.positions
+        )
+        self.boxes = torch.cat(
+            (
+                self.boxes,
+                get_box(self.positions[:N])
+            ),
+            dim = 0
         )
         self.N += N
         self.energies = torch.cat(
@@ -596,6 +613,7 @@ class Things:
         self.sizes = self.sizes[mask]
         self.positions = self.positions[mask]
         self.energies = self.energies[mask]
+        self.boxes = self.boxes[mask]
 
         self.monad_mask = self.monad_mask[mask]
         self.sugar_mask = self.sugar_mask[mask]
@@ -736,6 +754,7 @@ class Things:
             [THING_TYPES[x]["size"] for x in self.thing_types]
         )
         self.positions = torch.tensor(state['positions'])
+        self.boxes = get_box(self.positions)
         self.energies = torch.tensor(state['energies'])
         self.N = len(self.positions)
         self.E = state['E']
