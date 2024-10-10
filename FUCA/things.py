@@ -46,6 +46,8 @@ class Things:
         self.hidden_1 = torch.zeros((self.Pop, 8, 1), dtype = torch.float32)
         self.hidden_2 = torch.zeros((self.Pop, 8, 1), dtype = torch.float32)
         self.boxes = get_box(self.positions)
+        self.box_content = {i: (self.boxes == i).nonzero().squeeze()
+                            for i in range(1, 145)}
 
         # Initialize genomes and lineages
         self.genomes = torch.tensor(GENOME429_0, dtype = torch.float32).repeat(
@@ -377,6 +379,8 @@ class Things:
             ),
             dim = 0
         )
+        self.box_content = {i: (self.boxes == i).nonzero().squeeze()
+                            for i in range(1, 145)}
         self.energies[i] -= initial_energy
         self.energies = torch.cat(
             (
@@ -550,6 +554,8 @@ class Things:
             self.positions = remove_element(self.positions, idx)
             self.energies = remove_element(self.energies, idx)
             self.boxes = remove_element(self.boxes, idx)
+            self.box_content = {i: (self.boxes == i).nonzero().squeeze()
+                                for i in range(1, 145)}
 
             # Update state vars
             self.monad_mask = remove_element(self.monad_mask, idx)
@@ -577,6 +583,8 @@ class Things:
             ),
             dim = 0
         )
+        self.box_content = {i: (self.boxes == i).nonzero().squeeze()
+                            for i in range(1, 145)}
         self.N += N
         self.energies = torch.cat(
             (
@@ -614,6 +622,9 @@ class Things:
         self.positions = self.positions[mask]
         self.energies = self.energies[mask]
         self.boxes = self.boxes[mask]
+        # Updating box contents to be optimized
+        self.box_content = {i: (self.boxes == i).nonzero().squeeze()
+                            for i in range(1, 145)}
 
         self.monad_mask = self.monad_mask[mask]
         self.sugar_mask = self.sugar_mask[mask]
@@ -755,6 +766,8 @@ class Things:
         )
         self.positions = torch.tensor(state['positions'])
         self.boxes = get_box(self.positions)
+        self.box_content = {i: (self.boxes == i).nonzero().squeeze()
+                            for i in range(1, 145)}
         self.energies = torch.tensor(state['energies'])
         self.N = len(self.positions)
         self.E = state['E']

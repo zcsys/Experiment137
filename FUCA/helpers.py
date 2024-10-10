@@ -99,4 +99,4 @@ def float_msg_to_str(float_msg):
     return base64.b64encode(packed_bytes)[:4].decode('ascii')
 
 def get_box(positions):
-    return positions[:, 0] // 120 + positions[:, 1] // 120 * 16
+    return (positions[:, 0] // 120 + positions[:, 1] // 120 * 16).int()
