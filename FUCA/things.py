@@ -99,25 +99,42 @@ class Things:
         self.biases_2_o = self.genomes[:, 312:316].view(self.Pop, 4, 1)
 
     def mutate(self, i, show = False):
-        probability = 0.1
-        strength = 1.
+        p = random.random()
+        if p < 0.0025:
+            # Mutation type 3A: add hidden state to a hidden layer
+            return self.genomes[i]
+        elif p < 0.005:
+            # Mutation type 3B-1: activate a sensory organ
+            return self.genomes[i]
+        elif p < 0.0075:
+            # Mutation type 3B-2: activate an action organ
+            return self.genomes[i]
+        elif p < 0.01:
+            # Mutation type 3C: add a hidden layer
+            return self.genomes[i]
+        elif p < 0.03:
+            # Mutation type 2: neurogenesis
+            return self.genomes[i]
+        else:
+            # Mutation type 1: coding mutations
+            probability = 0.1
+            strength = 1.
 
-        original_genome = self.genomes[i].clone()
-        n = int(len(original_genome) / 2)
-        coding_part = original_genome[:n]
-        regulatory_part = original_genome[n:].int()
-        genome_to_mutate = coding_part[regulatory_part]
+            original_genome = self.genomes[i].clone()
+            n = int(len(original_genome) / 2)
+            coding_part = original_genome[:n]
+            regulatory_part = original_genome[n:].bool()
+            genome_to_mutate = coding_part[regulatory_part]
+            mutation_mask = torch.rand_like(genome_to_mutate) < probability
+            mutations = torch.rand_like(genome_to_mutate) * 2 - 1
+            coding_part[regulatory_part] = (
+                genome_to_mutate + mutation_mask * mutations * strength
+            )
 
-        mutation_mask = torch.rand_like(genome_to_mutate) < probability
-        mutations = torch.rand_like(genome_to_mutate) * 2 - 1
-        coding_part[regulatory_part] = (
-            genome_to_mutate + mutation_mask * mutations * strength
-        )
+            if mutation_mask.any() and show:
+                pass
 
-        if mutation_mask.any() and show:
-            pass
-
-        return torch.cat((coding_part, regulatory_part.float()), dim = 0)
+            return torch.cat((coding_part, regulatory_part.float()), dim = 0)
 
     def sensory_inputs(self):
         # For each non-sugar, there's a vector pointing towards the center of
@@ -202,7 +219,7 @@ class Things:
             # Get output tensor
             neural_action = self.neural_action()
 
-            # Apply movements
+            # Fetch monad movements
             self.movement_tensor[self.monad_mask] = neural_action[:, :2]
 
             # Broadcast messages
@@ -214,11 +231,11 @@ class Things:
             for i in to_divide.nonzero():
                 self.monad_division(self.from_monad_to_general_idx(i))
 
-        # Sugar movements
+        # Fetch sugar movements
         if self.sugar_mask.any():
             self.movement_tensor[self.sugar_mask] = self.random_action()
 
-        # Apply changes in positions
+        # Apply movements
         self.update_positions()
 
     def update_positions(self):
@@ -240,26 +257,6 @@ class Things:
             ],
             dim = 1
         )
-
-
-        """
-        # Spatial partitioning
-        self.boxes = get_box(self.positions)
-        self.box_content = {i: (self.boxes == i).nonzero().squeeze()
-                            for i in range(1, 145)}
-        self.neighbor_masks = torch.zeros((self.N, self.N), dtype = torch.bool)
-        for i in self.monad_mask.nonzero().squeeze().tolist():
-            for j in neighbors[self.boxes[i].item()]:
-                if self.box_content[j].any():
-                    for k in self.box_content[j].unsqueeze(0):
-                        self.neighbor_masks[i][k] = True
-        self.neighbor_masks.fill_diagonal_(False)
-
-        neighbor_indices = self.neighbor_masks.nonzero(as_tuple = True)
-        diffs = provisional_positions[neighbor_indices[1]] - self.positions[neighbor_indices[0]]
-        distances = torch.norm(diffs, dim = 2)
-        size_sums = self.sizes[neighbor_indices[1]] + self.sizes[neighbor_indices[0]]
-        """
 
         # Detect collisions
         diffs = provisional_positions.unsqueeze(1) - self.positions.unsqueeze(0)

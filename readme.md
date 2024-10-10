@@ -22,6 +22,7 @@
 (*to come*)
 
 #### Experiment 4: LUCA
+* Spatial partitioning with Taichi
 * Color-based periodic table and molecular interactions
 * Monad4280 to learn controlling *its* molecules to navigate through universe
 * Autogenetic breeding

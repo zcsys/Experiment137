@@ -148,12 +148,12 @@ GENOME429_0 = [
     # REGULATORY PART
 
     # Sense organs
-    0, 0,                   # compass to layer 1 neuron 1
+    1, 1,                   # compass to layer 1 neuron 1
     1, 1,                   # hunger to layer 1 neuron 1
     0,                      # energy to layer 1 neuron 1
     0,                      # LMWS neuron to layer 1 neuron 1
     0, 0, 0,                # ear to layer 1 neuron 1
-    0, 0,                   # compass to layer 1 neuron 2
+    1, 1,                   # compass to layer 1 neuron 2
     1, 1,                   # hunger to layer 1 neuron 2
     0,                      # energy to layer 1 neuron 2
     0,                      # LMWS neuron to layer 1 neuron 2
