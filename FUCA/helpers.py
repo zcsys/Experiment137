@@ -5,6 +5,7 @@ import struct
 import base64
 import numpy as np
 from base_vars import *
+from scipy.spatial import cKDTree
 
 identity = lambda x: x
 
@@ -100,3 +101,14 @@ def float_msg_to_str(float_msg):
 
 def get_box(positions):
     return (positions[:, 0] // 120 + positions[:, 1] // 120 * 16).int()
+
+def find_neighbors(positions, radius):
+    """
+    Find all pairs of particles within a given radius.
+
+    :param positions: numpy array of shape (n_particles, 2) containing particle positions
+    :param radius: distance within which to find neighbors
+    :return: list of tuples, each containing indices of neighboring particles
+    """
+    tree = cKDTree(positions)
+    return tree.query_pairs(r=radius, output_type='ndarray')
