@@ -5,6 +5,9 @@ import struct
 import base64
 import numpy as np
 from base_vars import *
+from scipy.spatial import cKDTree
+
+identity = lambda x: x
 
 def unique(x):
     """Gets a list and returns its unique values as a list in same order"""
@@ -75,17 +78,42 @@ def hex_to_rgb(hex_color):
     hex_color = hex_color.lstrip('#')
     return tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
 
-def get_color_by_genome(genome, scale = 100, base_color = GRAY):
-    n = len(genome) // 3
-    return (
+def get_color_by_genome(genome, scale = 100., base_color = (160, 160, 160)):
+    n = len(genome) // 6
+    result = (
         max(min(base_color[0] + int(scale * genome[:n].sum().item()),
             255), 64),
-        max(min(base_color[1] + int(scale * genome[n:2 * n].sum().item()),
+        max(min(base_color[1] + int(scale * genome[n:2*n].sum().item()),
             255), 64),
-        max(min(base_color[2] + int(scale * genome[2 * n:].sum().item()),
+        max(min(base_color[2] + int(scale * genome[2*n:3*n].sum().item()),
             255), 64)
     )
+    # print(result)
+    return result
+
+def reverse_color(color):
+    r, g, b = color
+    return 255 - r, 255 - g, 255 - b
 
 def float_msg_to_str(float_msg):
     packed_bytes = struct.pack('>f', np.float32(float_msg))
     return base64.b64encode(packed_bytes)[:4].decode('ascii')
+
+def get_box(positions):
+    return (positions[:, 0] // 120 + positions[:, 1] // 120 * 16).int()
+
+def find_neighbors(positions, radius):
+    """
+    Find all pairs of particles within a given radius.
+
+    :param positions: numpy array of shape (n_particles, 2) containing particle
+                      positions
+    :param radius: distance within which to find neighbors
+    :return: list of tuples, each containing indices of neighboring particles
+    """
+    tree = cKDTree(positions)
+    return tree.query_pairs(r = radius, output_type = 'ndarray')
+
+def flattened_identity_matrix(N, x = None):
+    lt = x if x else N
+    return [1 if i == j and i < lt else 0 for j in range(N) for i in range(N)]

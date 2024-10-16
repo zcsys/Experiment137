@@ -49,15 +49,15 @@ def Rules(simul, n):
         fission_mask = simul.things.energies >= AUTO_FISSION_THRESHOLD
         for i, mask in enumerate(fission_mask):
             if mask:
-                simul.things.cell_division(i)
+                simul.things.monad_division(i)
 
     # Aging and death
     if 3 in n:
-        simul.things.energies[simul.things.cell_mask] -= (
+        simul.things.energies[simul.things.monad_mask] -= (
             METABOLIC_ACTIVITY_CONSTANT
         )
         to_remove = torch.nonzero(
-            simul.things.energies[simul.things.cell_mask] <= 0
+            simul.things.energies[simul.things.monad_mask] <= 0
         )
         if len(to_remove) > 0:
-            simul.things.cell_death(to_remove.squeeze(1).tolist())
+            simul.things.monad_death(to_remove.squeeze(1).tolist())

@@ -157,6 +157,9 @@ class Simulation:
         pygame.display.set_caption("Experiment 137.03: FUCA")
         self.things = things_object
         self.period_start_time = time.time()
+        self.transparent_surface = pygame.Surface(
+            (SIMUL_WIDTH, SIMUL_HEIGHT), pygame.SRCALPHA
+        ).convert_alpha()
 
         if load_file:
             with open(load_file, 'r') as f:
@@ -216,11 +219,61 @@ class Simulation:
                 self.things.final_action()
                 self.update_state()
 
-            self.screen.fill(BLACK)
+            self.screen.fill(colors["∅"])
             self.things.draw(self.screen, self.ui_manager.show_info,
                              self.ui_manager.show_sight,
                              self.ui_manager.show_forces,
                              self.ui_manager.show_network)
+
+            if not self.paused:
+                Rules(self, [1, 2, 3, 4, 5])
+
+            # The Arbeitor of Truth
+            """
+            self.transparent_surface.fill((0, 0, 0, 0))
+            pygame.draw.circle(
+                self.transparent_surface,
+                (254, 254, 0, 50),
+                (SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2),
+                610
+            )
+            pygame.draw.circle(
+                self.transparent_surface,
+                (254, 254, 0, 75),
+                (SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2),
+                377
+            )
+            pygame.draw.circle(
+                self.transparent_surface,
+                (254, 254, 0, 100),
+                (SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2),
+                233
+            )
+            pygame.draw.circle(
+                self.transparent_surface,
+                (254, 254, 0, 125),
+                (SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2),
+                144
+            )
+            pygame.draw.circle(
+                self.transparent_surface,
+                (254, 254, 0, 150),
+                (SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2),
+                89
+            )
+            pygame.draw.circle(
+                self.transparent_surface,
+                (254, 254, 0, 175),
+                (SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2),
+                55
+            )
+            self.screen.blit(
+                self.transparent_surface,
+                (1570 - self.steps - (self.periods % 2) * 2400, 0)
+            )
+            """
+
+            # Draw the right pane
             self.ui_manager.draw(
                 self.get_state(),
                 self.things.N,
@@ -228,9 +281,7 @@ class Simulation:
                 self.things.Pop
             )
 
-            if not self.paused:
-                Rules(self, [1, 2, 3, 4, 5])
-
+            # Put it all on display and limit FPS
             pygame.display.flip()
             # clock.tick(60)
 
