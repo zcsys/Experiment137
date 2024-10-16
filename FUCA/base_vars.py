@@ -114,14 +114,14 @@ GENOME429_0 = [
     0, 0, 0, 0, 0, 0, 0, 0, # layer 1 biases
 
     # Layer 2
-    1, 0, 0, 0, 0, 0, 0, 0, # layer 1 to layer 2 neuron 1
-    0, 1, 0, 0, 0, 0, 0, 0, # layer 1 to layer 2 neuron 2
-    0, 0, 1, 0, 0, 0, 0, 0, # layer 1 to layer 2 neuron 3
-    0, 0, 0, 1, 0, 0, 0, 0, # layer 1 to layer 2 neuron 4
-    0, 0, 0, 0, 1, 0, 0, 0, # layer 1 to layer 2 neuron 5
-    0, 0, 0, 0, 0, 1, 0, 0, # layer 1 to layer 2 neuron 6
-    0, 0, 0, 0, 0, 0, 1, 0, # layer 1 to layer 2 neuron 7
-    0, 0, 0, 0, 0, 0, 0, 1, # layer 1 to layer 2 neuron 8
+    2, 0, 0, 0, 0, 0, 0, 0, # layer 1 to layer 2 neuron 1
+    0, 2, 0, 0, 0, 0, 0, 0, # layer 1 to layer 2 neuron 2
+    0, 0, 2, 0, 0, 0, 0, 0, # layer 1 to layer 2 neuron 3
+    0, 0, 0, 2, 0, 0, 0, 0, # layer 1 to layer 2 neuron 4
+    0, 0, 0, 0, 2, 0, 0, 0, # layer 1 to layer 2 neuron 5
+    0, 0, 0, 0, 0, 2, 0, 0, # layer 1 to layer 2 neuron 6
+    0, 0, 0, 0, 0, 0, 2, 0, # layer 1 to layer 2 neuron 7
+    0, 0, 0, 0, 0, 0, 0, 2, # layer 1 to layer 2 neuron 8
     0, 0, 0, 0, 0, 0, 0, 0, # hidden state 2 weight 1
     0, 0, 0, 0, 0, 0, 0, 0, # hidden state 2 weight 2
     0, 0, 0, 0, 0, 0, 0, 0, # hidden state 2 weight 3
@@ -134,8 +134,8 @@ GENOME429_0 = [
 
     # Action organs
     # Flagellum
-    1, 0, 0, 0, 0, 0, 0, 0, # layer 2 to output layer neuron 1
-    0, 1, 0, 0, 0, 0, 0, 0, # layer 2 to output layer neuron 2
+    2, 0, 0, 0, 0, 0, 0, 0, # layer 2 to output layer neuron 1
+    0, 2, 0, 0, 0, 0, 0, 0, # layer 2 to output layer neuron 2
 
     # Divisor
     0, 0, 0, 0, 0, 0, 0, 0, # layer 2 to output layer neuron 3
@@ -148,12 +148,12 @@ GENOME429_0 = [
     # REGULATORY PART
 
     # Sense organs
-    1, 1,                   # compass to layer 1 neuron 1
+    0, 0,                   # compass to layer 1 neuron 1
     1, 1,                   # hunger to layer 1 neuron 1
     0,                      # energy to layer 1 neuron 1
     0,                      # LMWS neuron to layer 1 neuron 1
     0, 0, 0,                # ear to layer 1 neuron 1
-    1, 1,                   # compass to layer 1 neuron 2
+    0, 0,                   # compass to layer 1 neuron 2
     1, 1,                   # hunger to layer 1 neuron 2
     0,                      # energy to layer 1 neuron 2
     0,                      # LMWS neuron to layer 1 neuron 2

@@ -14,9 +14,11 @@
 #### Experiment 3: FUCA
 * pytorch PoC
 * Creations with fully tensor-based movements
-	* Monad211: 11-neuron monad with full IO flattening and LMWH sensory input neuron
+	* Monad211: 11-neuron monad with full IO flattening and LMWH sensory input
 	* Monad313: 13-neuron monad with RNN
-	* Monad429: Evolvable architecture with a maximum of 29 neurons and 2 recurrent hidden layers, controlled by 316 parameters and 632 genes
+	* Monad429: 29-neuron monad with 2 recurrent layers under 316 parameters
+							regulated by 632 genes,	having an action organ to broadcast a
+							32-bit message and a sensory organ to receive the message with its direction
 
 ### Aeon of Abundance
 (*to come*)

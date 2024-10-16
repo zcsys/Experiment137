@@ -106,9 +106,14 @@ def find_neighbors(positions, radius):
     """
     Find all pairs of particles within a given radius.
 
-    :param positions: numpy array of shape (n_particles, 2) containing particle positions
+    :param positions: numpy array of shape (n_particles, 2) containing particle
+                      positions
     :param radius: distance within which to find neighbors
     :return: list of tuples, each containing indices of neighboring particles
     """
     tree = cKDTree(positions)
-    return tree.query_pairs(r=radius, output_type='ndarray')
+    return tree.query_pairs(r = radius, output_type = 'ndarray')
+
+def flattened_identity_matrix(N, x = None):
+    lt = x if x else N
+    return [1 if i == j and i < lt else 0 for j in range(N) for i in range(N)]

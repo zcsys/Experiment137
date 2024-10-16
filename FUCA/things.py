@@ -98,43 +98,29 @@ class Things:
         self.weights_2_o = self.genomes[:, 280:312].view(self.Pop, 4, 8)
         self.biases_2_o = self.genomes[:, 312:316].view(self.Pop, 4, 1)
 
-    def mutate(self, i, show = False):
-        p = random.random()
-        if p < 0.0025:
-            # Mutation type 3A: add hidden state to a hidden layer
-            return self.genomes[i]
-        elif p < 0.005:
-            # Mutation type 3B-1: activate a sensory organ
-            return self.genomes[i]
-        elif p < 0.0075:
-            # Mutation type 3B-2: activate an action organ
-            return self.genomes[i]
-        elif p < 0.01:
-            # Mutation type 3C: add a hidden layer
-            return self.genomes[i]
-        elif p < 0.03:
-            # Mutation type 2: neurogenesis
-            return self.genomes[i]
-        else:
-            # Mutation type 1: coding mutations
-            probability = 0.1
-            strength = 1.
+    def mutate(self, i, prob_coding = 0.1, strength = 1.,
+               prob_regulatory = 0.01, show = False):
+        # Split genome
+        original_genome = self.genomes[i].clone()
+        n = int(len(original_genome) / 2)
+        coding_part = original_genome[:n]
+        regulatory_part = original_genome[n:].bool()
 
-            original_genome = self.genomes[i].clone()
-            n = int(len(original_genome) / 2)
-            coding_part = original_genome[:n]
-            regulatory_part = original_genome[n:].bool()
-            genome_to_mutate = coding_part[regulatory_part]
-            mutation_mask = torch.rand_like(genome_to_mutate) < probability
-            mutations = torch.rand_like(genome_to_mutate) * 2 - 1
-            coding_part[regulatory_part] = (
-                genome_to_mutate + mutation_mask * mutations * strength
-            )
+        # Coding part mutations
+        genome_to_mutate = coding_part[regulatory_part]
+        mutation_mask = torch.rand_like(genome_to_mutate) < prob_coding
+        mutations = torch.rand_like(genome_to_mutate) * 2 - 1
+        coding_part[regulatory_part] = (
+            genome_to_mutate + mutation_mask * mutations * strength
+        )
 
-            if mutation_mask.any() and show:
-                pass
+        # Regulatory part mutations
+        regulatory_part = regulatory_part.float()
+        helper = torch.rand_like(regulatory_part) < prob_regulatory
+        regulatory_part = torch.abs(regulatory_part - helper.float())
 
-            return torch.cat((coding_part, regulatory_part.float()), dim = 0)
+        # Combine and return genome
+        return torch.cat((coding_part, regulatory_part), dim = 0)
 
     def sensory_inputs(self):
         # For each non-sugar, there's a vector pointing towards the center of
