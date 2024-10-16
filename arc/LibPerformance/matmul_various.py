@@ -6,7 +6,7 @@ from jax import random
 import tensorflow as tf
 
 # Matrix dimensions
-MATRIX_SIZE = 10000
+MATRIX_SIZE = 1000
 
 # ----- NumPy matrix multiplication (Baseline) -----
 print("Testing NumPy matrix multiplication")
@@ -53,7 +53,7 @@ A_jax = random.normal(key, (MATRIX_SIZE, MATRIX_SIZE))
 B_jax = random.normal(key, (MATRIX_SIZE, MATRIX_SIZE))
 
 start_jax = time.time()
-C_jax = jnp.dot(A_jax, B_jax)
+C_jax = jnp.matmul(A_jax, B_jax)
 end_jax = time.time()
 
 jax_time = end_jax - start_jax
