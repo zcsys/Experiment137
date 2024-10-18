@@ -188,68 +188,68 @@ class Things:
 
     def neural_action(self):
         # Layer 1
-        self.forget_gate_1 = torch.sigmoid(
+        forget_gate_1 = torch.sigmoid(
             torch.bmm(self.W_forget_gate_1, self.input_vectors) +
             torch.bmm(self.W_forget_gate_h1, self.hidden_1) +
             self.B_forget_gate_1
         )
 
-        self.input_gate_1 = torch.sigmoid(
+        input_gate_1 = torch.sigmoid(
             torch.bmm(self.W_input_gate_1, self.input_vectors) +
             torch.bmm(self.W_input_gate_h1, self.hidden_1) +
             self.B_input_gate_1
         )
 
-        self.candidate_1 = torch.tanh(
+        candidate_1 = torch.tanh(
             torch.bmm(self.W_candidate_1, self.input_vectors) +
             torch.bmm(self.W_candidate_h1, self.hidden_1) +
             self.B_candidate_1
         )
 
         self.cell_state_1 = (
-            self.forget_gate_1 * self.cell_state_1 +
-            self.input_gate_1 * self.candidate_1
+            forget_gate_1 * self.cell_state_1 +
+            input_gate_1 * candidate_1
         )
 
-        self.output_gate_1 = torch.sigmoid(
+        output_gate_1 = torch.sigmoid(
             torch.bmm(self.W_output_gate_1, self.input_vectors) +
             torch.bmm(self.W_output_gate_h1, self.hidden_1) +
             self.B_output_gate_1
         )
 
-        self.hidden_1 = self.output_gate_1 * torch.tanh(self.cell_state_1)
+        self.hidden_1 = output_gate_1 * torch.tanh(self.cell_state_1)
 
         # Layer 2
-        self.forget_gate_2 = torch.sigmoid(
+        forget_gate_2 = torch.sigmoid(
             torch.bmm(self.W_forget_gate_2, self.hidden_1) +
             torch.bmm(self.W_forget_gate_h2, self.hidden_2) +
             self.B_forget_gate_2
         )
 
-        self.input_gate_2 = torch.sigmoid(
+        input_gate_2 = torch.sigmoid(
             torch.bmm(self.W_input_gate_2, self.hidden_1) +
             torch.bmm(self.W_input_gate_h2, self.hidden_2) +
             self.B_input_gate_2
         )
 
-        self.candidate_2 = torch.tanh(
+        candidate_2 = torch.tanh(
             torch.bmm(self.W_candidate_2, self.hidden_1) +
             torch.bmm(self.W_candidate_h2, self.hidden_2) +
             self.B_candidate_2
         )
 
         self.cell_state_2 = (
-            self.forget_gate_2 * self.cell_state_2 +
-            self.input_gate_2 * self.candidate_2
+            forget_gate_2 * self.cell_state_2 +
+            input_gate_2 * candidate_2
         )
 
-        self.output_gate_2 = torch.sigmoid(
+        output_gate_2 = torch.sigmoid(
             torch.bmm(self.W_output_gate_2, self.hidden_1) +
             torch.bmm(self.W_output_gate_h2, self.hidden_2) +
             self.B_output_gate_2
         )
 
-        self.hidden_2 = self.output_gate_2 * torch.tanh(self.cell_state_2)
+        self.hidden_2 = output_gate_2 * torch.tanh(self.cell_state_2)
 
         # Output layer
         return torch.tanh(
