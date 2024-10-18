@@ -80,7 +80,7 @@ def hex_to_rgb(hex_color):
 
 def get_color_by_genome(genome, scale = 100., base_color = (160, 160, 160)):
     n = len(genome) // 6
-    result = (
+    return (
         max(min(base_color[0] + int(scale * genome[:n].sum().item()),
             255), 64),
         max(min(base_color[1] + int(scale * genome[n:2*n].sum().item()),
@@ -88,8 +88,6 @@ def get_color_by_genome(genome, scale = 100., base_color = (160, 160, 160)):
         max(min(base_color[2] + int(scale * genome[2*n:3*n].sum().item()),
             255), 64)
     )
-    # print(result)
-    return result
 
 def reverse_color(color):
     r, g, b = color
@@ -117,3 +115,6 @@ def find_neighbors(positions, radius):
 def flattened_identity_matrix(N, x = None):
     lt = x if x else N
     return [1 if i == j and i < lt else 0 for j in range(N) for i in range(N)]
+
+def batchdot(A, B):
+    return torch.einsum('bi,bi->b', A, B)

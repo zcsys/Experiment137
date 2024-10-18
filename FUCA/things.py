@@ -43,14 +43,20 @@ class Things:
             for thing_type in thing_types]
         )
         self.colors = [THING_TYPES[x]["color"] for x in self.thing_types]
-        self.hidden_1 = torch.zeros((self.Pop, 8, 1), dtype = torch.float32)
-        self.hidden_2 = torch.zeros((self.Pop, 8, 1), dtype = torch.float32)
+        self.hidden_1 = torch.zeros((self.Pop, 8, 1),
+                                    dtype = torch.float32)
+        self.cell_state_1 = torch.zeros((self.Pop, 8, 1),
+                                        dtype = torch.float32)
+        self.hidden_2 = torch.zeros((self.Pop, 8, 1),
+                                    dtype = torch.float32)
+        self.cell_state_2 = torch.zeros((self.Pop, 8, 1),
+                                        dtype = torch.float32)
         """self.boxes = get_box(self.positions)
         self.box_content = {i: (self.boxes == i).nonzero().squeeze()
                             for i in range(1, 145)}"""
 
         # Initialize genomes and lineages
-        self.genomes = torch.tensor(GENOME429_0, dtype = torch.float32).repeat(
+        self.genomes = torch.tensor(GENOME529_0, dtype = torch.float32).repeat(
             self.Pop, 1
         )
         self.lineages = [[0] for _ in range(self.Pop)]
@@ -83,26 +89,48 @@ class Things:
         return self.lineages[i][0] + len(self.lineages[i])
 
     def apply_genomes(self):
-        """Monad429 neurogenetics"""
+        """Monad529 neurogenetics"""
         # Layer 1
-        self.weights_i_1 = self.genomes[:, 0:72].view(self.Pop, 8, 9)
-        self.weights_h_1 = self.genomes[:, 72:136].view(self.Pop, 8, 8)
-        self.biases_i_1 = self.genomes[:, 136:144].view(self.Pop, 8, 1)
+        self.W_forget_gate_1 = self.genomes[:, 0:72].view(self.Pop, 8, 9)
+        self.W_input_gate_1 = self.genomes[:, 72:144].view(self.Pop, 8, 9)
+        self.W_candidate_1 = self.genomes[:, 144:216].view(self.Pop, 8, 9)
+        self.W_output_gate_1 = self.genomes[:, 216:288].view(self.Pop, 8, 9)
+
+        self.W_forget_gate_h1 = self.genomes[:, 288:352].view(self.Pop, 8, 8)
+        self.W_input_gate_h1 = self.genomes[:, 352:416].view(self.Pop, 8, 8)
+        self.W_candidate_h1 = self.genomes[:, 416:480].view(self.Pop, 8, 8)
+        self.W_output_gate_h1 = self.genomes[:, 480:544].view(self.Pop, 8, 8)
+
+        self.B_forget_gate_1 = self.genomes[:, 544:552].view(self.Pop, 8, 1)
+        self.B_input_gate_1 = self.genomes[:, 552:560].view(self.Pop, 8, 1)
+        self.B_candidate_1 = self.genomes[:, 560:568].view(self.Pop, 8, 1)
+        self.B_output_gate_1 = self.genomes[:, 568:576].view(self.Pop, 8, 1)
 
         # Layer 2
-        self.weights_1_2 = self.genomes[:, 144:208].view(self.Pop, 8, 8)
-        self.weights_h_2 = self.genomes[:, 208:272].view(self.Pop, 8, 8)
-        self.biases_1_2 = self.genomes[:, 272:280].view(self.Pop, 8, 1)
+        self.W_forget_gate_2 = self.genomes[:, 576:640].view(self.Pop, 8, 8)
+        self.W_input_gate_2 = self.genomes[:, 640:704].view(self.Pop, 8, 8)
+        self.W_candidate_2 = self.genomes[:, 704:768].view(self.Pop, 8, 8)
+        self.W_output_gate_2 = self.genomes[:, 768:832].view(self.Pop, 8, 8)
+
+        self.W_forget_gate_h2 = self.genomes[:, 832:896].view(self.Pop, 8, 8)
+        self.W_input_gate_h2 = self.genomes[:, 896:960].view(self.Pop, 8, 8)
+        self.W_candidate_h2 = self.genomes[:, 960:1024].view(self.Pop, 8, 8)
+        self.W_output_gate_h2 = self.genomes[:, 1024:1088].view(self.Pop, 8, 8)
+
+        self.B_forget_gate_2 = self.genomes[:, 1088:1096].view(self.Pop, 8, 1)
+        self.B_input_gate_2 = self.genomes[:, 1096:1104].view(self.Pop, 8, 1)
+        self.B_candidate_2 = self.genomes[:, 1104:1112].view(self.Pop, 8, 1)
+        self.B_output_gate_2 = self.genomes[:, 1112:1120].view(self.Pop, 8, 1)
 
         # Output layer
-        self.weights_2_o = self.genomes[:, 280:312].view(self.Pop, 4, 8)
-        self.biases_2_o = self.genomes[:, 312:316].view(self.Pop, 4, 1)
+        self.W_output_layer = self.genomes[:, 1120:1152].view(self.Pop, 4, 8)
+        self.B_output_layer = self.genomes[:, 1152:1156].view(self.Pop, 4, 1)
 
     def mutate(self, i, prob_coding = 0.1, strength = 1.,
                prob_regulatory = 0.01, show = False):
         # Split genome
         original_genome = self.genomes[i].clone()
-        n = int(len(original_genome) / 2)
+        n = int(round(len(original_genome) / 2))
         coding_part = original_genome[:n]
         regulatory_part = original_genome[n:].bool()
 
@@ -159,21 +187,74 @@ class Things:
         ).view(self.Pop, 9, 1)
 
     def neural_action(self):
-        self.hidden_1 = torch.tanh(
-            torch.bmm(self.weights_i_1, self.input_vectors) +
-            torch.bmm(self.weights_h_1, self.hidden_1) +
-            self.biases_i_1
+        # Layer 1
+        self.forget_gate_1 = torch.sigmoid(
+            torch.bmm(self.W_forget_gate_1, self.input_vectors) +
+            torch.bmm(self.W_forget_gate_h1, self.hidden_1) +
+            self.B_forget_gate_1
         )
 
-        self.hidden_2 = torch.tanh(
-            torch.bmm(self.weights_1_2, self.hidden_1) +
-            torch.bmm(self.weights_h_2, self.hidden_2) +
-            self.biases_1_2
+        self.input_gate_1 = torch.sigmoid(
+            torch.bmm(self.W_input_gate_1, self.input_vectors) +
+            torch.bmm(self.W_input_gate_h1, self.hidden_1) +
+            self.B_input_gate_1
         )
 
+        self.candidate_1 = torch.tanh(
+            torch.bmm(self.W_candidate_1, self.input_vectors) +
+            torch.bmm(self.W_candidate_h1, self.hidden_1) +
+            self.B_candidate_1
+        )
+
+        self.cell_state_1 = (
+            self.forget_gate_1 * self.cell_state_1 +
+            self.input_gate_1 * self.candidate_1
+        )
+
+        self.output_gate_1 = torch.sigmoid(
+            torch.bmm(self.W_output_gate_1, self.input_vectors) +
+            torch.bmm(self.W_output_gate_h1, self.hidden_1) +
+            self.B_output_gate_1
+        )
+
+        self.hidden_1 = self.output_gate_1 * torch.tanh(self.cell_state_1)
+
+        # Layer 2
+        self.forget_gate_2 = torch.sigmoid(
+            torch.bmm(self.W_forget_gate_2, self.hidden_1) +
+            torch.bmm(self.W_forget_gate_h2, self.hidden_2) +
+            self.B_forget_gate_2
+        )
+
+        self.input_gate_2 = torch.sigmoid(
+            torch.bmm(self.W_input_gate_2, self.hidden_1) +
+            torch.bmm(self.W_input_gate_h2, self.hidden_2) +
+            self.B_input_gate_2
+        )
+
+        self.candidate_2 = torch.tanh(
+            torch.bmm(self.W_candidate_2, self.hidden_1) +
+            torch.bmm(self.W_candidate_h2, self.hidden_2) +
+            self.B_candidate_2
+        )
+
+        self.cell_state_2 = (
+            self.forget_gate_2 * self.cell_state_2 +
+            self.input_gate_2 * self.candidate_2
+        )
+
+        self.output_gate_2 = torch.sigmoid(
+            torch.bmm(self.W_output_gate_2, self.hidden_1) +
+            torch.bmm(self.W_output_gate_h2, self.hidden_2) +
+            self.B_output_gate_2
+        )
+
+        self.hidden_2 = self.output_gate_2 * torch.tanh(self.cell_state_2)
+
+        # Output layer
         return torch.tanh(
-            torch.bmm(self.weights_2_o, self.hidden_2) +
-            self.biases_2_o
+            torch.bmm(self.W_output_layer, self.hidden_2) +
+            self.B_output_layer
         ).view(self.Pop, 4)
 
     def random_action(self):
@@ -421,99 +502,6 @@ class Things:
             dim = 0
         )
 
-        # Mutate the old genome & apply the new genome
-        idx = self.from_general_to_monad_idx(i)
-        genome = self.mutate(idx)
-        self.genomes = torch.cat(
-            (
-                self.genomes,
-                genome.unsqueeze(0)
-            ),
-            dim = 0
-        )
-        self.weights_i_1 = torch.cat(
-            (
-                self.weights_i_1,
-                genome[0:72].view(1, 8, 9)
-            ),
-            dim = 0
-        )
-        self.weights_h_1 = torch.cat(
-            (
-                self.weights_h_1,
-                genome[72:136].view(1, 8, 8)
-            ),
-            dim = 0
-        )
-        self.biases_i_1 = torch.cat(
-            (
-                self.biases_i_1,
-                genome[136:144].view(1, 8, 1)
-            ),
-            dim = 0
-        )
-        self.weights_1_2 = torch.cat(
-            (
-                self.weights_1_2,
-                genome[144:208].view(1, 8, 8)
-            ),
-            dim = 0
-        )
-        self.weights_h_2 = torch.cat(
-            (
-                self.weights_h_2,
-                genome[208:272].view(1, 8, 8)
-            ),
-            dim = 0
-        )
-        self.biases_1_2 = torch.cat(
-            (
-                self.biases_1_2,
-                genome[272:280].view(1, 8, 1)
-            ),
-            dim = 0
-        )
-        self.weights_2_o = torch.cat(
-            (
-                self.weights_2_o,
-                genome[280:312].view(1, 4, 8)
-            ),
-            dim = 0
-        )
-        self.biases_2_o = torch.cat(
-            (
-                self.biases_2_o,
-                genome[312:316].view(1, 4, 1)
-            ),
-            dim = 0
-        )
-        self.hidden_1 = torch.cat(
-            (
-                self.hidden_1,
-                torch.zeros((1, 8, 1), dtype = torch.float32)
-            ),
-            dim = 0
-        )
-        self.hidden_2 = torch.cat(
-            (
-                self.hidden_2,
-                torch.zeros((1, 8, 1), dtype = torch.float32)
-            ),
-            dim = 0
-        )
-        if genome is self.genomes[idx]:
-            self.lineages.append(self.lineages[idx])
-            self.colors.append(self.color[i])
-        else:
-            new_lineage = self.lineages[idx] + [0]
-            while True:
-                new_lineage[-1] += 1
-                if new_lineage not in self.lineages:
-                    break
-            self.lineages.append(new_lineage)
-            self.colors.append(get_color_by_genome(genome))
-            # print(new_lineage)
-
         # Update state vars
         self.monad_mask = torch.cat(
             (
@@ -532,6 +520,58 @@ class Things:
         self.N += 1
         self.Pop += 1
 
+        # Mutate the old genome & apply the new genome
+        idx = self.from_general_to_monad_idx(i)
+        genome = self.mutate(idx)
+        self.genomes = torch.cat(
+            (
+                self.genomes,
+                genome.unsqueeze(0)
+            ),
+            dim = 0
+        )
+        self.apply_genomes()
+        self.hidden_1 = torch.cat(
+            (
+                self.hidden_1,
+                torch.zeros((1, 8, 1), dtype = torch.float32)
+            ),
+            dim = 0
+        )
+        self.cell_state_1 = torch.cat(
+            (
+                self.cell_state_1,
+                torch.zeros((1, 8, 1), dtype = torch.float32)
+            ),
+            dim = 0
+        )
+        self.hidden_2 = torch.cat(
+            (
+                self.hidden_2,
+                torch.zeros((1, 8, 1), dtype = torch.float32)
+            ),
+            dim = 0
+        )
+        self.cell_state_2 = torch.cat(
+            (
+                self.cell_state_2,
+                torch.zeros((1, 8, 1), dtype = torch.float32)
+            ),
+            dim = 0
+        )
+        if genome is self.genomes[idx]:
+            self.lineages.append(self.lineages[idx])
+            self.colors.append(self.color[i])
+        else:
+            new_lineage = self.lineages[idx] + [0]
+            while True:
+                new_lineage[-1] += 1
+                if new_lineage not in self.lineages:
+                    break
+            self.lineages.append(new_lineage)
+            self.colors.append(get_color_by_genome(genome))
+            # print(new_lineage)
+
         return 1
 
     def monad_death(self, indices):
@@ -542,7 +582,9 @@ class Things:
             )
             self.genomes = remove_element(self.genomes, i)
             self.hidden_1 = remove_element(self.hidden_1, i)
+            self.cell_state_1 = remove_element(self.cell_state_1, i)
             self.hidden_2 = remove_element(self.hidden_2, i)
+            self.cell_state_2 = remove_element(self.cell_state_2, i)
             self.messages = remove_element(self.messages, i)
             self.incoming_messages = remove_element(self.incoming_messages, i)
             del self.lineages[i]
@@ -754,7 +796,9 @@ class Things:
             'colors': self.colors,
             'LMWS': self.last_movement_was_successful.tolist(),
             'hidden_1': self.hidden_1.tolist(),
+            'cell_state_1': self.cell_state_1.tolist(),
             'hidden_2': self.hidden_2.tolist(),
+            'cell_state_2': self.cell_state_2.tolist(),
             'messages': self.messages.tolist(),
             'incoming': self.incoming_messages.tolist()
         }
@@ -779,7 +823,9 @@ class Things:
         self.colors = state['colors']
         self.last_movement_was_successful = torch.tensor(state['LMWS'])
         self.hidden_1 = torch.tensor(state['hidden_1'])
+        self.cell_state_1 = torch.tensor(state['cell_state_1'])
         self.hidden_2 = torch.tensor(state['hidden_2'])
+        self.cell_state_2 = torch.tensor(state['cell_state_2'])
         self.messages = torch.tensor(state['messages'])
         self.incoming_messages = torch.tensor(state['incoming'])
 

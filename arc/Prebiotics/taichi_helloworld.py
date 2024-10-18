@@ -21,7 +21,7 @@ def paint(t: float):
             iterations += 1
         pixels[i, j] = 1 - iterations * 0.02
 
-gui = ti.GUI("Julia Set", res=(n * 2, n))
+gui = ti.GUI("Julia Set", res = (n * 2, n))
 
 i = 0
 while gui.running:

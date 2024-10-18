@@ -231,6 +231,603 @@ GENOME429_0 = [
     0, 0, 0, 0, 0, 0, 0, 0, # layer 2 to output layer neuron 4
 
     0, 0, 0, 0, 0, 0, 0, 0  # output layer biases
+
+]
+
+GENOME529_0 = [
+    # CODING PART
+
+    # Sense organs
+    0, 0,                   # compass to forget 1 neuron 1
+    0, 0,                   # hunger to forget 1 neuron 1
+    0,                      # energy to forget 1 neuron 1
+    0,                      # LMWS neuron to forget 1 neuron 1
+    0, 0, 0,                # ear to forget 1 neuron 1
+    0, 0,                   # compass to forget 1 neuron 2
+    0, 0,                   # hunger to forget 1 neuron 2
+    0,                      # energy to forget 1 neuron 2
+    0,                      # LMWS neuron to forget 1 neuron 2
+    0, 0, 0,                # ear to forget 1 neuron 2
+    0, 0,                   # compass to forget 1 neuron 3
+    0, 0,                   # hunger to forget 1 neuron 3
+    0,                      # energy to forget 1 neuron 3
+    0,                      # LMWS neuron to forget 1 neuron 3
+    0, 0, 0,                # ear to forget 1 neuron 3
+    0, 0,                   # compass to forget 1 neuron 4
+    0, 0,                   # hunger to forget 1 neuron 4
+    0,                      # energy to forget 1 neuron 4
+    0,                      # LMWS neuron to forget 1 neuron 4
+    0, 0, 0,                # ear to forget 1 neuron 4
+    0, 0,                   # compass to forget 1 neuron 5
+    0, 0,                   # hunger to forget 1 neuron 5
+    0,                      # energy to forget 1 neuron 5
+    0,                      # LMWS neuron to forget 1 neuron 5
+    0, 0, 0,                # ear to forget 1 neuron 5
+    0, 0,                   # compass to forget 1 neuron 6
+    0, 0,                   # hunger to forget 1 neuron 6
+    0,                      # energy to forget 1 neuron 6
+    0,                      # LMWS neuron to forget 1 neuron 6
+    0, 0, 0,                # ear to forget 1 neuron 6
+    0, 0,                   # compass to forget 1 neuron 7
+    0, 0,                   # hunger to forget 1 neuron 7
+    0,                      # energy to forget 1 neuron 7
+    0,                      # LMWS neuron to forget 1 neuron 7
+    0, 0, 0,                # ear to forget 1 neuron 7
+    0, 0,                   # compass to forget 1 neuron 8
+    0, 0,                   # hunger to forget 1 neuron 8
+    0,                      # energy to forget 1 neuron 8
+    0,                      # LMWS neuron to forget 1 neuron 8
+    0, 0, 0,                # ear to forget 1 neuron 8
+    0, 0,                   # compass to input 1 neuron 1
+    0, 0,                   # hunger to input 1 neuron 1
+    0,                      # energy to input 1 neuron 1
+    0,                      # LMWS neuron to input 1 neuron 1
+    0, 0, 0,                # ear to input 1 neuron 1
+    0, 0,                   # compass to input 1 neuron 2
+    0, 0,                   # hunger to input 1 neuron 2
+    0,                      # energy to input 1 neuron 2
+    0,                      # LMWS neuron to input 1 neuron 2
+    0, 0, 0,                # ear to input 1 neuron 2
+    0, 0,                   # compass to input 1 neuron 3
+    0, 0,                   # hunger to input 1 neuron 3
+    0,                      # energy to input 1 neuron 3
+    0,                      # LMWS neuron to input 1 neuron 3
+    0, 0, 0,                # ear to input 1 neuron 3
+    0, 0,                   # compass to input 1 neuron 4
+    0, 0,                   # hunger to input 1 neuron 4
+    0,                      # energy to input 1 neuron 4
+    0,                      # LMWS neuron to input 1 neuron 4
+    0, 0, 0,                # ear to input 1 neuron 4
+    0, 0,                   # compass to input 1 neuron 5
+    0, 0,                   # hunger to input 1 neuron 5
+    0,                      # energy to input 1 neuron 5
+    0,                      # LMWS neuron to input 1 neuron 5
+    0, 0, 0,                # ear to input 1 neuron 5
+    0, 0,                   # compass to input 1 neuron 6
+    0, 0,                   # hunger to input 1 neuron 6
+    0,                      # energy to input 1 neuron 6
+    0,                      # LMWS neuron to input 1 neuron 6
+    0, 0, 0,                # ear to input 1 neuron 6
+    0, 0,                   # compass to input 1 neuron 7
+    0, 0,                   # hunger to input 1 neuron 7
+    0,                      # energy to input 1 neuron 7
+    0,                      # LMWS neuron to input 1 neuron 7
+    0, 0, 0,                # ear to input 1 neuron 7
+    0, 0,                   # compass to input 1 neuron 8
+    0, 0,                   # hunger to input 1 neuron 8
+    0,                      # energy to input 1 neuron 8
+    0,                      # LMWS neuron to input 1 neuron 8
+    0, 0, 0,                # ear to input 1 neuron 8
+    0, 0,                   # compass to candidate 1 neuron 1
+    0, 0,                   # hunger to candidate 1 neuron 1
+    0,                      # energy to candidate 1 neuron 1
+    0,                      # LMWS neuron to candidate 1 neuron 1
+    0, 0, 0,                # ear to candidate 1 neuron 1
+    0, 0,                   # compass to candidate 1 neuron 2
+    0, 0,                   # hunger to candidate 1 neuron 2
+    0,                      # energy to candidate 1 neuron 2
+    0,                      # LMWS neuron to candidate 1 neuron 2
+    0, 0, 0,                # ear to candidate 1 neuron 2
+    0, 0,                   # compass to candidate 1 neuron 3
+    0, 0,                   # hunger to candidate 1 neuron 3
+    0,                      # energy to candidate 1 neuron 3
+    0,                      # LMWS neuron to candidate 1 neuron 3
+    0, 0, 0,                # ear to candidate 1 neuron 3
+    0, 0,                   # compass to candidate 1 neuron 4
+    0, 0,                   # hunger to candidate 1 neuron 4
+    0,                      # energy to candidate 1 neuron 4
+    0,                      # LMWS neuron to candidate 1 neuron 4
+    0, 0, 0,                # ear to candidate 1 neuron 4
+    0, 0,                   # compass to candidate 1 neuron 5
+    0, 0,                   # hunger to candidate 1 neuron 5
+    0,                      # energy to candidate 1 neuron 5
+    0,                      # LMWS neuron to candidate 1 neuron 5
+    0, 0, 0,                # ear to candidate 1 neuron 5
+    0, 0,                   # compass to candidate 1 neuron 6
+    0, 0,                   # hunger to candidate 1 neuron 6
+    0,                      # energy to candidate 1 neuron 6
+    0,                      # LMWS neuron to candidate 1 neuron 6
+    0, 0, 0,                # ear to candidate 1 neuron 6
+    0, 0,                   # compass to candidate 1 neuron 7
+    0, 0,                   # hunger to candidate 1 neuron 7
+    0,                      # energy to candidate 1 neuron 7
+    0,                      # LMWS neuron to candidate 1 neuron 7
+    0, 0, 0,                # ear to candidate 1 neuron 7
+    0, 0,                   # compass to candidate 1 neuron 8
+    0, 0,                   # hunger to candidate 1 neuron 8
+    0,                      # energy to candidate 1 neuron 8
+    0,                      # LMWS neuron to candidate 1 neuron 8
+    0, 0, 0,                # ear to candidate 1 neuron 8
+    0, 0,                   # compass to output 1 neuron 1
+    0, 0,                   # hunger to output 1 neuron 1
+    0,                      # energy to output 1 neuron 1
+    0,                      # LMWS neuron to output 1 neuron 1
+    0, 0, 0,                # ear to output 1 neuron 1
+    0, 0,                   # compass to output 1 neuron 2
+    0, 0,                   # hunger to output 1 neuron 2
+    0,                      # energy to output 1 neuron 2
+    0,                      # LMWS neuron to output 1 neuron 2
+    0, 0, 0,                # ear to output 1 neuron 2
+    0, 0,                   # compass to output 1 neuron 3
+    0, 0,                   # hunger to output 1 neuron 3
+    0,                      # energy to output 1 neuron 3
+    0,                      # LMWS neuron to output 1 neuron 3
+    0, 0, 0,                # ear to output 1 neuron 3
+    0, 0,                   # compass to output 1 neuron 4
+    0, 0,                   # hunger to output 1 neuron 4
+    0,                      # energy to output 1 neuron 4
+    0,                      # LMWS neuron to output 1 neuron 4
+    0, 0, 0,                # ear to output 1 neuron 4
+    0, 0,                   # compass to output 1 neuron 5
+    0, 0,                   # hunger to output 1 neuron 5
+    0,                      # energy to output 1 neuron 5
+    0,                      # LMWS neuron to output 1 neuron 5
+    0, 0, 0,                # ear to output 1 neuron 5
+    0, 0,                   # compass to output 1 neuron 6
+    0, 0,                   # hunger to output 1 neuron 6
+    0,                      # energy to output 1 neuron 6
+    0,                      # LMWS neuron to output 1 neuron 6
+    0, 0, 0,                # ear to output 1 neuron 6
+    0, 0,                   # compass to output 1 neuron 7
+    0, 0,                   # hunger to output 1 neuron 7
+    0,                      # energy to output 1 neuron 7
+    0,                      # LMWS neuron to output 1 neuron 7
+    0, 0, 0,                # ear to output 1 neuron 7
+    0, 0,                   # compass to output 1 neuron 8
+    0, 0,                   # hunger to output 1 neuron 8
+    0,                      # energy to output 1 neuron 8
+    0,                      # LMWS neuron to output 1 neuron 8
+    0, 0, 0,                # ear to output 1 neuron 8
+
+    # Hidden state weights and biases for layer 1
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 1 weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 1 weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 1 weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 1 weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 1 weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 1 weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 1 weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 1 weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 1 weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 1 weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 1 weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 1 weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 1 weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 1 weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 1 weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 1 weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 1 weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 1 weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 1 weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 1 weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 1 weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 1 weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 1 weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 1 weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 1 weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 1 weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 1 weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 1 weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 1 weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 1 weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 1 weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 1 weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 1 biases
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 1 biases
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 1 biases
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 1 biases
+
+    # Layer 2
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 hidden weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 hidden weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 hidden weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 hidden weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 hidden weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 hidden weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 hidden weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 hidden weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 hidden weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 hidden weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 hidden weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 hidden weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 hidden weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 hidden weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 hidden weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 hidden weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 hidden weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 hidden weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 hidden weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 hidden weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 hidden weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 hidden weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 hidden weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 hidden weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 hidden weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 hidden weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 hidden weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 hidden weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 hidden weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 hidden weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 hidden weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 hidden weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 biases
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 biases
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 biases
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 biases
+
+    # Action organs
+    # Flagellum
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 2 to output layer neuron 1
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 2 to output layer neuron 2
+
+    # Divisor
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 2 to output layer neuron 3
+
+    # Messager
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 2 to output layer neuron 4
+
+    0, 0, 0, 0, 0, 0, 0, 0,  # output layer biases
+
+    # REGULATORY PART
+
+    # Sense organs
+    0, 0,                   # compass to forget 1 neuron 1
+    0, 0,                   # hunger to forget 1 neuron 1
+    0,                      # energy to forget 1 neuron 1
+    0,                      # LMWS neuron to forget 1 neuron 1
+    0, 0, 0,                # ear to forget 1 neuron 1
+    0, 0,                   # compass to forget 1 neuron 2
+    0, 0,                   # hunger to forget 1 neuron 2
+    0,                      # energy to forget 1 neuron 2
+    0,                      # LMWS neuron to forget 1 neuron 2
+    0, 0, 0,                # ear to forget 1 neuron 2
+    0, 0,                   # compass to forget 1 neuron 3
+    0, 0,                   # hunger to forget 1 neuron 3
+    0,                      # energy to forget 1 neuron 3
+    0,                      # LMWS neuron to forget 1 neuron 3
+    0, 0, 0,                # ear to forget 1 neuron 3
+    0, 0,                   # compass to forget 1 neuron 4
+    0, 0,                   # hunger to forget 1 neuron 4
+    0,                      # energy to forget 1 neuron 4
+    0,                      # LMWS neuron to forget 1 neuron 4
+    0, 0, 0,                # ear to forget 1 neuron 4
+    0, 0,                   # compass to forget 1 neuron 5
+    0, 0,                   # hunger to forget 1 neuron 5
+    0,                      # energy to forget 1 neuron 5
+    0,                      # LMWS neuron to forget 1 neuron 5
+    0, 0, 0,                # ear to forget 1 neuron 5
+    0, 0,                   # compass to forget 1 neuron 6
+    0, 0,                   # hunger to forget 1 neuron 6
+    0,                      # energy to forget 1 neuron 6
+    0,                      # LMWS neuron to forget 1 neuron 6
+    0, 0, 0,                # ear to forget 1 neuron 6
+    0, 0,                   # compass to forget 1 neuron 7
+    0, 0,                   # hunger to forget 1 neuron 7
+    0,                      # energy to forget 1 neuron 7
+    0,                      # LMWS neuron to forget 1 neuron 7
+    0, 0, 0,                # ear to forget 1 neuron 7
+    0, 0,                   # compass to forget 1 neuron 8
+    0, 0,                   # hunger to forget 1 neuron 8
+    0,                      # energy to forget 1 neuron 8
+    0,                      # LMWS neuron to forget 1 neuron 8
+    0, 0, 0,                # ear to forget 1 neuron 8
+    0, 0,                   # compass to input 1 neuron 1
+    0, 0,                   # hunger to input 1 neuron 1
+    0,                      # energy to input 1 neuron 1
+    0,                      # LMWS neuron to input 1 neuron 1
+    0, 0, 0,                # ear to input 1 neuron 1
+    0, 0,                   # compass to input 1 neuron 2
+    0, 0,                   # hunger to input 1 neuron 2
+    0,                      # energy to input 1 neuron 2
+    0,                      # LMWS neuron to input 1 neuron 2
+    0, 0, 0,                # ear to input 1 neuron 2
+    0, 0,                   # compass to input 1 neuron 3
+    0, 0,                   # hunger to input 1 neuron 3
+    0,                      # energy to input 1 neuron 3
+    0,                      # LMWS neuron to input 1 neuron 3
+    0, 0, 0,                # ear to input 1 neuron 3
+    0, 0,                   # compass to input 1 neuron 4
+    0, 0,                   # hunger to input 1 neuron 4
+    0,                      # energy to input 1 neuron 4
+    0,                      # LMWS neuron to input 1 neuron 4
+    0, 0, 0,                # ear to input 1 neuron 4
+    0, 0,                   # compass to input 1 neuron 5
+    0, 0,                   # hunger to input 1 neuron 5
+    0,                      # energy to input 1 neuron 5
+    0,                      # LMWS neuron to input 1 neuron 5
+    0, 0, 0,                # ear to input 1 neuron 5
+    0, 0,                   # compass to input 1 neuron 6
+    0, 0,                   # hunger to input 1 neuron 6
+    0,                      # energy to input 1 neuron 6
+    0,                      # LMWS neuron to input 1 neuron 6
+    0, 0, 0,                # ear to input 1 neuron 6
+    0, 0,                   # compass to input 1 neuron 7
+    0, 0,                   # hunger to input 1 neuron 7
+    0,                      # energy to input 1 neuron 7
+    0,                      # LMWS neuron to input 1 neuron 7
+    0, 0, 0,                # ear to input 1 neuron 7
+    0, 0,                   # compass to input 1 neuron 8
+    0, 0,                   # hunger to input 1 neuron 8
+    0,                      # energy to input 1 neuron 8
+    0,                      # LMWS neuron to input 1 neuron 8
+    0, 0, 0,                # ear to input 1 neuron 8
+    0, 0,                   # compass to candidate 1 neuron 1
+    0, 0,                   # hunger to candidate 1 neuron 1
+    0,                      # energy to candidate 1 neuron 1
+    0,                      # LMWS neuron to candidate 1 neuron 1
+    0, 0, 0,                # ear to candidate 1 neuron 1
+    0, 0,                   # compass to candidate 1 neuron 2
+    0, 0,                   # hunger to candidate 1 neuron 2
+    0,                      # energy to candidate 1 neuron 2
+    0,                      # LMWS neuron to candidate 1 neuron 2
+    0, 0, 0,                # ear to candidate 1 neuron 2
+    0, 0,                   # compass to candidate 1 neuron 3
+    0, 0,                   # hunger to candidate 1 neuron 3
+    0,                      # energy to candidate 1 neuron 3
+    0,                      # LMWS neuron to candidate 1 neuron 3
+    0, 0, 0,                # ear to candidate 1 neuron 3
+    0, 0,                   # compass to candidate 1 neuron 4
+    0, 0,                   # hunger to candidate 1 neuron 4
+    0,                      # energy to candidate 1 neuron 4
+    0,                      # LMWS neuron to candidate 1 neuron 4
+    0, 0, 0,                # ear to candidate 1 neuron 4
+    0, 0,                   # compass to candidate 1 neuron 5
+    0, 0,                   # hunger to candidate 1 neuron 5
+    0,                      # energy to candidate 1 neuron 5
+    0,                      # LMWS neuron to candidate 1 neuron 5
+    0, 0, 0,                # ear to candidate 1 neuron 5
+    0, 0,                   # compass to candidate 1 neuron 6
+    0, 0,                   # hunger to candidate 1 neuron 6
+    0,                      # energy to candidate 1 neuron 6
+    0,                      # LMWS neuron to candidate 1 neuron 6
+    0, 0, 0,                # ear to candidate 1 neuron 6
+    0, 0,                   # compass to candidate 1 neuron 7
+    0, 0,                   # hunger to candidate 1 neuron 7
+    0,                      # energy to candidate 1 neuron 7
+    0,                      # LMWS neuron to candidate 1 neuron 7
+    0, 0, 0,                # ear to candidate 1 neuron 7
+    0, 0,                   # compass to candidate 1 neuron 8
+    0, 0,                   # hunger to candidate 1 neuron 8
+    0,                      # energy to candidate 1 neuron 8
+    0,                      # LMWS neuron to candidate 1 neuron 8
+    0, 0, 0,                # ear to candidate 1 neuron 8
+    0, 0,                   # compass to output 1 neuron 1
+    0, 0,                   # hunger to output 1 neuron 1
+    0,                      # energy to output 1 neuron 1
+    0,                      # LMWS neuron to output 1 neuron 1
+    0, 0, 0,                # ear to output 1 neuron 1
+    0, 0,                   # compass to output 1 neuron 2
+    0, 0,                   # hunger to output 1 neuron 2
+    0,                      # energy to output 1 neuron 2
+    0,                      # LMWS neuron to output 1 neuron 2
+    0, 0, 0,                # ear to output 1 neuron 2
+    0, 0,                   # compass to output 1 neuron 3
+    0, 0,                   # hunger to output 1 neuron 3
+    0,                      # energy to output 1 neuron 3
+    0,                      # LMWS neuron to output 1 neuron 3
+    0, 0, 0,                # ear to output 1 neuron 3
+    0, 0,                   # compass to output 1 neuron 4
+    0, 0,                   # hunger to output 1 neuron 4
+    0,                      # energy to output 1 neuron 4
+    0,                      # LMWS neuron to output 1 neuron 4
+    0, 0, 0,                # ear to output 1 neuron 4
+    0, 0,                   # compass to output 1 neuron 5
+    0, 0,                   # hunger to output 1 neuron 5
+    0,                      # energy to output 1 neuron 5
+    0,                      # LMWS neuron to output 1 neuron 5
+    0, 0, 0,                # ear to output 1 neuron 5
+    0, 0,                   # compass to output 1 neuron 6
+    0, 0,                   # hunger to output 1 neuron 6
+    0,                      # energy to output 1 neuron 6
+    0,                      # LMWS neuron to output 1 neuron 6
+    0, 0, 0,                # ear to output 1 neuron 6
+    0, 0,                   # compass to output 1 neuron 7
+    0, 0,                   # hunger to output 1 neuron 7
+    0,                      # energy to output 1 neuron 7
+    0,                      # LMWS neuron to output 1 neuron 7
+    0, 0, 0,                # ear to output 1 neuron 7
+    0, 0,                   # compass to output 1 neuron 8
+    0, 0,                   # hunger to output 1 neuron 8
+    0,                      # energy to output 1 neuron 8
+    0,                      # LMWS neuron to output 1 neuron 8
+    0, 0, 0,                # ear to output 1 neuron 8
+
+    # Hidden state weights and biases for layer 1
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 1 weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 1 weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 1 weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 1 weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 1 weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 1 weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 1 weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 1 weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 1 weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 1 weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 1 weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 1 weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 1 weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 1 weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 1 weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 1 weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 1 weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 1 weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 1 weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 1 weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 1 weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 1 weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 1 weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 1 weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 1 weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 1 weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 1 weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 1 weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 1 weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 1 weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 1 weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 1 weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 1 biases
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 1 biases
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 1 biases
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 1 biases
+
+    # Layer 2
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 hidden weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 hidden weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 hidden weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 hidden weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 hidden weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 hidden weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 hidden weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 hidden weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 hidden weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 hidden weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 hidden weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 hidden weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 hidden weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 hidden weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 hidden weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 hidden weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 hidden weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 hidden weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 hidden weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 hidden weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 hidden weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 hidden weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 hidden weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 hidden weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 hidden weight 1
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 hidden weight 2
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 hidden weight 3
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 hidden weight 4
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 hidden weight 5
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 hidden weight 6
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 hidden weight 7
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 hidden weight 8
+
+    0, 0, 0, 0, 0, 0, 0, 0, # forget gate 2 biases
+    0, 0, 0, 0, 0, 0, 0, 0, # input gate 2 biases
+    0, 0, 0, 0, 0, 0, 0, 0, # candidate 2 biases
+    0, 0, 0, 0, 0, 0, 0, 0, # output gate 2 biases
+
+    # Action organs
+    # Flagellum
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 2 to output layer neuron 1
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 2 to output layer neuron 2
+
+    # Divisor
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 2 to output layer neuron 3
+
+    # Messager
+    0, 0, 0, 0, 0, 0, 0, 0, # layer 2 to output layer neuron 4
+
+    0, 0, 0, 0, 0, 0, 0, 0  # output layer biases
 ]
 
 neighbors = {

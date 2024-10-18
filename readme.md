@@ -18,7 +18,8 @@
 	* Monad313: 13-neuron monad with RNN
 	* Monad429: 29-neuron monad with 2 recurrent layers under 316 parameters
 							regulated by 632 genes,	having an action organ to broadcast a
-							32-bit message and a sensory organ to receive the message with its direction
+							message (a float32 variable) and a sensory organ to receive the message with its direction
+  * Monad529: 
 
 ### Aeon of Abundance
 (*to come*)
