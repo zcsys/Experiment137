@@ -43,14 +43,10 @@ class Things:
             for thing_type in thing_types]
         )
         self.colors = [THING_TYPES[x]["color"] for x in self.thing_types]
-        self.hidden_1 = torch.zeros((self.Pop, 8, 1),
-                                    dtype = torch.float32)
-        self.cell_state_1 = torch.zeros((self.Pop, 8, 1),
-                                        dtype = torch.float32)
-        self.hidden_2 = torch.zeros((self.Pop, 8, 1),
-                                    dtype = torch.float32)
-        self.cell_state_2 = torch.zeros((self.Pop, 8, 1),
-                                        dtype = torch.float32)
+        self.hidden_1 = torch.zeros((self.Pop, 8, 1))
+        self.cell_state_1 = torch.zeros((self.Pop, 8, 1))
+        self.hidden_2 = torch.zeros((self.Pop, 8, 1))
+        self.cell_state_2 = torch.zeros((self.Pop, 8, 1))
         """self.boxes = get_box(self.positions)
         self.box_content = {i: (self.boxes == i).nonzero().squeeze()
                             for i in range(1, 145)}"""
@@ -534,28 +530,28 @@ class Things:
         self.hidden_1 = torch.cat(
             (
                 self.hidden_1,
-                torch.zeros((1, 8, 1), dtype = torch.float32)
+                torch.zeros((1, 8, 1))
             ),
             dim = 0
         )
         self.cell_state_1 = torch.cat(
             (
                 self.cell_state_1,
-                torch.zeros((1, 8, 1), dtype = torch.float32)
+                torch.zeros((1, 8, 1))
             ),
             dim = 0
         )
         self.hidden_2 = torch.cat(
             (
                 self.hidden_2,
-                torch.zeros((1, 8, 1), dtype = torch.float32)
+                torch.zeros((1, 8, 1))
             ),
             dim = 0
         )
         self.cell_state_2 = torch.cat(
             (
                 self.cell_state_2,
-                torch.zeros((1, 8, 1), dtype = torch.float32)
+                torch.zeros((1, 8, 1))
             ),
             dim = 0
         )

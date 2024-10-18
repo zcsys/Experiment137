@@ -91,7 +91,7 @@ class UIManager:
         self.show_info = False
         self.show_sight = False
         self.show_forces = False
-        self.show_network = True
+        self.show_network = False
 
     def handle_event(self, event, simulation):
         if self.save_button.handle_event(event):

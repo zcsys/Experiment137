@@ -23,19 +23,19 @@ def Rules(simul, n):
 
     # Different rules for the initial ("incubation") epochs
     if 5 in n:
-        if simul.epochs > 3:
+        if simul.epochs > 11:
             simul.things.heat = 3
             N_TARGET = 100
             AUTO_FISSION_THRESHOLD = 20000
-        elif simul.epochs == 3:
+        elif simul.epochs == 11:
             simul.things.heat = 3
             N_TARGET = 150
             AUTO_FISSION_THRESHOLD = 15000
-        elif simul.epochs == 2:
+        elif simul.epochs == 10:
             simul.things.heat = 3
             N_TARGET = 200
             AUTO_FISSION_THRESHOLD = 15000
-        elif simul.epochs == 1:
+        elif 0 < simul.epochs < 10:
             simul.things.heat = 11
             N_TARGET = 350
 
