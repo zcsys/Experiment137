@@ -16,26 +16,26 @@ def Rules(simul, n):
     if 4 in n:
         if simul.things.Pop <= 20:
             METABOLIC_ACTIVITY_CONSTANT = 0.1
-        elif simul.things.Pop > 20 and simul.things.Pop <= 30:
+        elif 20 < simul.things.Pop <= 30:
             METABOLIC_ACTIVITY_CONSTANT = 0.1 * (simul.things.Pop - 20)
-        elif simul.things.Pop > 30:
+        elif 30 < simul.things.Pop:
             METABOLIC_ACTIVITY_CONSTANT = 1. * (simul.things.Pop - 30)
 
     # Different rules for the initial ("incubation") epochs
     if 5 in n:
-        if simul.epochs > 3:
+        if simul.epochs > 6:
             simul.things.heat = 3
             N_TARGET = 100
             AUTO_FISSION_THRESHOLD = 20000
-        elif simul.epochs == 3:
+        elif simul.epochs == 6:
             simul.things.heat = 3
             N_TARGET = 150
             AUTO_FISSION_THRESHOLD = 15000
-        elif simul.epochs == 2:
+        elif simul.epochs == 5:
             simul.things.heat = 3
             N_TARGET = 200
             AUTO_FISSION_THRESHOLD = 15000
-        elif simul.epochs == 1:
+        elif 0 < simul.epochs < 5:
             simul.things.heat = 11
             N_TARGET = 350
 
