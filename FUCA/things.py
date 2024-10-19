@@ -52,27 +52,20 @@ class Things:
                             for i in range(1, 145)}"""
 
         # Initialize genomes and lineages
-        self.genomes = torch.tensor(GENOME529_0, dtype = torch.float32).repeat(
-            self.Pop, 1
-        )
+        self.genomes = torch.zeros((self.Pop, 2312)) # GENOME529_0
+        # self.genomes = torch.tensor(GENOME529_881).repeat(self.Pop, 1)
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
         # Initialize the monad messages
-        self.messages = torch.zeros(
-            (self.Pop, 1),
-            dtype = torch.float32
-        )
+        self.messages = torch.zeros((self.Pop, 1))
 
         # Initialize sensory input data
         self.last_movement_was_successful = torch.ones(
             self.Pop,
             dtype = torch.bool
         ).unsqueeze(1)
-        self.incoming_messages = torch.zeros(
-            (self.Pop, 3),
-            dtype = torch.float32
-        )
+        self.incoming_messages = torch.zeros((self.Pop, 3))
         self.sensory_inputs()
 
     def from_general_to_monad_idx(self, i):
@@ -386,10 +379,7 @@ class Things:
         c_dist = torch.norm(c_diffs, dim = 2)
         in_sight_mask = (c_dist < SIGHT).fill_diagonal_(False).int()
 
-        self.incoming_messages = torch.zeros(
-            (self.Pop, 3),
-            dtype = torch.float32
-        )
+        self.incoming_messages = torch.zeros((self.Pop, 3))
 
         if in_sight_mask.any():
             self.recipients = torch.unique(in_sight_mask.nonzero())
@@ -493,7 +483,7 @@ class Things:
         self.incoming_messages = torch.cat(
             (
                 self.incoming_messages,
-                torch.zeros((1, 3), dtype = torch.float32)
+                torch.zeros((1, 3))
             ),
             dim = 0
         )
