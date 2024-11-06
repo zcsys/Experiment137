@@ -929,7 +929,6 @@ class Things:
         thing_type = "monad"
         initial_energy = torch.tensor(THING_TYPES[thing_type]["initial_energy"])
         size = torch.tensor([THING_TYPES[thing_type]["size"]])
-        color = THING_TYPES[thing_type]["color"]
 
         # Set basic properties
         self.thing_types.append(thing_type)
@@ -1083,7 +1082,6 @@ class Things:
         )
         if genome is self.genomes[idx]:
             self.lineages.append(self.lineages[idx])
-            self.colors.append(color)
         else:
             new_lineage = self.lineages[idx] + [0]
             while True:
@@ -1091,8 +1089,8 @@ class Things:
                 if new_lineage not in self.lineages:
                     break
             self.lineages.append(new_lineage)
-            self.colors.append(get_color_by_genome(genome))
             # print(new_lineage)
+        self.colors.append(get_color_by_genome(genome))
 
         return 1
 
