@@ -13,24 +13,29 @@
 
 #### Experiment 3: FUCA
 * pytorch PoC
+* Autogenetic breeding v1
 * Creations with fully tensor-based movements
 	* Monad211: 11-neuron monad with full IO flattening and LMWH sensory input
 	* Monad313: 13-neuron monad with RNN
 	* Monad429: 29-neuron monad with 2 recurrent layers governed by 316 parameters
 							modulated by 632 genes, having an action organ to broadcast a
 							message (a float32 variable) and a sensory organ to receive the message with its direction
-  * Monad529: 29-neuron monad with 2 LSTM layers governed by 1156 parameters
-							modulated by 2312 genes
+  * Monad529: 5th gen 29-neuron monad with 2 LSTM layers governed by 1156
+							parameters modulated by 2312 genes
+	* Monad5173: 5th gen monad with 5 LSTM layers each with 32 neurons, making a
+							 total of 173 neurons, 38788 parameters and 77576 genes. This
+							 monad (FUCA) can survive only with autogenetic breeding due to
+							 its high complexity.
 
 ### Aeon of Abundance
 (*to come*)
 
 #### Experiment 4: LUCA
 * Taichi PoC
-* Spatial partitioning 
+* Spatial partitioning
 * Color-based periodic table and molecular interactions
 * Monad4280 to learn controlling *its* molecules to navigate through universe
-* Autogenetic breeding
+
 
 
 

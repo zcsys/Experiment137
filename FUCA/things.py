@@ -43,17 +43,23 @@ class Things:
             for thing_type in thing_types]
         )
         self.colors = [THING_TYPES[x]["color"] for x in self.thing_types]
-        self.hidden_1 = torch.zeros((self.Pop, 8, 1))
-        self.cell_state_1 = torch.zeros((self.Pop, 8, 1))
-        self.hidden_2 = torch.zeros((self.Pop, 8, 1))
-        self.cell_state_2 = torch.zeros((self.Pop, 8, 1))
+        self.hidden_1 = torch.zeros((self.Pop, 32, 1))
+        self.cell_state_1 = torch.zeros((self.Pop, 32, 1))
+        self.hidden_2 = torch.zeros((self.Pop, 32, 1))
+        self.cell_state_2 = torch.zeros((self.Pop, 32, 1))
+        self.hidden_3 = torch.zeros((self.Pop, 32, 1))
+        self.cell_state_3 = torch.zeros((self.Pop, 32, 1))
+        self.hidden_4 = torch.zeros((self.Pop, 32, 1))
+        self.cell_state_4 = torch.zeros((self.Pop, 32, 1))
+        self.hidden_5 = torch.zeros((self.Pop, 32, 1))
+        self.cell_state_5 = torch.zeros((self.Pop, 32, 1))
         """self.boxes = get_box(self.positions)
         self.box_content = {i: (self.boxes == i).nonzero().squeeze()
                             for i in range(1, 145)}"""
 
         # Initialize genomes and lineages
-        self.genomes = torch.zeros((self.Pop, 2312)) # GENOME529_0
-        # self.genomes = torch.tensor(GENOME529_881).repeat(self.Pop, 1)
+        self.genomes = torch.zeros((self.Pop, 77576)) # GENOME5173_0
+        # self.genomes = torch.tensor(GENOME5173_XXX).repeat(self.Pop, 1)
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
@@ -78,42 +84,218 @@ class Things:
         return self.lineages[i][0] + len(self.lineages[i])
 
     def apply_genomes(self):
-        """Monad529 neurogenetics"""
+        """Monad5173 neurogenetics"""
+        input_neurons = 9
+        hidden_neurons = 32
+        output_neurons = 4
+
         # Layer 1
-        self.W_forget_gate_1 = self.genomes[:, 0:72].view(self.Pop, 8, 9)
-        self.W_input_gate_1 = self.genomes[:, 72:144].view(self.Pop, 8, 9)
-        self.W_candidate_1 = self.genomes[:, 144:216].view(self.Pop, 8, 9)
-        self.W_output_gate_1 = self.genomes[:, 216:288].view(self.Pop, 8, 9)
+        self.W_forget_gate_1 = self.genomes[:, 0:hidden_neurons*input_neurons].view(
+            self.Pop, hidden_neurons, input_neurons
+        )
+        self.W_input_gate_1 = self.genomes[:, hidden_neurons*input_neurons:hidden_neurons*input_neurons*2].view(
+            self.Pop, hidden_neurons, input_neurons
+        )
+        self.W_candidate_1 = self.genomes[:, hidden_neurons*input_neurons*2:hidden_neurons*input_neurons*3].view(
+            self.Pop, hidden_neurons, input_neurons
+        )
+        self.W_output_gate_1 = self.genomes[:, hidden_neurons*input_neurons*3:hidden_neurons*input_neurons*4].view(
+            self.Pop, hidden_neurons, input_neurons
+        )
 
-        self.W_forget_gate_h1 = self.genomes[:, 288:352].view(self.Pop, 8, 8)
-        self.W_input_gate_h1 = self.genomes[:, 352:416].view(self.Pop, 8, 8)
-        self.W_candidate_h1 = self.genomes[:, 416:480].view(self.Pop, 8, 8)
-        self.W_output_gate_h1 = self.genomes[:, 480:544].view(self.Pop, 8, 8)
+        self.W_forget_gate_h1 = self.genomes[:, hidden_neurons*input_neurons*4:hidden_neurons*(input_neurons*4+hidden_neurons)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_input_gate_h1 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons):hidden_neurons*(input_neurons*4+hidden_neurons*2)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_candidate_h1 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*2):hidden_neurons*(input_neurons*4+hidden_neurons*3)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_output_gate_h1 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*3):hidden_neurons*(input_neurons*4+hidden_neurons*4)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
 
-        self.B_forget_gate_1 = self.genomes[:, 544:552].view(self.Pop, 8, 1)
-        self.B_input_gate_1 = self.genomes[:, 552:560].view(self.Pop, 8, 1)
-        self.B_candidate_1 = self.genomes[:, 560:568].view(self.Pop, 8, 1)
-        self.B_output_gate_1 = self.genomes[:, 568:576].view(self.Pop, 8, 1)
+        self.B_forget_gate_1 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*4):hidden_neurons*(input_neurons*4+hidden_neurons*4+1)].view(
+            self.Pop, hidden_neurons, 1
+        )
+        self.B_input_gate_1 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*4+1):hidden_neurons*(input_neurons*4+hidden_neurons*4+2)].view(
+            self.Pop, hidden_neurons, 1
+        )
+        self.B_candidate_1 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*4+2):hidden_neurons*(input_neurons*4+hidden_neurons*4+3)].view(
+            self.Pop, hidden_neurons, 1
+        )
+        self.B_output_gate_1 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*4+3):hidden_neurons*(input_neurons*4+hidden_neurons*4+4)].view(
+            self.Pop, hidden_neurons, 1
+        )
 
         # Layer 2
-        self.W_forget_gate_2 = self.genomes[:, 576:640].view(self.Pop, 8, 8)
-        self.W_input_gate_2 = self.genomes[:, 640:704].view(self.Pop, 8, 8)
-        self.W_candidate_2 = self.genomes[:, 704:768].view(self.Pop, 8, 8)
-        self.W_output_gate_2 = self.genomes[:, 768:832].view(self.Pop, 8, 8)
+        self.W_forget_gate_2 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*4+4):hidden_neurons*(input_neurons*4+hidden_neurons*5+4)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_input_gate_2 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*5+4):hidden_neurons*(input_neurons*4+hidden_neurons*6+4)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_candidate_2 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*6+4):hidden_neurons*(input_neurons*4+hidden_neurons*7+4)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_output_gate_2 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*7+4):hidden_neurons*(input_neurons*4+hidden_neurons*8+4)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
 
-        self.W_forget_gate_h2 = self.genomes[:, 832:896].view(self.Pop, 8, 8)
-        self.W_input_gate_h2 = self.genomes[:, 896:960].view(self.Pop, 8, 8)
-        self.W_candidate_h2 = self.genomes[:, 960:1024].view(self.Pop, 8, 8)
-        self.W_output_gate_h2 = self.genomes[:, 1024:1088].view(self.Pop, 8, 8)
+        self.W_forget_gate_h2 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*8+4):hidden_neurons*(input_neurons*4+hidden_neurons*9+4)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_input_gate_h2 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*9+4):hidden_neurons*(input_neurons*4+hidden_neurons*10+4)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_candidate_h2 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*10+4):hidden_neurons*(input_neurons*4+hidden_neurons*11+4)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_output_gate_h2 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*11+4):hidden_neurons*(input_neurons*4+hidden_neurons*12+4)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
 
-        self.B_forget_gate_2 = self.genomes[:, 1088:1096].view(self.Pop, 8, 1)
-        self.B_input_gate_2 = self.genomes[:, 1096:1104].view(self.Pop, 8, 1)
-        self.B_candidate_2 = self.genomes[:, 1104:1112].view(self.Pop, 8, 1)
-        self.B_output_gate_2 = self.genomes[:, 1112:1120].view(self.Pop, 8, 1)
+        self.B_forget_gate_2 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*12+4):hidden_neurons*(input_neurons*4+hidden_neurons*12+5)].view(
+            self.Pop, hidden_neurons, 1
+        )
+        self.B_input_gate_2 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*12+5):hidden_neurons*(input_neurons*4+hidden_neurons*12+6)].view(
+            self.Pop, hidden_neurons, 1
+        )
+        self.B_candidate_2 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*12+6):hidden_neurons*(input_neurons*4+hidden_neurons*12+7)].view(
+            self.Pop, hidden_neurons, 1
+        )
+        self.B_output_gate_2 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*12+7):hidden_neurons*(input_neurons*4+hidden_neurons*12+8)].view(
+            self.Pop, hidden_neurons, 1
+        )
+
+        # Layer 3
+        self.W_forget_gate_3 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*12+8):hidden_neurons*(input_neurons*4+hidden_neurons*13+8)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_input_gate_3 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*13+8):hidden_neurons*(input_neurons*4+hidden_neurons*14+8)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_candidate_3 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*14+8):hidden_neurons*(input_neurons*4+hidden_neurons*15+8)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_output_gate_3 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*15+8):hidden_neurons*(input_neurons*4+hidden_neurons*16+8)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+
+        self.W_forget_gate_h3 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*16+8):hidden_neurons*(input_neurons*4+hidden_neurons*17+8)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_input_gate_h3 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*17+8):hidden_neurons*(input_neurons*4+hidden_neurons*18+8)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_candidate_h3 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*18+8):hidden_neurons*(input_neurons*4+hidden_neurons*19+8)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_output_gate_h3 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*19+8):hidden_neurons*(input_neurons*4+hidden_neurons*20+8)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+
+        self.B_forget_gate_3 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*20+8):hidden_neurons*(input_neurons*4+hidden_neurons*20+9)].view(
+            self.Pop, hidden_neurons, 1
+        )
+        self.B_input_gate_3 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*20+9):hidden_neurons*(input_neurons*4+hidden_neurons*20+10)].view(
+            self.Pop, hidden_neurons, 1
+        )
+        self.B_candidate_3 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*20+10):hidden_neurons*(input_neurons*4+hidden_neurons*20+11)].view(
+            self.Pop, hidden_neurons, 1
+        )
+        self.B_output_gate_3 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*20+11):hidden_neurons*(input_neurons*4+hidden_neurons*20+12)].view(
+            self.Pop, hidden_neurons, 1
+        )
+
+        # Layer 4
+        self.W_forget_gate_4 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*20+12):hidden_neurons*(input_neurons*4+hidden_neurons*21+12)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_input_gate_4 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*21+12):hidden_neurons*(input_neurons*4+hidden_neurons*22+12)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_candidate_4 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*22+12):hidden_neurons*(input_neurons*4+hidden_neurons*23+12)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_output_gate_4 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*23+12):hidden_neurons*(input_neurons*4+hidden_neurons*24+12)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+
+        self.W_forget_gate_h4 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*24+12):hidden_neurons*(input_neurons*4+hidden_neurons*25+12)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_input_gate_h4 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*25+12):hidden_neurons*(input_neurons*4+hidden_neurons*26+12)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_candidate_h4 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*26+12):hidden_neurons*(input_neurons*4+hidden_neurons*27+12)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_output_gate_h4 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*27+12):hidden_neurons*(input_neurons*4+hidden_neurons*28+12)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+
+        self.B_forget_gate_4 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*28+12):hidden_neurons*(input_neurons*4+hidden_neurons*28+13)].view(
+            self.Pop, hidden_neurons, 1
+        )
+        self.B_input_gate_4 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*28+13):hidden_neurons*(input_neurons*4+hidden_neurons*28+14)].view(
+            self.Pop, hidden_neurons, 1
+        )
+        self.B_candidate_4 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*28+14):hidden_neurons*(input_neurons*4+hidden_neurons*28+15)].view(
+            self.Pop, hidden_neurons, 1
+        )
+        self.B_output_gate_4 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*28+15):hidden_neurons*(input_neurons*4+hidden_neurons*28+16)].view(
+            self.Pop, hidden_neurons, 1
+        )
+
+        # Layer 5
+        self.W_forget_gate_5 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*28+16):hidden_neurons*(input_neurons*4+hidden_neurons*29+16)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_input_gate_5 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*29+16):hidden_neurons*(input_neurons*4+hidden_neurons*30+16)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_candidate_5 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*30+16):hidden_neurons*(input_neurons*4+hidden_neurons*31+16)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_output_gate_5 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*31+16):hidden_neurons*(input_neurons*4+hidden_neurons*32+16)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+
+        self.W_forget_gate_h5 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*32+16):hidden_neurons*(input_neurons*4+hidden_neurons*33+16)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_input_gate_h5 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*33+16):hidden_neurons*(input_neurons*4+hidden_neurons*34+16)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_candidate_h5 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*34+16):hidden_neurons*(input_neurons*4+hidden_neurons*35+16)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+        self.W_output_gate_h5 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*35+16):hidden_neurons*(input_neurons*4+hidden_neurons*36+16)].view(
+            self.Pop, hidden_neurons, hidden_neurons
+        )
+
+        self.B_forget_gate_5 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*36+16):hidden_neurons*(input_neurons*4+hidden_neurons*36+17)].view(
+            self.Pop, hidden_neurons, 1
+        )
+        self.B_input_gate_5 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*36+17):hidden_neurons*(input_neurons*4+hidden_neurons*36+18)].view(
+            self.Pop, hidden_neurons, 1
+        )
+        self.B_candidate_5 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*36+18):hidden_neurons*(input_neurons*4+hidden_neurons*36+19)].view(
+            self.Pop, hidden_neurons, 1
+        )
+        self.B_output_gate_5 = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*36+19):hidden_neurons*(input_neurons*4+hidden_neurons*36+20)].view(
+            self.Pop, hidden_neurons, 1
+        )
 
         # Output layer
-        self.W_output_layer = self.genomes[:, 1120:1152].view(self.Pop, 4, 8)
-        self.B_output_layer = self.genomes[:, 1152:1156].view(self.Pop, 4, 1)
+        self.W_output_layer = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*36+20):hidden_neurons*(input_neurons*4+hidden_neurons*36+20+output_neurons)].view(
+            self.Pop, output_neurons, hidden_neurons
+        )
+        self.B_output_layer = self.genomes[:, hidden_neurons*(input_neurons*4+hidden_neurons*36+20+output_neurons):hidden_neurons*(input_neurons*4+hidden_neurons*36+20+output_neurons)+output_neurons].view(
+            self.Pop, output_neurons, 1
+        )
 
     def mutate(self, i, prob_coding = 0.1, strength = 1.,
                prob_regulatory = 0.01, show = False):
@@ -240,9 +422,105 @@ class Things:
 
         self.hidden_2 = output_gate_2 * torch.tanh(self.cell_state_2)
 
+        # Layer 3
+        forget_gate_3 = torch.sigmoid(
+            torch.bmm(self.W_forget_gate_3, self.hidden_2) +
+            torch.bmm(self.W_forget_gate_h3, self.hidden_3) +
+            self.B_forget_gate_3
+        )
+
+        input_gate_3 = torch.sigmoid(
+            torch.bmm(self.W_input_gate_3, self.hidden_2) +
+            torch.bmm(self.W_input_gate_h3, self.hidden_3) +
+            self.B_input_gate_3
+        )
+
+        candidate_3 = torch.tanh(
+            torch.bmm(self.W_candidate_3, self.hidden_2) +
+            torch.bmm(self.W_candidate_h3, self.hidden_3) +
+            self.B_candidate_3
+        )
+
+        self.cell_state_3 = (
+            forget_gate_3 * self.cell_state_3 +
+            input_gate_3 * candidate_3
+        )
+
+        output_gate_3 = torch.sigmoid(
+            torch.bmm(self.W_output_gate_3, self.hidden_2) +
+            torch.bmm(self.W_output_gate_h3, self.hidden_3) +
+            self.B_output_gate_3
+        )
+
+        self.hidden_3 = output_gate_3 * torch.tanh(self.cell_state_3)
+
+        # Layer 4
+        forget_gate_4 = torch.sigmoid(
+            torch.bmm(self.W_forget_gate_4, self.hidden_3) +
+            torch.bmm(self.W_forget_gate_h4, self.hidden_4) +
+            self.B_forget_gate_4
+        )
+
+        input_gate_4 = torch.sigmoid(
+            torch.bmm(self.W_input_gate_4, self.hidden_3) +
+            torch.bmm(self.W_input_gate_h4, self.hidden_4) +
+            self.B_input_gate_4
+        )
+
+        candidate_4 = torch.tanh(
+            torch.bmm(self.W_candidate_4, self.hidden_3) +
+            torch.bmm(self.W_candidate_h4, self.hidden_4) +
+            self.B_candidate_4
+        )
+
+        self.cell_state_4 = (
+            forget_gate_4 * self.cell_state_4 +
+            input_gate_4 * candidate_4
+        )
+
+        output_gate_4 = torch.sigmoid(
+            torch.bmm(self.W_output_gate_4, self.hidden_3) +
+            torch.bmm(self.W_output_gate_h4, self.hidden_4) +
+            self.B_output_gate_4
+        )
+
+        self.hidden_4 = output_gate_4 * torch.tanh(self.cell_state_4)
+
+        # Layer 5
+        forget_gate_5 = torch.sigmoid(
+            torch.bmm(self.W_forget_gate_5, self.hidden_4) +
+            torch.bmm(self.W_forget_gate_h5, self.hidden_5) +
+            self.B_forget_gate_5
+        )
+
+        input_gate_5 = torch.sigmoid(
+            torch.bmm(self.W_input_gate_5, self.hidden_4) +
+            torch.bmm(self.W_input_gate_h5, self.hidden_5) +
+            self.B_input_gate_5
+        )
+
+        candidate_5 = torch.tanh(
+            torch.bmm(self.W_candidate_5, self.hidden_4) +
+            torch.bmm(self.W_candidate_h5, self.hidden_5) +
+            self.B_candidate_5
+        )
+
+        self.cell_state_5 = (
+            forget_gate_5 * self.cell_state_5 +
+            input_gate_5 * candidate_5
+        )
+
+        output_gate_5 = torch.sigmoid(
+            torch.bmm(self.W_output_gate_5, self.hidden_4) +
+            torch.bmm(self.W_output_gate_h5, self.hidden_5) +
+            self.B_output_gate_5
+        )
+
+        self.hidden_5 = output_gate_5 * torch.tanh(self.cell_state_5)
+
         # Output layer
         return torch.tanh(
-            torch.bmm(self.W_output_layer, self.hidden_2) +
+            torch.bmm(self.W_output_layer, self.hidden_5) +
             self.B_output_layer
         ).view(self.Pop, 4)
 
@@ -520,28 +798,70 @@ class Things:
         self.hidden_1 = torch.cat(
             (
                 self.hidden_1,
-                torch.zeros((1, 8, 1))
+                torch.zeros((1, 32, 1))
             ),
             dim = 0
         )
         self.cell_state_1 = torch.cat(
             (
                 self.cell_state_1,
-                torch.zeros((1, 8, 1))
+                torch.zeros((1, 32, 1))
             ),
             dim = 0
         )
         self.hidden_2 = torch.cat(
             (
                 self.hidden_2,
-                torch.zeros((1, 8, 1))
+                torch.zeros((1, 32, 1))
             ),
             dim = 0
         )
         self.cell_state_2 = torch.cat(
             (
                 self.cell_state_2,
-                torch.zeros((1, 8, 1))
+                torch.zeros((1, 32, 1))
+            ),
+            dim = 0
+        )
+        self.hidden_3 = torch.cat(
+            (
+                self.hidden_3,
+                torch.zeros((1, 32, 1))
+            ),
+            dim = 0
+        )
+        self.cell_state_3 = torch.cat(
+            (
+                self.cell_state_3,
+                torch.zeros((1, 32, 1))
+            ),
+            dim = 0
+        )
+        self.hidden_4 = torch.cat(
+            (
+                self.hidden_4,
+                torch.zeros((1, 32, 1))
+            ),
+            dim = 0
+        )
+        self.cell_state_4 = torch.cat(
+            (
+                self.cell_state_4,
+                torch.zeros((1, 32, 1))
+            ),
+            dim = 0
+        )
+        self.hidden_5 = torch.cat(
+            (
+                self.hidden_5,
+                torch.zeros((1, 32, 1))
+            ),
+            dim = 0
+        )
+        self.cell_state_5 = torch.cat(
+            (
+                self.cell_state_5,
+                torch.zeros((1, 32, 1))
             ),
             dim = 0
         )
@@ -571,6 +891,12 @@ class Things:
             self.cell_state_1 = remove_element(self.cell_state_1, i)
             self.hidden_2 = remove_element(self.hidden_2, i)
             self.cell_state_2 = remove_element(self.cell_state_2, i)
+            self.hidden_3 = remove_element(self.hidden_3, i)
+            self.cell_state_3 = remove_element(self.cell_state_3, i)
+            self.hidden_4 = remove_element(self.hidden_4, i)
+            self.cell_state_4 = remove_element(self.cell_state_4, i)
+            self.hidden_5 = remove_element(self.hidden_5, i)
+            self.cell_state_5 = remove_element(self.cell_state_5, i)
             self.messages = remove_element(self.messages, i)
             self.incoming_messages = remove_element(self.incoming_messages, i)
             del self.lineages[i]
@@ -597,6 +923,178 @@ class Things:
         self.Pop -= len(indices)
 
         self.apply_genomes()
+
+    def monad_autogenesis_v1(self, i):
+        # Fetch basic properties
+        thing_type = self.thing_types[i]
+        initial_energy = torch.tensor(THING_TYPES[thing_type]["initial_energy"])
+        size = torch.tensor([THING_TYPES[thing_type]["size"]])
+
+        # Set basic properties
+        self.thing_types.append(thing_type)
+        self.sizes, self.positions = add_positions(
+            size,
+            self.sizes,
+            self.positions
+        )
+        """self.boxes = torch.cat(
+            (
+                self.boxes,
+                get_box(new_position.unsqueeze(0))
+            ),
+            dim = 0
+        )
+        self.box_content = {i: (self.boxes == i).nonzero().squeeze()
+                            for i in range(1, 145)}"""
+        self.energies = torch.cat(
+            (
+                self.energies,
+                initial_energy.unsqueeze(0)
+            ),
+            dim = 0
+        )
+        self.movement_tensor = torch.cat(
+            (
+                self.movement_tensor,
+                torch.tensor([[0., 0.]])
+            ),
+            dim = 0
+        )
+        self.last_movement_was_successful = torch.cat(
+            (
+                self.last_movement_was_successful,
+                torch.tensor([[True]])
+            ),
+            dim = 0
+        )
+        self.messages = torch.cat(
+            (
+                self.messages,
+                torch.tensor([0.])
+            ),
+            dim = 0
+        )
+        self.incoming_messages = torch.cat(
+            (
+                self.incoming_messages,
+                torch.zeros((1, 3))
+            ),
+            dim = 0
+        )
+
+        # Update state vars
+        self.monad_mask = torch.cat(
+            (
+                self.monad_mask,
+                torch.tensor([True])
+            ),
+            dim = 0
+        )
+        self.sugar_mask = torch.cat(
+            (
+                self.sugar_mask,
+                torch.tensor([False])
+            ),
+            dim = 0
+        )
+        self.N += 1
+        self.Pop += 1
+
+        # Mutate the old genome & apply the new genome
+        idx = self.from_general_to_monad_idx(i)
+        genome = self.mutate(idx)
+        self.genomes = torch.cat(
+            (
+                self.genomes,
+                genome.unsqueeze(0)
+            ),
+            dim = 0
+        )
+        self.apply_genomes()
+        self.hidden_1 = torch.cat(
+            (
+                self.hidden_1,
+                torch.zeros((1, 32, 1))
+            ),
+            dim = 0
+        )
+        self.cell_state_1 = torch.cat(
+            (
+                self.cell_state_1,
+                torch.zeros((1, 32, 1))
+            ),
+            dim = 0
+        )
+        self.hidden_2 = torch.cat(
+            (
+                self.hidden_2,
+                torch.zeros((1, 32, 1))
+            ),
+            dim = 0
+        )
+        self.cell_state_2 = torch.cat(
+            (
+                self.cell_state_2,
+                torch.zeros((1, 32, 1))
+            ),
+            dim = 0
+        )
+        self.hidden_3 = torch.cat(
+            (
+                self.hidden_3,
+                torch.zeros((1, 32, 1))
+            ),
+            dim = 0
+        )
+        self.cell_state_3 = torch.cat(
+            (
+                self.cell_state_3,
+                torch.zeros((1, 32, 1))
+            ),
+            dim = 0
+        )
+        self.hidden_4 = torch.cat(
+            (
+                self.hidden_4,
+                torch.zeros((1, 32, 1))
+            ),
+            dim = 0
+        )
+        self.cell_state_4 = torch.cat(
+            (
+                self.cell_state_4,
+                torch.zeros((1, 32, 1))
+            ),
+            dim = 0
+        )
+        self.hidden_5 = torch.cat(
+            (
+                self.hidden_5,
+                torch.zeros((1, 32, 1))
+            ),
+            dim = 0
+        )
+        self.cell_state_5 = torch.cat(
+            (
+                self.cell_state_5,
+                torch.zeros((1, 32, 1))
+            ),
+            dim = 0
+        )
+        if genome is self.genomes[idx]:
+            self.lineages.append(self.lineages[idx])
+            self.colors.append(self.color[i])
+        else:
+            new_lineage = self.lineages[idx] + [0]
+            while True:
+                new_lineage[-1] += 1
+                if new_lineage not in self.lineages:
+                    break
+            self.lineages.append(new_lineage)
+            self.colors.append(get_color_by_genome(genome))
+            # print(new_lineage)
+
+        return 1
 
     def add_sugars(self, N):
         for _ in range(N):
@@ -785,6 +1283,12 @@ class Things:
             'cell_state_1': self.cell_state_1.tolist(),
             'hidden_2': self.hidden_2.tolist(),
             'cell_state_2': self.cell_state_2.tolist(),
+            'hidden_3': self.hidden_3.tolist(),
+            'cell_state_3': self.cell_state_3.tolist(),
+            'hidden_4': self.hidden_4.tolist(),
+            'cell_state_4': self.cell_state_4.tolist(),
+            'hidden_5': self.hidden_5.tolist(),
+            'cell_state_5': self.cell_state_5.tolist(),
             'messages': self.messages.tolist(),
             'incoming': self.incoming_messages.tolist()
         }
@@ -812,6 +1316,12 @@ class Things:
         self.cell_state_1 = torch.tensor(state['cell_state_1'])
         self.hidden_2 = torch.tensor(state['hidden_2'])
         self.cell_state_2 = torch.tensor(state['cell_state_2'])
+        self.hidden_3 = torch.tensor(state['hidden_3'])
+        self.cell_state_3 = torch.tensor(state['cell_state_3'])
+        self.hidden_4 = torch.tensor(state['hidden_4'])
+        self.cell_state_4 = torch.tensor(state['cell_state_4'])
+        self.hidden_5 = torch.tensor(state['hidden_5'])
+        self.cell_state_5 = torch.tensor(state['cell_state_5'])
         self.messages = torch.tensor(state['messages'])
         self.incoming_messages = torch.tensor(state['incoming'])
 
