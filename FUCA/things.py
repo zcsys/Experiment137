@@ -1215,9 +1215,9 @@ class Things:
             except:
                 show_forces = False
             if show_forces and thing_type == "monad":
-                input_vector_1 /= (torch.norm(input_vector_1, dim = 0) + 1e-7)
-                input_vector_2 /= (torch.norm(input_vector_2, dim = 0) + 1e-7)
-                movement_vector /= (torch.norm(movement_vector, dim = 0) + 1e-7)
+                input_vector_1 /= torch.norm(input_vector_1, dim = 0) + 1e-7
+                input_vector_2 /= torch.norm(input_vector_2, dim = 0) + 1e-7
+                movement_vector /= torch.norm(movement_vector, dim = 0) + 1e-7
 
                 end_pos_1 = pos + input_vector_1 * self.sizes[i]
                 end_pos_2 = pos + input_vector_2 * self.sizes[i]

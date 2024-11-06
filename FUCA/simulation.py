@@ -283,7 +283,7 @@ class Simulation:
 
             # Put it all on display and limit FPS
             pygame.display.flip()
-            # clock.tick(24)
+            # clock.tick(60)
 
         pygame.quit()
 
