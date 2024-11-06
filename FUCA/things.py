@@ -924,11 +924,12 @@ class Things:
 
         self.apply_genomes()
 
-    def monad_autogenesis_v1(self, i):
+    def monad_autogenesis_v1(self, idx):
         # Fetch basic properties
-        thing_type = self.thing_types[i]
+        thing_type = "monad"
         initial_energy = torch.tensor(THING_TYPES[thing_type]["initial_energy"])
         size = torch.tensor([THING_TYPES[thing_type]["size"]])
+        color = THING_TYPES[thing_type]["color"]
 
         # Set basic properties
         self.thing_types.append(thing_type)
@@ -1001,7 +1002,6 @@ class Things:
         self.Pop += 1
 
         # Mutate the old genome & apply the new genome
-        idx = self.from_general_to_monad_idx(i)
         genome = self.mutate(idx)
         self.genomes = torch.cat(
             (
@@ -1083,7 +1083,7 @@ class Things:
         )
         if genome is self.genomes[idx]:
             self.lineages.append(self.lineages[idx])
-            self.colors.append(self.color[i])
+            self.colors.append(color)
         else:
             new_lineage = self.lineages[idx] + [0]
             while True:

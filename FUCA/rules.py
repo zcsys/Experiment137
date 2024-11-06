@@ -57,8 +57,8 @@ def Rules(simul, n):
         if len(to_remove) > 0:
             if simul.things.Pop <= 10:
                 # Autogenetic breeding
-                for i in range(simul.things.Pop):
-                    simul.things.monad_autogenesis_v1(i)
+                for idx in range(simul.things.Pop):
+                    simul.things.monad_autogenesis_v1(idx)
             simul.things.monad_death(to_remove.squeeze(1).tolist())
 
     # Populate universe with sugars until N_TARGET is reached
