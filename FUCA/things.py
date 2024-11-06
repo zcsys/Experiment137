@@ -1001,7 +1001,7 @@ class Things:
         self.Pop += 1
 
         # Mutate the old genome & apply the new genome
-        genome = self.mutate(idx)
+        genome = self.mutate(idx, strength = 2.)
         self.genomes = torch.cat(
             (
                 self.genomes,
