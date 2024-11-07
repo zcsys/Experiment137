@@ -48,6 +48,24 @@ def Rules(simul, n):
             simul.things.heat = 11
             N_TARGET = 350
 
+    # Alternative to 5
+    if 7 in n:
+        if 20 <= simul.epochs:
+            simul.things.heat = 3
+            N_TARGET = 350
+            AUTO_FISSION_THRESHOLD = 20000
+        elif 15 <= simul.epochs < 20:
+            simul.things.heat = 3
+            N_TARGET = 350
+            AUTO_FISSION_THRESHOLD = 15000
+        elif 10 <= simul.epochs < 15:
+            simul.things.heat = 3
+            N_TARGET = 400
+            AUTO_FISSION_THRESHOLD = 15000
+        elif 5 <= simul.epochs < 10:
+            simul.things.heat = 7
+            N_TARGET = 500
+
     # Auto fission
     if 2 in n:
         fission_mask = simul.things.energies >= AUTO_FISSION_THRESHOLD
@@ -64,10 +82,10 @@ def Rules(simul, n):
             simul.things.energies[simul.things.monad_mask] <= 0
         )
         if len(to_remove) > 0:
+            """Autogenetic breeding
             if simul.things.Pop <= 50:
-                # Autogenetic breeding
                 for idx in range(simul.things.Pop):
-                    simul.things.monad_autogenesis_v1(idx)
+                    simul.things.monad_autogenesis_v1(idx)"""
             simul.things.monad_death(to_remove.squeeze(1).tolist())
 
     # Populate universe with sugars until N_TARGET is reached

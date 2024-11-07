@@ -226,7 +226,7 @@ class Simulation:
                              self.ui_manager.show_network)
 
             if not self.paused:
-                Rules(self, [1, 2, 3, 6, 5])
+                Rules(self, [1, 2, 3, 6, 7])
 
             # The Arbeitor of Truth
             """

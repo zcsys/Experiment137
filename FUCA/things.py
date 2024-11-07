@@ -14,7 +14,7 @@ class Things:
         self.font = pygame.font.SysFont(None, 12)
 
         # Initialize system heat
-        self.heat = 21
+        self.heat = 11
 
         if state_file:
             self.load_state(state_file)
