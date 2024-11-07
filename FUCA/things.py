@@ -1221,7 +1221,7 @@ class Things:
 
                 end_pos_1 = pos + input_vector_1 * self.sizes[i]
                 end_pos_2 = pos + input_vector_2 * self.sizes[i]
-                end_pos_3 = pos - movement_vector * self.sizes[i] * 2
+                end_pos_3 = pos - movement_vector * self.sizes[i]
 
                 pygame.draw.line(screen, colors["R"], (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_1[0].item()),
@@ -1231,7 +1231,7 @@ class Things:
                                  int(end_pos_2[1].item())), 1)
                 pygame.draw.line(screen, colors["Z"], (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_3[0].item()),
-                                 int(end_pos_3[1].item())), 3)
+                                 int(end_pos_3[1].item())), 1)
 
         # Draw communication network
         try:

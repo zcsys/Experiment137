@@ -23,7 +23,8 @@
   * Monad529: 5th gen 29-neuron monad with 2 LSTM layers governed by 1156
 							parameters modulated by 2312 genes
 	* Monad5173 (FUCA): 5th gen monad with 5 LSTM layers each with 32 units,
-											making a total of 173 neurons, 38788 parameters and 77576 genes.
+											making a total of 173 neurons, 38788 parameters and 77576
+											genes
 
 ### Aeon of Abundance
 (*to come*)
