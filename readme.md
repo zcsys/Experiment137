@@ -22,10 +22,8 @@
 							message (a float32 variable) and a sensory organ to receive the message with its direction
   * Monad529: 5th gen 29-neuron monad with 2 LSTM layers governed by 1156
 							parameters modulated by 2312 genes
-	* Monad5173: 5th gen monad with 5 LSTM layers each with 32 neurons, making a
-							 total of 173 neurons, 38788 parameters and 77576 genes. This
-							 monad (FUCA) can survive only with autogenetic breeding due to
-							 its high complexity.
+	* Monad5173 (FUCA): 5th gen monad with 5 LSTM layers each with 32 units,
+											making a total of 173 neurons, 38788 parameters and 77576 genes.
 
 ### Aeon of Abundance
 (*to come*)
@@ -35,7 +33,6 @@
 * Spatial partitioning
 * Color-based periodic table and molecular interactions
 * Monad4280 to learn controlling *its* molecules to navigate through universe
-
 
 
 

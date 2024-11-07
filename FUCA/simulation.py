@@ -226,7 +226,7 @@ class Simulation:
                              self.ui_manager.show_network)
 
             if not self.paused:
-                Rules(self, [1, 2, 3, 4, 5])
+                Rules(self, [1, 2, 3, 6, 5])
 
             # The Arbeitor of Truth
             """
@@ -283,7 +283,7 @@ class Simulation:
 
             # Put it all on display and limit FPS
             pygame.display.flip()
-            # clock.tick(60)
+            # clock.tick(24)
 
         pygame.quit()
 

@@ -21,6 +21,15 @@ def Rules(simul, n):
         elif 30 < simul.things.Pop:
             METABOLIC_ACTIVITY_CONSTANT = 1. * (simul.things.Pop - 30)
 
+    # Alternative to 4
+    if 6 in n:
+        if simul.things.Pop <= 200:
+            METABOLIC_ACTIVITY_CONSTANT = 0.1
+        elif 200 < simul.things.Pop <= 300:
+            METABOLIC_ACTIVITY_CONSTANT = 0.01 * (simul.things.Pop - 200)
+        elif 300 < simul.things.Pop:
+            METABOLIC_ACTIVITY_CONSTANT = 0.1 * (simul.things.Pop - 300)
+
     # Different rules for the initial ("incubation") epochs
     if 5 in n:
         if 20 <= simul.epochs:
@@ -55,7 +64,7 @@ def Rules(simul, n):
             simul.things.energies[simul.things.monad_mask] <= 0
         )
         if len(to_remove) > 0:
-            if simul.things.Pop <= 10:
+            if simul.things.Pop <= 50:
                 # Autogenetic breeding
                 for idx in range(simul.things.Pop):
                     simul.things.monad_autogenesis_v1(idx)

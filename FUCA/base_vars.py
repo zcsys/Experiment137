@@ -43,7 +43,7 @@ colors = {
 THING_TYPES = {
     "monad": {
         "color": colors["F"],
-        "size": 20,
+        "size": 10,
         "nucleus_size": 5,
         "initial_energy": 1000.,
         "overlap": False
