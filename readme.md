@@ -19,11 +19,11 @@
 	* Monad429: 29-neuron monad with 2 recurrent layers governed by 316 parameters
 							modulated by 632 genes, having an action organ to broadcast a
 							message (a float32 variable) and a sensory organ to receive the message with its direction
-  * Monad529: 29-neuron monad with 2 LSTM layers governed by 1156 parameters
-							modulated by 2312 genes
-	* Monad6173 (FUCA): 6th gen monad with 5 LSTM layers each with 32 units,
-											making a total of 173 neurons, 38788 parameters modulated
-											by a genome of 2-level gene regulation
+  * Monad529: 5th gen monad with 29 neurons and 2 LSTM layers governed by 1156
+							parameters modulated by 2312 genes
+	* Monad5173 (FUCA): 5th gen monad with 5 LSTM layers each with 32 units,
+											making a total of 173 neurons, 38788 parameters and 77576
+											genes
 
 ### Aeon of Abundance
 (*to come*)

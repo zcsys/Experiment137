@@ -13,9 +13,6 @@ class Things:
         pygame.font.init()
         self.font = pygame.font.SysFont(None, 12)
 
-        # Initialize system heat
-        self.heat = 11
-
         if state_file:
             self.load_state(state_file)
             return
@@ -341,7 +338,7 @@ class Things:
                 (distances <= SIGHT).unsqueeze(2),
                 self.diffs / (distances.unsqueeze(2) + 1e-7) ** 2,
                 torch.tensor([0., 0.])
-            ).sum(dim = 1) * 21.
+            ).sum(dim = 1) * 11.
         else:
             col2 = torch.zeros((self.Pop, 2))
 
@@ -526,12 +523,12 @@ class Things:
 
     def random_action(self):
         numberOf_sugars = self.sugar_mask.sum().item()
-        if self.heat == 0:
+        if SYSTEM_HEAT == 0:
             return torch.tensor([[0, 0] for _ in range(numberOf_sugars)],
                                 dtype = torch.float32)
-        values = (torch.tensor(list(range(self.heat)), dtype = torch.float32) -
-                  (self.heat - 1) / 2)
-        weights = torch.ones(self.heat, dtype = torch.float32)
+        values = (torch.tensor(list(range(SYSTEM_HEAT)), dtype = torch.float32)
+                  - (SYSTEM_HEAT - 1) / 2)
+        weights = torch.ones(SYSTEM_HEAT, dtype = torch.float32)
         indices = torch.multinomial(
             weights,
             numberOf_sugars * 2,
@@ -1001,7 +998,7 @@ class Things:
         self.Pop += 1
 
         # Mutate the old genome & apply the new genome
-        genome = self.mutate(idx, strength = 2.)
+        genome = self.mutate(idx)
         self.genomes = torch.cat(
             (
                 self.genomes,
