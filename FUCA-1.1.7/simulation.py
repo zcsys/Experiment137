@@ -109,7 +109,7 @@ class UIManager:
         if self.network_toggle_button.handle_event(event):
             self.show_network = not self.show_network
 
-    def draw(self, state, N, Pop):
+    def draw(self, state, N, E, Pop):
         # Draw the right menu section (white background)
         pygame.draw.rect(self.screen, (255, 255, 255),
                          (self.screen.get_width() - self.menu_width, 0,
@@ -135,6 +135,7 @@ class UIManager:
                                       (0, 0, 0))
         N_text = self.font.render(f"N: {N}", True, (0, 0, 0))
         Pop_text = self.font.render(f"Pop.: {Pop}", True, (0, 0, 0))
+        E_text = self.font.render(f"E: {int(E)}", True, (0, 0, 0))
 
         self.screen.blit(epoch_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y))
@@ -146,6 +147,8 @@ class UIManager:
                          self.menu_width + 10, start_y + 90))
         self.screen.blit(Pop_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y + 120))
+        self.screen.blit(E_text, (self.screen.get_width() -
+                         self.menu_width + 10, start_y + 150))
 
 class Simulation:
     def __init__(self, things_object, load_file = None):
@@ -223,7 +226,7 @@ class Simulation:
                              self.ui_manager.show_network)
 
             if not self.paused:
-                Rules(self, [0, 1, 2, 3])
+                Rules(self, [1, 2, 3, 6, 7])
 
             # The Arbeitor of Truth
             """
@@ -274,6 +277,7 @@ class Simulation:
             self.ui_manager.draw(
                 self.get_state(),
                 self.things.N,
+                self.things.E,
                 self.things.Pop
             )
 

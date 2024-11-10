@@ -32,6 +32,7 @@ class Things:
         )
 
         # Initialize state vars
+        self.E = 0.
         self.N = len(self.thing_types)
         self.Pop = self.monad_mask.sum().item()
         self.energies = torch.tensor(
@@ -626,6 +627,7 @@ class Things:
             torch.tensor(0.)
         )
         self.energies -= actual_magnitudes
+        # self.E += actual_magnitudes.sum().item() # Works with Rules(0)
 
         # Handle sugar vs monad collisions
         sugar_vs_monad = (
@@ -1267,6 +1269,7 @@ class Things:
             'types': self.thing_types,
             'positions': self.positions.tolist(),
             'energies': self.energies.tolist(),
+            'E': self.E,
             'genomes': self.genomes.tolist(),
             'lineages': self.lineages,
             'colors': self.colors,
@@ -1299,6 +1302,7 @@ class Things:
                             for i in range(1, 145)}"""
         self.energies = torch.tensor(state['energies'])
         self.N = len(self.positions)
+        self.E = state['E']
         self.genomes = torch.tensor(state['genomes'])
         self.lineages = state['lineages']
         self.colors = state['colors']
