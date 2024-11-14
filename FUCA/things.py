@@ -38,6 +38,7 @@ class Things:
             [THING_TYPES[thing_type]["initial_energy"]
             for thing_type in thing_types]
         )
+        self.E = self.energies[self.monad_mask].sum().item() // 1000
         self.colors = [THING_TYPES[x]["color"] for x in self.thing_types]
         self.hidden_1 = torch.zeros((self.Pop, 32, 1))
         self.cell_state_1 = torch.zeros((self.Pop, 32, 1))
@@ -567,6 +568,9 @@ class Things:
 
         # Apply movements
         self.update_positions()
+
+        # Update total monad energy
+        self.E = self.energies[self.monad_mask].sum().item() // 1000
 
     def update_positions(self):
         provisional_positions = self.positions + self.movement_tensor
@@ -1323,6 +1327,7 @@ class Things:
             [thing_type == "sugar" for thing_type in self.thing_types]
         )
         self.Pop = self.monad_mask.sum().item()
+        self.E = self.energies[self.monad_mask].sum().item() // 1000
 
         self.apply_genomes()
         self.sensory_inputs()

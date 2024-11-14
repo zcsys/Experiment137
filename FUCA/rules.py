@@ -1,21 +1,31 @@
 from base_vars import *
-from base_vars import (METABOLIC_ACTIVITY_CONSTANT, AUTO_FISSION_THRESHOLD,
-                       N_TARGET)
+from base_vars import N_TARGET, SYSTEM_HEAT
 import torch
 
 def Rules(simul, n):
-    global N_TARGET
+    global N_TARGET, SYSTEM_HEAT
 
-    # More resources in earlier epochs
+    # More resources in earlier epochs; costlier life with higher population
     if 0 in n:
         if 20 <= simul.epochs:
-            N_TARGET = 200
+            N_TARGET = 100
+            SYSTEM_HEAT = 3
         elif 15 <= simul.epochs < 20:
-            N_TARGET = 300
+            N_TARGET = 200
+            SYSTEM_HEAT = 5
         elif 10 <= simul.epochs < 15:
-            N_TARGET = 400
+            N_TARGET = 300
+            SYSTEM_HEAT = 7
         elif 5 <= simul.epochs < 10:
-            N_TARGET = 500
+            N_TARGET = 400
+            SYSTEM_HEAT = 9
+
+        if simul.things.E <= 100:
+            METABOLIC_ACTIVITY_CONSTANT = 0.1
+        elif 100 < simul.things.E <= 200:
+            METABOLIC_ACTIVITY_CONSTANT = 0.1 + 0.009 * (simul.things.E - 100)
+        elif 200 < simul.things.E:
+            METABOLIC_ACTIVITY_CONSTANT = 1. + 0.09 * (simul.things.E - 200)
 
     # Auto fission
     if 1 in n:
@@ -38,6 +48,9 @@ def Rules(simul, n):
                 for idx in range(simul.things.Pop):
                     simul.things.monad_autogenesis_v1(idx)
             simul.things.monad_death(to_remove.squeeze(1).tolist())
+        simul.things.E = simul.things.energies[
+            simul.things.monad_mask
+        ].sum().item() // 1000
 
     # Populate universe with sugars until N_TARGET is reached
     if 3 in n:
