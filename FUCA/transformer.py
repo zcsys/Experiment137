@@ -22,31 +22,30 @@ class MultiHeadAttention:
         ].view(-1, self.d_model, self.d_model)
 
     def forward(self, inputs):
-        # inputs shape: [batch_size, num_particles, d_model]
-        num_particles, _ = inputs.shape
-
-        # Project inputs for each particle
+        # Project inputs for each monad
         Q = torch.bmm(inputs.view(-1, 1, self.d_model), self.W_q)
         K = torch.bmm(inputs.view(-1, 1, self.d_model), self.W_k)
         V = torch.bmm(inputs.view(-1, 1, self.d_model), self.W_v)
 
         # Reshape for multi-head attention
-        Q = Q.view(num_particles, self.num_heads, self.d_k).transpose(1, 2)
-        K = K.view(num_particles, self.num_heads, self.d_k).transpose(1, 2)
-        V = V.view(num_particles, self.num_heads, self.d_k).transpose(1, 2)
+        Q = Q.view(-1, self.num_heads, self.d_k).transpose(1, 2)
+        K = K.view(-1, self.num_heads, self.d_k).transpose(1, 2)
+        V = V.view(-1, self.num_heads, self.d_k).transpose(1, 2)
 
         # Calculate attention scores
-        scores = torch.matmul(Q, K.transpose(-2, -1)) / (self.d_k ** 0.5)  # [batch_size, num_heads, num_particles, num_particles]
-        attention = torch.softmax(scores, dim=-1)
+        scores = torch.matmul(Q, K.transpose(-2, -1)) / (self.d_k ** 0.5)
+        attention = torch.softmax(scores, dim = -1)
 
         # Apply attention to values
-        attended = torch.matmul(attention, V)  # [batch_size, num_heads, num_particles, d_k]
+        attended = torch.matmul(attention, V)
 
         # Reshape and project output
-        attended = attended.transpose(1, 2).contiguous()  # [batch_size, num_particles, num_heads, d_k]
-        attended = attended.view(num_particles, self.d_model)  # [batch_size, num_particles, d_model]
+        attended = attended.transpose(1, 2).contiguous()
+        attended = attended.view(-1, self.d_model)
 
-        return torch.bmm(attended.view(-1, 1, self.d_model), self.W_o).view(num_particles, self.d_model)
+        return torch.bmm(
+            attended.view(-1, 1, self.d_model), self.W_o
+        ).view(-1, self.d_model)
 
 class TransformerLayer:
     def __init__(self, d_model, num_heads, d_ff):
@@ -80,33 +79,32 @@ class TransformerLayer:
         self.norm2 = weights[:, current_pos:current_pos + self.d_model]
 
     def forward(self, inputs):
-        # inputs shape: [batch_size, num_particles, d_model]
-        num_particles, _ = inputs.shape
-
         # Multi-head attention
-        attended = self.attention.forward(inputs)  # [batch_size, num_particles, d_model]
+        attended = self.attention.forward(inputs)
 
         # Add & Norm (first residual connection)
         residual1 = inputs + attended
-        norm1_std = torch.std(residual1, dim=-1, keepdim=True)
-        norm1_mean = torch.mean(residual1, dim=-1, keepdim=True)
+        norm1_std = torch.std(residual1, dim = -1, keepdim = True)
+        norm1_mean = torch.mean(residual1, dim = -1, keepdim = True)
         normalized1 = self.norm1 * (residual1 - norm1_mean) / (norm1_std + 1e-5)
 
-        # Feed Forward (apply to each particle independently)
-        ff_hidden = torch.relu(torch.bmm(
-            normalized1.view(-1, 1, self.d_model),
-            self.ff1
-        )).view(num_particles, self.d_ff)
+        # Feed Forward (apply to each monad independently)
+        ff_hidden = torch.relu(
+            torch.bmm(
+                normalized1.view(-1, 1, self.d_model),
+                self.ff1
+            )
+        ).view(-1, self.d_ff)
 
         ff_out = torch.bmm(
             ff_hidden.view(-1, 1, self.d_ff),
             self.ff2
-        ).view(num_particles, self.d_model)
+        ).view(-1, self.d_model)
 
         # Add & Norm (second residual connection)
         residual2 = normalized1 + ff_out
-        norm2_std = torch.std(residual2, dim=-1, keepdim=True)
-        norm2_mean = torch.mean(residual2, dim=-1, keepdim=True)
+        norm2_std = torch.std(residual2, dim = -1, keepdim = True)
+        norm2_mean = torch.mean(residual2, dim = -1, keepdim = True)
         normalized2 = self.norm2 * (residual2 - norm2_mean) / (norm2_std + 1e-5)
 
         return normalized2
@@ -115,23 +113,23 @@ class TransformerLayer:
         return 4 * self.d2 + 2 * (self.d_model + self.increment)
 
 class Transformer:
-    def __init__(self, d_model, num_heads, num_layers, d_ff, particle_features,
+    def __init__(self, d_model, num_heads, num_layers, d_ff, num_inputs,
                  output_dim):
         self.layers = [TransformerLayer(d_model, num_heads, d_ff)
                       for _ in range(num_layers)]
         self.d_model = d_model
-        self.particle_features = particle_features  # Number of features per particle
+        self.num_inputs = num_inputs
         self.output_dim = output_dim
         self.num_layers = num_layers
 
     def setup_weights(self, weights):
-        increment = self.particle_features * self.d_model
+        increment = self.num_inputs * self.d_model
         layer_weights = self.layers[0].weights_per_layer()
 
         # Input projection
         self.input_proj = weights[
             :, :increment
-        ].view(-1, self.particle_features, self.d_model)
+        ].view(-1, self.num_inputs, self.d_model)
         current_pos = increment
 
         # Transformer layers
@@ -145,21 +143,20 @@ class Transformer:
         ].view(-1, self.d_model, self.output_dim)
 
     def forward(self, inputs):
-        # inputs shape: [batch_size, num_particles, particle_features]
-        num_particles = inputs.shape[0]
-
-        # Project each particle's features to d_model dimensions
+        # Project each monad's features to d_model dimensions
         x = torch.bmm(
-            inputs.view(-1, 1, self.particle_features),
+            inputs.view(-1, 1, self.num_inputs),
             self.input_proj
-        ).view(num_particles, self.d_model)
+        ).view(-1, self.d_model)
 
         # Process through transformer layers
         for layer in self.layers:
             x = layer.forward(x)
 
-        # Project to output dimension for each particle
-        return torch.bmm(
-            x.view(-1, 1, self.d_model),
-            self.output_proj
-        ).view(num_particles, self.output_dim)
+        # Project to output dimension for each monad
+        return torch.tanh(
+            torch.bmm(
+                x.view(-1, 1, self.d_model),
+                self.output_proj
+            )
+        ).view(-1, self.output_dim)

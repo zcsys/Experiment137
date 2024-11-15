@@ -114,7 +114,7 @@ class Things:
         else:
             col2 = torch.zeros((self.Pop, 2))
 
-        # Combine the inputs to create (Pop, 5, 1)-shaped final input tensor
+        # Combine the inputs to create the final input tensor
         self.input_vectors = torch.cat(
             [
                 col1,
@@ -124,7 +124,7 @@ class Things:
                 self.incoming_messages
             ],
             dim = 1
-        ).view(self.Pop, 1, 9)
+        ).view(self.Pop, 9, 1)
 
     def neural_action(self):
         return self.transformer.forward(self.input_vectors)
@@ -153,7 +153,7 @@ class Things:
             self.movement_tensor = torch.tensor([[0., 0.]
                                                  for _ in range(self.N)])
 
-        # monad actions
+        # Monad actions
         if self.monad_mask.any():
             # Get output tensor
             neural_action = self.neural_action()
