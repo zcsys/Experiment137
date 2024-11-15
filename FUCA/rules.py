@@ -31,7 +31,7 @@ def Rules(simul, n):
     # Population control
     if 1 in n:
         if 20 <= simul.epochs:
-            N_TARGET = 150
+            N_TARGET = 100
             SYSTEM_HEAT = 3
         elif 15 <= simul.epochs < 20:
             N_TARGET = 200

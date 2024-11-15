@@ -1,161 +1,165 @@
 import torch
-import torch.nn as nn
-import math
 
-class MultiHeadAttention(nn.Module):
-    def __init__(self, d_model, num_heads, dropout = 0.1):
-        super().__init__()
-        assert d_model % num_heads == 0
-
-        self.d_model = d_model
+class MultiHeadAttention:
+    def __init__(self, d_model, num_heads):
         self.num_heads = num_heads
+        self.d_model = d_model
         self.d_k = d_model // num_heads
 
-        self.W_q = nn.Linear(d_model, d_model)
-        self.W_k = nn.Linear(d_model, d_model)
-        self.W_v = nn.Linear(d_model, d_model)
-        self.W_o = nn.Linear(d_model, d_model)
+    def setup_weights(self, weights_start, weights):
+        d2 = self.d_model ** 2
+        self.W_q = weights[
+            :, weights_start:weights_start + d2
+        ].view(-1, self.d_model, self.d_model)
+        self.W_k = weights[
+            :, weights_start + d2:weights_start + 2 * d2
+        ].view(-1, self.d_model, self.d_model)
+        self.W_v = weights[
+            :, weights_start + 2 * d2:weights_start + 3 * d2
+        ].view(-1, self.d_model, self.d_model)
+        self.W_o = weights[
+            :, weights_start + 3 * d2:weights_start + 4 * d2
+        ].view(-1, self.d_model, self.d_model)
 
-        self.dropout = nn.Dropout(dropout)
+    def forward(self, inputs):
+        # inputs shape: [batch_size, num_particles, d_model]
+        num_particles, _ = inputs.shape
 
-    def attention(self, Q, K, V, mask = None):
-        # Q, K, V shapes: (num_agents, num_heads, d_k)
-        scores = torch.matmul(Q.unsqueeze(-2), K.unsqueeze(-1)) / math.sqrt(self.d_k)
+        # Project inputs for each particle
+        Q = torch.bmm(inputs.view(-1, 1, self.d_model), self.W_q)
+        K = torch.bmm(inputs.view(-1, 1, self.d_model), self.W_k)
+        V = torch.bmm(inputs.view(-1, 1, self.d_model), self.W_v)
 
-        if mask is not None:
-            scores = scores.masked_fill(mask == 0, -1e9)
+        # Reshape for multi-head attention
+        Q = Q.view(num_particles, self.num_heads, self.d_k).transpose(1, 2)
+        K = K.view(num_particles, self.num_heads, self.d_k).transpose(1, 2)
+        V = V.view(num_particles, self.num_heads, self.d_k).transpose(1, 2)
 
-        attention_weights = torch.softmax(scores, dim=-1)
-        attention_weights = self.dropout(attention_weights)
+        # Calculate attention scores
+        scores = torch.matmul(Q, K.transpose(-2, -1)) / (self.d_k ** 0.5)  # [batch_size, num_heads, num_particles, num_particles]
+        attention = torch.softmax(scores, dim=-1)
 
-        return torch.matmul(attention_weights, V.unsqueeze(-1)).squeeze(-1), attention_weights
+        # Apply attention to values
+        attended = torch.matmul(attention, V)  # [batch_size, num_heads, num_particles, d_k]
 
-    def forward(self, Q, K, V, mask=None):
-        # Input shape: (num_agents, d_model)
-        num_agents = Q.size(0)
+        # Reshape and project output
+        attended = attended.transpose(1, 2).contiguous()  # [batch_size, num_particles, num_heads, d_k]
+        attended = attended.view(num_particles, self.d_model)  # [batch_size, num_particles, d_model]
 
-        # Linear transformations and split into heads
-        Q = self.W_q(Q).view(num_agents, self.num_heads, self.d_k)
-        K = self.W_k(K).view(num_agents, self.num_heads, self.d_k)
-        V = self.W_v(V).view(num_agents, self.num_heads, self.d_k)
+        return torch.bmm(attended.view(-1, 1, self.d_model), self.W_o).view(num_particles, self.d_model)
 
-        # Apply attention
-        x, attention_weights = self.attention(Q, K, V, mask)
+class TransformerLayer:
+    def __init__(self, d_model, num_heads, d_ff):
+        self.attention = MultiHeadAttention(d_model, num_heads)
+        self.d_model = d_model
+        self.d_ff = d_ff
+        self.d2 = d_model ** 2
+        self.increment = self.d_model * self.d_ff
 
-        # Reshape and apply final linear transformation
-        x = x.contiguous().view(num_agents, self.d_model)
-        return self.W_o(x)
+    def setup_weights(self, weights_start, weights):
+        # Multi-head attention
+        attention_weights_size = 4 * self.d2
+        self.attention.setup_weights(weights_start, weights)
+        current_pos = weights_start + attention_weights_size
 
-class PositionWiseFeedForward(nn.Module):
-    def __init__(self, d_model, d_ff, dropout=0.1):
-        super().__init__()
-        self.fc1 = nn.Linear(d_model, d_ff)
-        self.fc2 = nn.Linear(d_ff, d_model)
-        self.dropout = nn.Dropout(dropout)
-        self.activation = nn.GELU()
+        # Add & Norm (first residual connection)
+        self.norm1 = weights[:, current_pos:current_pos + self.d_model]
+        current_pos += self.d_model
 
-    def forward(self, x):
-        # x shape: (num_agents, d_model)
-        return self.fc2(self.dropout(self.activation(self.fc1(x))))
+        # Feed Forward weights
+        self.ff1 = weights[
+            :, current_pos:current_pos + self.increment
+        ].view(-1, self.d_model, self.d_ff)
+        current_pos += self.increment
+        self.ff2 = weights[
+            :, current_pos:current_pos + self.increment
+        ].view(-1, self.d_ff, self.d_model)
+        current_pos += self.increment
 
-class PopulationTransformerBlock(nn.Module):
-    def __init__(self, d_model, num_heads, d_ff, dropout=0.1):
-        super().__init__()
-        self.attention = MultiHeadAttention(d_model, num_heads, dropout)
-        self.norm1 = nn.LayerNorm(d_model)
-        self.norm2 = nn.LayerNorm(d_model)
-        self.feed_forward = PositionWiseFeedForward(d_model, d_ff, dropout)
-        self.dropout = nn.Dropout(dropout)
+        # Add & Norm (second residual connection)
+        self.norm2 = weights[:, current_pos:current_pos + self.d_model]
 
-    def forward(self, x, mask=None):
-        # Self-attention and residual connection
-        attention_output = self.attention(x, x, x, mask)
-        x = self.norm1(x + self.dropout(attention_output))
+    def forward(self, inputs):
+        # inputs shape: [batch_size, num_particles, d_model]
+        num_particles, _ = inputs.shape
 
-        # Feed forward and residual connection
-        ff_output = self.feed_forward(x)
-        x = self.norm2(x + self.dropout(ff_output))
+        # Multi-head attention
+        attended = self.attention.forward(inputs)  # [batch_size, num_particles, d_model]
 
-        return x
+        # Add & Norm (first residual connection)
+        residual1 = inputs + attended
+        norm1_std = torch.std(residual1, dim=-1, keepdim=True)
+        norm1_mean = torch.mean(residual1, dim=-1, keepdim=True)
+        normalized1 = self.norm1 * (residual1 - norm1_mean) / (norm1_std + 1e-5)
 
-class PopulationTransformer(nn.Module):
-    def __init__(self,
-                 input_dim,           # Dimension of agent's sensory input
-                 output_dim,          # Dimension of agent's actions
-                 d_model=64,          # Embedding dimension
-                 num_heads=4,         # Number of attention heads
-                 num_layers=3,        # Number of transformer blocks
-                 d_ff=256,           # Feed-forward dimension
-                 dropout=0.1):
-        super().__init__()
+        # Feed Forward (apply to each particle independently)
+        ff_hidden = torch.relu(torch.bmm(
+            normalized1.view(-1, 1, self.d_model),
+            self.ff1
+        )).view(num_particles, self.d_ff)
 
-        self.input_projection = nn.Linear(input_dim, d_model)
-        self.dropout = nn.Dropout(dropout)
+        ff_out = torch.bmm(
+            ff_hidden.view(-1, 1, self.d_ff),
+            self.ff2
+        ).view(num_particles, self.d_model)
 
-        # Stack of transformer blocks
-        self.transformer_blocks = nn.ModuleList([
-            PopulationTransformerBlock(d_model, num_heads, d_ff, dropout)
-            for _ in range(num_layers)
-        ])
+        # Add & Norm (second residual connection)
+        residual2 = normalized1 + ff_out
+        norm2_std = torch.std(residual2, dim=-1, keepdim=True)
+        norm2_mean = torch.mean(residual2, dim=-1, keepdim=True)
+        normalized2 = self.norm2 * (residual2 - norm2_mean) / (norm2_std + 1e-5)
 
-        self.output_projection = nn.Linear(d_model, output_dim)
+        return normalized2
 
-    def forward(self, x, mask=None):
-        """
-        Forward pass for the entire population
+    def weights_per_layer(self):
+        return 4 * self.d2 + 2 * (self.d_model + self.increment)
 
-        Args:
-            x: Input tensor of shape (num_agents, input_dim)
-            mask: Optional attention mask for agent interactions
+class Transformer:
+    def __init__(self, d_model, num_heads, num_layers, d_ff, particle_features,
+                 output_dim):
+        self.layers = [TransformerLayer(d_model, num_heads, d_ff)
+                      for _ in range(num_layers)]
+        self.d_model = d_model
+        self.particle_features = particle_features  # Number of features per particle
+        self.output_dim = output_dim
+        self.num_layers = num_layers
 
-        Returns:
-            Output tensor of shape (num_agents, output_dim)
-        """
-        # Project input to transformer dimension
-        x = self.input_projection(x)
-        x = self.dropout(x)
+    def setup_weights(self, weights):
+        increment = self.particle_features * self.d_model
+        layer_weights = self.layers[0].weights_per_layer()
 
-        # Apply transformer blocks
-        for transformer_block in self.transformer_blocks:
-            x = transformer_block(x, mask)
+        # Input projection
+        self.input_proj = weights[
+            :, :increment
+        ].view(-1, self.particle_features, self.d_model)
+        current_pos = increment
 
-        # Project to output dimension
-        return self.output_projection(x)
+        # Transformer layers
+        for layer in self.layers:
+            layer.setup_weights(current_pos, weights)
+            current_pos += layer_weights
 
-# Example usage:
-def simulate_step(population_transformer, sensory_inputs):
-    """
-    Simulate a single step for the population
+        # Output projection
+        self.output_proj = weights[
+            :, current_pos:current_pos + self.d_model * self.output_dim
+        ].view(-1, self.d_model, self.output_dim)
 
-    Args:
-        population_transformer: The transformer model
-        sensory_inputs: Tensor of shape (num_agents, input_dim)
+    def forward(self, inputs):
+        # inputs shape: [batch_size, num_particles, particle_features]
+        num_particles = inputs.shape[0]
 
-    Returns:
-        Actions for all agents
-    """
-    with torch.no_grad():  # No gradient computation during simulation
-        actions = population_transformer(sensory_inputs)
-    return actions
+        # Project each particle's features to d_model dimensions
+        x = torch.bmm(
+            inputs.view(-1, 1, self.particle_features),
+            self.input_proj
+        ).view(num_particles, self.d_model)
 
-# Example initialization and usage:
-"""
-# Initialize transformer for a population
-transformer = PopulationTransformer(
-    input_dim=10,    # Size of each agent's sensory input
-    output_dim=2,    # Size of each agent's action space (e.g., 2D movement)
-    d_model=64,      # Internal representation size
-    num_heads=4      # Number of attention heads
-)
+        # Process through transformer layers
+        for layer in self.layers:
+            x = layer.forward(x)
 
-# Simulate one step with 100 agents
-num_agents = 100
-input_dim = 10      # Size of sensory input
-
-# Create sensory inputs for all agents
-sensory_inputs = torch.randn(num_agents, input_dim)
-
-# Get actions for all agents
-actions = simulate_step(transformer, sensory_inputs)
-# actions shape: (num_agents, output_dim)
-"""
+        # Project to output dimension for each particle
+        return torch.bmm(
+            x.view(-1, 1, self.d_model),
+            self.output_proj
+        ).view(num_particles, self.output_dim)
