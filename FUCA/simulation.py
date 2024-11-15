@@ -219,14 +219,14 @@ class Simulation:
                 self.things.final_action()
                 self.update_state()
 
-            self.screen.fill(colors["∅"])
+            self.screen.fill(colors["0"])
             self.things.draw(self.screen, self.ui_manager.show_info,
                              self.ui_manager.show_sight,
                              self.ui_manager.show_forces,
                              self.ui_manager.show_network)
 
             if not self.paused:
-                Rules(self, [0, 1, 2, 3])
+                Rules(self, [0, 1])
 
             # The Arbeitor of Truth
             """

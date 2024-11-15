@@ -5,6 +5,7 @@ import math
 import json
 from base_vars import *
 from helpers import *
+from transformer import *
 from simulation import draw_dashed_circle
 
 class Things:
