@@ -46,20 +46,22 @@ class Things:
                             for i in range(1, 145)}"""
 
         # Initialize genomes and lineages
-        self.genomes = torch.zeros((self.Pop, 6416)) # GENOME6T6416
-        # self.genomes = torch.tensor(GENOME6T6416_XXX).repeat(self.Pop, 1)
+        self.genomes = torch.zeros((self.Pop, 300736)) # GENOME6T1
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
-        # Initialize the monad messages
-        self.messages = torch.zeros((self.Pop, 1))
+        # Initialize monad messages
+        self.messages = torch.zeros((self.Pop, 2))
+
+        # Initialize memory organ
+        self.memory = torch.zeros((self.Pop, 4))
 
         # Initialize sensory input data
         self.last_movement_was_successful = torch.ones(
             self.Pop,
             dtype = torch.bool
         ).unsqueeze(1)
-        self.incoming_messages = torch.zeros((self.Pop, 3))
+        self.incoming_messages = torch.zeros((self.Pop, 4))
         self.sensory_inputs()
 
     def from_general_to_monad_idx(self, i):
@@ -72,19 +74,19 @@ class Things:
         return self.lineages[i][0] + len(self.lineages[i])
 
     def apply_genomes(self):
-        """Monad6T6416 neurogenetics"""
-        input_dim = 9
-        model_dim = 16
+        """Monad7T1 neurogenetics"""
+        input_dim = 16
+        model_dim = 64
         num_heads = 4
-        num_layers = 2
-        ff_dim = 64
-        output_dim = 4
+        num_layers = 6
+        ff_dim = 256
+        output_dim = 9
 
         self.transformer = Transformer(model_dim, num_heads, num_layers, ff_dim,
-                                       input_dim, output_dim)
+                                       input_dim, output_dim, self.Pop)
         self.transformer.setup_weights(self.genomes)
 
-    def mutate(self, i, probability = 0.1, strength = 1., show = False):
+    def mutate(self, i, probability = 0.1, strength = 1.):
         original_genome = self.genomes[i].clone()
         mutation_mask = torch.rand_like(original_genome) < probability
         mutations = torch.rand_like(original_genome) * 2 - 1
@@ -116,15 +118,17 @@ class Things:
 
         # Combine the inputs to create the final input tensor
         self.input_vectors = torch.cat(
-            [
+            (
                 col1,
                 col2,
                 self.last_movement_was_successful,
                 (self.energies[self.monad_mask] / 10000).unsqueeze(1),
-                self.incoming_messages
-            ],
+                self.incoming_messages,
+                self.messages,
+                self.memory
+            ),
             dim = 1
-        ).view(self.Pop, 9, 1)
+        ).view(self.Pop, 16, 1)
 
     def neural_action(self):
         return self.transformer.forward(self.input_vectors)
@@ -159,14 +163,19 @@ class Things:
             neural_action = self.neural_action()
 
             # Fetch monad movements
-            self.movement_tensor[self.monad_mask] = neural_action[:, :2]
+            self.movement_tensor[self.monad_mask] = torch.tanh(
+                neural_action[:, :2]
+            )
 
             # Broadcast messages
-            self.messages = neural_action[:, 3]
+            self.messages = neural_action[:, 3:5]
+
+            # Update memory
+            self.memory = neural_action[:, 5:9]
 
             # Apply fissions
             random_gen = torch.rand(self.Pop)
-            to_divide = neural_action[:, 2] > random_gen
+            to_divide = torch.tanh(neural_action[:, 2]) > random_gen
             for i in to_divide.nonzero():
                 self.monad_division(self.from_monad_to_general_idx(i))
 
@@ -264,7 +273,7 @@ class Things:
         c_dist = torch.norm(c_diffs, dim = 2)
         in_sight_mask = (c_dist < SIGHT).fill_diagonal_(False).int()
 
-        self.incoming_messages = torch.zeros((self.Pop, 3))
+        self.incoming_messages = torch.zeros((self.Pop, 4))
 
         if in_sight_mask.any():
             self.recipients = torch.unique(in_sight_mask.nonzero())
@@ -283,7 +292,7 @@ class Things:
             self.incoming_messages[self.recipients] = torch.cat(
                 (
                     direction,
-                    self.messages[self.first_senders].unsqueeze(1),
+                    self.messages[self.first_senders],
                 ),
                 dim = 1
             )
@@ -361,14 +370,21 @@ class Things:
         self.messages = torch.cat(
             (
                 self.messages,
-                torch.tensor([0.])
+                torch.zeros((1, 2))
             ),
             dim = 0
         )
         self.incoming_messages = torch.cat(
             (
                 self.incoming_messages,
-                torch.zeros((1, 3))
+                torch.zeros((1, 4))
+            ),
+            dim = 0
+        )
+        self.memory = torch.cat(
+            (
+                self.memory,
+                torch.zeros((1, 4))
             ),
             dim = 0
         )
@@ -426,6 +442,7 @@ class Things:
             self.genomes = remove_element(self.genomes, i)
             self.messages = remove_element(self.messages, i)
             self.incoming_messages = remove_element(self.incoming_messages, i)
+            self.memory = remove_element(self.memory, i)
             del self.lineages[i]
 
             # Get general index to remove universal attributes
@@ -497,14 +514,21 @@ class Things:
         self.messages = torch.cat(
             (
                 self.messages,
-                torch.tensor([0.])
+                torch.zeros((1, 2))
             ),
             dim = 0
         )
         self.incoming_messages = torch.cat(
             (
                 self.incoming_messages,
-                torch.zeros((1, 3))
+                torch.zeros((1, 4))
+            ),
+            dim = 0
+        )
+        self.memory = torch.cat(
+            (
+                self.memory,
+                torch.zeros((1, 4))
             ),
             dim = 0
         )
@@ -734,7 +758,8 @@ class Things:
             'colors': self.colors,
             'LMWS': self.last_movement_was_successful.tolist(),
             'messages': self.messages.tolist(),
-            'incoming': self.incoming_messages.tolist()
+            'incoming': self.incoming_messages.tolist(),
+            'memory': self.memory.tolist()
         }
 
     def load_state(self, state_file):
@@ -757,6 +782,7 @@ class Things:
         self.last_movement_was_successful = torch.tensor(state['LMWS'])
         self.messages = torch.tensor(state['messages'])
         self.incoming_messages = torch.tensor(state['incoming'])
+        self.memory = torch.tensor(state['memory'])
 
         self.monad_mask = torch.tensor(
             [thing_type == "monad" for thing_type in self.thing_types]

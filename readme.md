@@ -23,9 +23,12 @@
 							parameters modulated by 2312 genes
   * Monad5173: 5th gen monad with 5 LSTM layers each with 32 units, making a
 							 total of 173 neurons, 38788 parameters and 77576 genes
-	* Monad6T6416: Transformer architecture with 2 layers, 16 dimensions, 4
-								 attention heads, and 4x feed-forward expansion, governed by
-								 6416 parameters
+	* Monad6T0: Transformer architecture with 2 layers, 16 dimensions, 4 attention
+							heads, and 4x feed-forward expansion with no bias terms, governed
+							by 6416 parameters
+	* Monad7T1: Monad with a memory organ of 4 float32 variables and messaging
+							capability of 2 float32 variables, controlled by a transformer network of 6 layers, 64 dimensions, 4 attention heads, and 4x
+							feed-forward expansion where each layer operation has a bias term, governed by 300736 parameters
 
 ### Aeon of Abundance
 (*to come*)
