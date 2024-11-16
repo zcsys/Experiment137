@@ -22,26 +22,19 @@ class MultiHeadAttention:
         ].view(-1, self.d_model, self.d_model)
 
     def forward(self, inputs):
-        # Project inputs for each monad
-        Q = torch.bmm(inputs.view(-1, 1, self.d_model), self.W_q)
-        K = torch.bmm(inputs.view(-1, 1, self.d_model), self.W_k)
-        V = torch.bmm(inputs.view(-1, 1, self.d_model), self.W_v)
+        Q = torch.bmm(
+            inputs.view(-1, 1, self.d_model), self.W_q
+        ).view(-1, self.num_heads, self.d_k)
+        K = torch.bmm(
+            inputs.view(-1, 1, self.d_model), self.W_k
+        ).view(-1, self.num_heads, self.d_k)
+        V = torch.bmm(
+            inputs.view(-1, 1, self.d_model), self.W_v
+        ).view(-1, self.num_heads, self.d_k)
 
-        # Reshape for multi-head attention
-        Q = Q.view(-1, self.num_heads, self.d_k).transpose(1, 2)
-        K = K.view(-1, self.num_heads, self.d_k).transpose(1, 2)
-        V = V.view(-1, self.num_heads, self.d_k).transpose(1, 2)
-
-        # Calculate attention scores
         scores = torch.matmul(Q, K.transpose(-2, -1)) / (self.d_k ** 0.5)
         attention = torch.softmax(scores, dim = -1)
-
-        # Apply attention to values
-        attended = torch.matmul(attention, V)
-
-        # Reshape and project output
-        attended = attended.transpose(1, 2).contiguous()
-        attended = attended.view(-1, self.d_model)
+        attended = torch.matmul(attention, V).view(-1, self.d_model)
 
         return torch.bmm(
             attended.view(-1, 1, self.d_model), self.W_o
@@ -143,17 +136,17 @@ class Transformer:
         ].view(-1, self.d_model, self.output_dim)
 
     def forward(self, inputs):
-        # Project each monad's features to d_model dimensions
+        # Input projection
         x = torch.bmm(
             inputs.view(-1, 1, self.num_inputs),
             self.input_proj
         ).view(-1, self.d_model)
 
-        # Process through transformer layers
+        # Transformer layers
         for layer in self.layers:
             x = layer.forward(x)
 
-        # Project to output dimension for each monad
+        # Output projection
         return torch.tanh(
             torch.bmm(
                 x.view(-1, 1, self.d_model),
