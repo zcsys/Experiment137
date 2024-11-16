@@ -675,7 +675,7 @@ class Things:
                 screen.blit(energy_text, energy_rect)
 
                 # Show message
-                message_text = float_msg_to_str(self.messages[idx].item())
+                message_text = float_msg_to_str(self.messages[idx].tolist())
                 message_text = self.font.render(message_text, True, colors["Z"])
                 message_rect = message_text.get_rect(
                     center = (

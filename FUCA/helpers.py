@@ -94,8 +94,9 @@ def reverse_color(color):
     return 255 - r, 255 - g, 255 - b
 
 def float_msg_to_str(float_msg):
-    packed_bytes = struct.pack('>f', np.float32(float_msg))
-    return base64.b64encode(packed_bytes)[:4].decode('ascii')
+    packed_bytes = struct.pack('>ff', np.float32(float_msg[0]),
+                               np.float32(float_msg[1]))
+    return base64.b64encode(packed_bytes).decode('ascii')[:4]
 
 def get_box(positions):
     return (positions[:, 0] // 120 + positions[:, 1] // 120 * 16).int()
