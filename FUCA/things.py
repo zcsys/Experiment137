@@ -46,7 +46,7 @@ class Things:
                             for i in range(1, 145)}"""
 
         # Initialize genomes and lineages
-        self.genomes = torch.zeros((self.Pop, 300736)) # GENOME7T1
+        self.genomes = torch.zeros((self.Pop, 6544)) # GENOME7T1
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
@@ -76,10 +76,10 @@ class Things:
     def apply_genomes(self):
         """Monad7T1 neurogenetics"""
         input_dim = 16
-        model_dim = 64
+        model_dim = 16
         num_heads = 4
-        num_layers = 6
-        ff_dim = 256
+        num_layers = 2
+        ff_dim = 64
         output_dim = 9
 
         self.transformer = Transformer(model_dim, num_heads, num_layers, ff_dim,
@@ -240,7 +240,7 @@ class Things:
             self.monad_mask
         ].unsqueeze(1)
 
-        # Reduce energies from monads and give to system
+        # Reduce energies from monads
         actual_magnitudes = torch.where(
             final_apply_mask & self.monad_mask,
             movement_magnitudes,
@@ -268,10 +268,10 @@ class Things:
             self.remove_sugars(unique(sugar_idx.tolist()))
 
         # Deliver messages
-        c_pos = self.positions[self.monad_mask]
-        c_diffs = c_pos.unsqueeze(0) - c_pos.unsqueeze(1)
-        c_dist = torch.norm(c_diffs, dim = 2)
-        in_sight_mask = (c_dist < SIGHT).fill_diagonal_(False).int()
+        m_pos = self.positions[self.monad_mask]
+        m_diffs = m_pos.unsqueeze(0) - m_pos.unsqueeze(1)
+        m_dist = torch.norm(m_diffs, dim = 2)
+        in_sight_mask = (m_dist < SIGHT).fill_diagonal_(False).int()
 
         self.incoming_messages = torch.zeros((self.Pop, 4))
 
@@ -282,9 +282,9 @@ class Things:
             )
             direction = (
                 (
-                    c_diffs[self.recipients, self.first_senders] /
+                    m_diffs[self.recipients, self.first_senders] /
                     (
-                        c_dist[self.recipients, self.first_senders].unsqueeze(1)
+                        m_dist[self.recipients, self.first_senders].unsqueeze(1)
                         + 1e-7
                     )
                 )
