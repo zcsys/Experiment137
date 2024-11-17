@@ -46,7 +46,7 @@ class Things:
                             for i in range(1, 145)}"""
 
         # Initialize genomes and lineages
-        self.genomes = torch.zeros((self.Pop, 300736)) # GENOME6T1
+        self.genomes = torch.zeros((self.Pop, 2379392)) # GENOME7T1
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
@@ -76,17 +76,17 @@ class Things:
     def apply_genomes(self):
         """Monad7T1 neurogenetics"""
         input_dim = 16
-        model_dim = 64
-        num_heads = 4
-        num_layers = 6
-        ff_dim = 256
+        model_dim = 128
+        num_heads = 8
+        num_layers = 12
+        ff_dim = 512
         output_dim = 9
 
         self.transformer = Transformer(model_dim, num_heads, num_layers, ff_dim,
                                        input_dim, output_dim, self.Pop)
         self.transformer.setup_weights(self.genomes)
 
-    def mutate(self, i, probability = 0.1, strength = 1.):
+    def mutate(self, i, probability = 0.01, strength = 1.):
         original_genome = self.genomes[i].clone()
         mutation_mask = torch.rand_like(original_genome) < probability
         mutations = torch.rand_like(original_genome) * 2 - 1

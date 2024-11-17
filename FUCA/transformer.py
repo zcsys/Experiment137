@@ -132,7 +132,7 @@ class TransformerLayer:
 
     def weights_per_layer(self):
         return 7 * self.d_model + 4 * self.d2 + 2 * self.increment + self.d_ff
-        # 6*(7*64+4*64*64+2*64*64*4+64*4)+64*(16+9)
+        # 12*(7*128+4*128*128+2*128*128*4+128*4)+128*(16+9)
 
 class Transformer:
     def __init__(self, d_model, num_heads, num_layers, d_ff, input_dim,
