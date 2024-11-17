@@ -27,8 +27,8 @@
 							heads, and 4x feed-forward expansion with no bias terms, governed
 							by 6416 parameters
 	* Monad7T1: Monad with a memory organ of 4 float32 variables and messaging
-							capability of 2 float32 variables, controlled by a transformer network of 12 layers, 128 dimensions, 8 attention heads, and 4x
-							feed-forward expansion where each layer operation has a bias term, governed by 2379392 parameters
+							capability of 2 float32 variables, controlled by a transformer network of 6 layers, 64 dimensions, 4 attention heads, and 4x
+							feed-forward expansion where each layer operation has a bias term, governed by 300736 parameters (FUCA)
 
 ### Aeon of Abundance
 (*to come*)
