@@ -57,86 +57,15 @@ class TransformerLayer:
         self.attention.setup_weights(weights_start, weights)
         current_pos = weights_start + attention_weights_size
 
-        # Add & Norm (first residual connection)
-        # self.norm1 = weights[:, current_pos:current_pos + self.d_model]
-        # current_pos += self.d_model
-
         # Feed Forward weights
         self.ff1 = weights[
             :, current_pos:current_pos + self.increment
         ].view(self.num_monads, self.d_model, self.d_ff)
         current_pos += self.increment
 
-        """self.ff1_gate = weights[
-            :, current_pos:current_pos + self.increment
-        ].view(self.num_monads, self.d_model, self.d_ff)
-        current_pos += self.increment"""
-
         self.ff2 = weights[
             :, current_pos:current_pos + self.increment
         ].view(self.num_monads, self.d_ff, self.d_model)
-        current_pos += self.increment
-
-        # Add & Norm (second residual connection)
-        # self.norm2 = weights[:, current_pos:current_pos + self.d_model]
-
-    def forwardOLD(self, inputs):
-        # Multi-head attention
-        attended = self.attention.forward(inputs)
-
-        # Add & Norm (first residual connection)
-        residual1 = inputs + attended
-        norm1_std = torch.std(residual1, dim = -1, keepdim = True)
-        norm1_mean = torch.mean(residual1, dim = -1, keepdim = True)
-        normalized1 = self.norm1 * (residual1 - norm1_mean) / (norm1_std + 1e-5)
-
-        # Feed Forward (apply to each monad independently)
-        ff_hidden = torch.nn.functional.gelu(
-            torch.bmm(
-                normalized1.view(self.num_monads, 1, self.d_model),
-                self.ff1
-            )
-        ).view(self.num_monads, self.d_ff)
-
-        ff_out = torch.bmm(
-            ff_hidden.view(self.num_monads, 1, self.d_ff),
-            self.ff2
-        ).view(self.num_monads, self.d_model)
-
-        # Add & Norm (second residual connection)
-        residual2 = normalized1 + ff_out
-        norm2_std = torch.std(residual2, dim = -1, keepdim = True)
-        norm2_mean = torch.mean(residual2, dim = -1, keepdim = True)
-        normalized2 = self.norm2 * (residual2 - norm2_mean) / (norm2_std + 1e-5)
-
-        return normalized2
-
-    def forwardOLD2(self, inputs):
-        attended = self.attention.forward(inputs)
-
-        residual1 = inputs + attended
-
-        hidden_swish = torch.bmm(
-            residual1.view(self.num_monads, 1, self.d_model),
-            self.ff1
-        ).view(self.num_monads, self.d_ff)
-
-        hidden_gate = torch.bmm(
-            residual1.view(self.num_monads, 1, self.d_model),
-            self.ff1_gate
-        ).view(self.num_monads, self.d_ff)
-
-        ff_hidden = (
-            hidden_swish *
-            torch.sigmoid(hidden_swish)
-        ) * torch.sigmoid(hidden_gate)
-
-        ff_out = torch.bmm(
-            ff_hidden.view(self.num_monads, 1, self.d_ff),
-            self.ff2
-        ).view(self.num_monads, self.d_model)
-
-        return residual1 + ff_out
 
     def forward(self, inputs):
         attended = self.attention.forward(inputs)
@@ -159,7 +88,6 @@ class TransformerLayer:
 
     def weights_per_layer(self):
         return 4 * self.d2 + 2 * self.increment
-        # 2*(4*16*16+2*16*16*4)+16*(16+9)
 
 class Transformer:
     def __init__(self, d_model, num_heads, num_layers, d_ff, input_dim,
@@ -175,6 +103,7 @@ class Transformer:
     def setup_weights(self, weights):
         # Number of weights per monad: d_model * (input_dim + output_dim) +
         #                              num_layers * weights_per_layer()
+        # 2*(4*16*16+2*16*16*4)+16*(16+9)
         increment = self.input_dim * self.d_model
         layer_weights = self.layers[0].weights_per_layer()
 
