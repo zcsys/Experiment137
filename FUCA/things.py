@@ -46,7 +46,7 @@ class Things:
                             for i in range(1, 145)}"""
 
         # Initialize genomes and lineages
-        self.genomes = torch.zeros((self.Pop, 6544)) # GENOME71T2x16
+        self.genomes = torch.zeros((self.Pop, 6672)) # GENOME71T2x16_0
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 

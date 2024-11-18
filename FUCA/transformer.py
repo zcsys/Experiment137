@@ -1,5 +1,25 @@
 import torch
 
+class LayerNorm:
+    def __init__(self, d_model, num_monads):
+        self.d_model = d_model
+        self.num_monads = num_monads
+
+    def setup_weights(self, weights_start, weights):
+        # gamma (scale) and beta (bias) parameters
+        self.gamma = weights[
+            :, weights_start:weights_start + self.d_model
+        ].view(self.num_monads, self.d_model)
+        self.beta = weights[
+            :, weights_start + self.d_model:weights_start + 2 * self.d_model
+        ].view(self.num_monads, self.d_model)
+
+    def forward(self, x):
+        mean = x.mean(dim = -1, keepdim = True)
+        var = ((x - mean) ** 2).mean(dim = -1, keepdim = True)
+        x_norm = (x - mean) / (var + 1e-5).sqrt()
+        return self.gamma * x_norm + self.beta
+
 class MultiHeadAttention:
     def __init__(self, d_model, num_heads, num_monads):
         self.num_heads = num_heads
@@ -45,6 +65,8 @@ class MultiHeadAttention:
 class TransformerLayer:
     def __init__(self, d_model, num_heads, d_ff, num_monads):
         self.attention = MultiHeadAttention(d_model, num_heads, num_monads)
+        self.norm1 = LayerNorm(d_model, num_monads)
+        self.norm2 = LayerNorm(d_model, num_monads)
         self.d_model = d_model
         self.d_ff = d_ff
         self.num_monads = num_monads
@@ -57,6 +79,10 @@ class TransformerLayer:
         self.attention.setup_weights(weights_start, weights)
         current_pos = weights_start + attention_weights_size
 
+        # First LayerNorm
+        self.norm1.setup_weights(current_pos, weights)
+        current_pos += 2 * self.d_model
+
         # Feed Forward weights
         self.ff1 = weights[
             :, current_pos:current_pos + self.increment
@@ -66,15 +92,21 @@ class TransformerLayer:
         self.ff2 = weights[
             :, current_pos:current_pos + self.increment
         ].view(self.num_monads, self.d_ff, self.d_model)
+        current_pos += self.increment
+
+        # Second LayerNorm
+        self.norm2.setup_weights(current_pos, weights)
 
     def forward(self, inputs):
+        # Attention block with LayerNorm
         attended = self.attention.forward(inputs)
-
         residual1 = inputs + attended
+        normalized1 = self.norm1.forward(residual1)
 
+        # Feed-forward block with LayerNorm
         ff_hidden = torch.nn.functional.gelu(
             torch.bmm(
-                residual1.view(self.num_monads, 1, self.d_model),
+                normalized1.view(self.num_monads, 1, self.d_model),
                 self.ff1
             )
         ).view(self.num_monads, self.d_ff)
@@ -84,10 +116,11 @@ class TransformerLayer:
             self.ff2
         ).view(self.num_monads, self.d_model)
 
-        return residual1 + ff_out
+        # Apply second residual and return
+        return self.norm2.forward(normalized1 + ff_out)
 
     def weights_per_layer(self):
-        return 4 * self.d2 + 2 * self.increment
+        return 4 * (self.d2 + self.d_model) + 2 * self.increment
 
 class Transformer:
     def __init__(self, d_model, num_heads, num_layers, d_ff, input_dim,
@@ -103,7 +136,7 @@ class Transformer:
     def setup_weights(self, weights):
         # Number of weights per monad: d_model * (input_dim + output_dim) +
         #                              num_layers * weights_per_layer()
-        # 2*(4*16*16+2*16*16*4)+16*(16+9)
+        # 2*(4*(16*16+16)+2*16*16*4)+16*(16+9)
         increment = self.input_dim * self.d_model
         layer_weights = self.layers[0].weights_per_layer()
 
