@@ -23,10 +23,10 @@
 							parameters modulated by 2312 genes
   * Monad5173: 5th gen monad with 5 LSTM layers each with 32 units, making a
 							 total of 173 neurons, 38788 parameters and 77576 genes
-	* Monad60T2x16: Transformer architecture with 2 layers, 16 dimensions, 4
+  * Monad60T2x16: Transformer architecture with 2 layers, 16 dimensions, 4
 								  attention heads, and 4x feed-forward expansion with no bias
 								  terms, governed	by 6416 parameters
-	* Monad71T2x16: Monad with a memory organ of 4 float32 variables and messaging
+  * Monad71T2x16: Monad with a memory organ of 4 float32 variables and messaging
 								  capability of 2 float32 variables, controlled by a transformer
 								  network of 2 layers, 16 dimensions, 4 attention heads, and 4x
 								  feed-forward expansion with GELU instead of RELU, where
