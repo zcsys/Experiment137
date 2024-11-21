@@ -163,9 +163,7 @@ class Things:
             neural_action = self.neural_action()
 
             # Fetch monad movements
-            self.movement_tensor[self.monad_mask] = torch.tanh(
-                neural_action[:, :2]
-            )
+            self.movement_tensor[self.monad_mask] = neural_action[:, :2]
 
             # Broadcast messages
             self.messages = neural_action[:, 3:5]
@@ -175,7 +173,7 @@ class Things:
 
             # Apply fissions
             random_gen = torch.rand(self.Pop)
-            to_divide = torch.tanh(neural_action[:, 2]) > random_gen
+            to_divide = neural_action[:, 2] > random_gen
             for i in to_divide.nonzero():
                 self.monad_division(self.from_monad_to_general_idx(i))
 

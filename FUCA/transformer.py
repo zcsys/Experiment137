@@ -15,9 +15,9 @@ class LayerNorm:
         ].view(self.num_monads, self.d_model)
 
     def forward(self, x):
-        mean = x.mean(dim = -1, keepdim = True)
-        var = ((x - mean) ** 2).mean(dim = -1, keepdim = True)
-        x_norm = (x - mean) / (var + 1e-5).sqrt()
+        mu = torch.mean(x, dim = -1, keepdim = True)
+        sigma = torch.std(x, dim = -1, keepdim = True)
+        x_norm = (x - mu) / (sigma + 1e-5)
         return self.gamma * x_norm + self.beta
 
 class MultiHeadAttention:
@@ -100,11 +100,10 @@ class TransformerLayer:
     def forward(self, inputs):
         # Attention block with LayerNorm
         attended = self.attention.forward(inputs)
-        residual1 = inputs + attended
-        normalized1 = self.norm1.forward(residual1)
+        normalized1 = self.norm1.forward(inputs + attended)
 
-        # Feed-forward block with LayerNorm
-        ff_hidden = torch.nn.functional.gelu(
+        # Feed-forward block
+        ff_hidden = torch.relu(
             torch.bmm(
                 normalized1.view(self.num_monads, 1, self.d_model),
                 self.ff1
@@ -116,7 +115,7 @@ class TransformerLayer:
             self.ff2
         ).view(self.num_monads, self.d_model)
 
-        # Apply second residual and return
+        # Apply second residual and return the normalized layer
         return self.norm2.forward(normalized1 + ff_out)
 
     def weights_per_layer(self):
@@ -168,7 +167,9 @@ class Transformer:
             x = layer.forward(x)
 
         # Output projection
-        return torch.bmm(
-            x.view(self.num_monads, 1, self.d_model),
-            self.output_proj
+        return torch.tanh(
+            torch.bmm(
+                x.view(self.num_monads, 1, self.d_model),
+                self.output_proj
+            )
         ).view(self.num_monads, self.output_dim)

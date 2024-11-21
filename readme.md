@@ -26,11 +26,10 @@
   * Monad60T2x16: Transformer architecture with 2 layers, 16 dimensions, 4
 								  attention heads, and 4x feed-forward expansion with no bias
 								  terms, governed	by 6416 parameters
-  * Monad71T2x16: Monad with a memory organ of 4 float32 variables and messaging
-								  capability of 2 float32 variables, controlled by a transformer
-								  network of 2 layers, 16 dimensions, 4 attention heads, and 4x
-								  feed-forward expansion with GELU instead of RELU, where
-									LayerNorm has the bias term, governed by 6672 parameters
+  * Monad71T2x16: Monad with a memory organ of 4 tanh(float32) variables and
+								  messaging capability of 2 tanh(float32) variables, controlled
+								  by a transformer network of 2 layers, 16 dimensions, 4
+								  attention heads, and 4x feed-forward expansion with bias term present in LayerNorm, governed by 6672 parameters
 
 ### Aeon of Abundance
 (*to come*)
