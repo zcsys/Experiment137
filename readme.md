@@ -1,5 +1,5 @@
 ### Aeon of Chaos
-(Aug 18, 2024 - *ongoing*)
+(Aug 18, 2024 - Nov 23, 2024)
 
 #### Experiment 1: Abiogenesis
 * pygame PoC
@@ -30,13 +30,15 @@
 								  attention heads, and 4x feed-forward expansion with bias term present LayerNorm and FF layers, governed by ~300k parameters
 
 ### Aeon of Abundance
-(*to come*)
+(Nov 23, 2024 - *ongoing*)
 
 #### Experiment 4: 270 Balls
 * Taichi PoC
+* Monad653: Monad with 16 input and 9 output neurons, controlled by a simple
+						feed-forward architecture with 2 hidden layers using ReLU, first of
+						16 and second of 12 neurons, governed by 593 parameters
 * Spatial partitioning
 * Color-based periodic table and molecular interactions
-* Monad4280 to learn controlling *its* molecules to navigate through universe
 * Autogenetic breeding
 
 #### Experiment 5: LUCA
