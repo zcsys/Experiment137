@@ -46,7 +46,7 @@ class Things:
                             for i in range(1, 145)}"""
 
         # Initialize genomes and lineages
-        self.genomes = torch.zeros((self.Pop, 6832)) # GENOME60T6x64_0
+        self.genomes = torch.zeros((self.Pop, 299968)) # GENOME60T6x64_0
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
@@ -76,10 +76,10 @@ class Things:
     def apply_genomes(self):
         """Monad60T6x64 neurogenetics"""
         input_dim = 16
-        model_dim = 16
+        model_dim = 64
         num_heads = 4
-        num_layers = 2
-        ff_dim = 64
+        num_layers = 6
+        ff_dim = 256
         output_dim = 9
 
         self.transformer = Transformer(model_dim, num_heads, num_layers, ff_dim,
