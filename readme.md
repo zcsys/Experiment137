@@ -18,18 +18,16 @@
 	* Monad313: 13-neuron monad with RNN
 	* Monad429: 29-neuron monad with 2 recurrent layers governed by 316 parameters
 							modulated by 632 genes, having an action organ to broadcast a
-							message (a float32 variable) and a sensory organ to receive the message with its direction
+							message of tanh(float32) and a sensory organ to receive the
+							message with its direction
   * Monad529: 5th gen monad with 29 neurons and 2 LSTM layers governed by 1156
 							parameters modulated by 2312 genes
   * Monad5173: 5th gen monad with 5 LSTM layers each with 32 units, making a
 							 total of 173 neurons, 38788 parameters and 77576 genes
-  * Monad60T2x16: Transformer architecture with 2 layers, 16 dimensions, 4
-								  attention heads, and 4x feed-forward expansion with no bias
-								  terms, governed	by 6416 parameters
-  * Monad71T2x16: Monad with a memory organ of 4 tanh(float32) variables and
+  * Monad60T6x64: Monad with a memory organ of 4 tanh(float32) variables and
 								  messaging capability of 2 tanh(float32) variables, controlled
-								  by a transformer network of 2 layers, 16 dimensions, 4
-								  attention heads, and 4x feed-forward expansion with bias term present in LayerNorm, governed by 6672 parameters
+								  by a transformer network of 6 layers, 16 dimensions, 4
+								  attention heads, and 4x feed-forward expansion with bias term present LayerNorm and FF layers, governed by ~300k parameters
 
 ### Aeon of Abundance
 (*to come*)

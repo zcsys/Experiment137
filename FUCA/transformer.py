@@ -84,15 +84,25 @@ class TransformerLayer:
         current_pos += 2 * self.d_model
 
         # Feed Forward weights
-        self.ff1 = weights[
+        self.W_ff1 = weights[
             :, current_pos:current_pos + self.increment
         ].view(self.num_monads, self.d_model, self.d_ff)
         current_pos += self.increment
 
-        self.ff2 = weights[
+        self.W_ff2 = weights[
             :, current_pos:current_pos + self.increment
         ].view(self.num_monads, self.d_ff, self.d_model)
         current_pos += self.increment
+
+        self.B_ff1 = weights[
+            :, current_pos:current_pos + self.d_ff
+        ]
+        current_pos += self.d_ff
+
+        self.B_ff2 = weights[
+            :, current_pos:current_pos + self.d_model
+        ]
+        current_pos += self.d_model
 
         # Second LayerNorm
         self.norm2.setup_weights(current_pos, weights)
@@ -106,24 +116,25 @@ class TransformerLayer:
         ff_hidden = torch.relu(
             torch.bmm(
                 normalized1.view(self.num_monads, 1, self.d_model),
-                self.ff1
-            )
-        ).view(self.num_monads, self.d_ff)
+                self.W_ff1
+            ).view(self.num_monads, self.d_ff) + self.B_ff1
+        )
 
         ff_out = torch.bmm(
             ff_hidden.view(self.num_monads, 1, self.d_ff),
-            self.ff2
-        ).view(self.num_monads, self.d_model)
+            self.W_ff2
+        ).view(self.num_monads, self.d_model) + self.B_ff2
 
         # Apply second residual and return the normalized layer
         return self.norm2.forward(normalized1 + ff_out)
 
     def weights_per_layer(self):
-        return 4 * (self.d2 + self.d_model) + 2 * self.increment
+        return 5 * self.d_model + 4 * self.d2 + 2 * self.increment + self.d_ff
 
 class Transformer:
     def __init__(self, d_model, num_heads, num_layers, d_ff, input_dim,
                  output_dim, num_monads):
+        self.device = torch.device("mps")
         self.layers = [TransformerLayer(d_model, num_heads, d_ff, num_monads)
                       for _ in range(num_layers)]
         self.d_model = d_model
@@ -133,9 +144,10 @@ class Transformer:
         self.num_monads = num_monads
 
     def setup_weights(self, weights):
+        # weights = weights.to(self.device)
         # Number of weights per monad: d_model * (input_dim + output_dim) +
         #                              num_layers * weights_per_layer()
-        # 2*(4*(16*16+16)+2*16*16*4)+16*(16+9)
+        # 2*(5*16+4*16*16+2*16*16*4+16*4)+16*(16+9)
         increment = self.input_dim * self.d_model
         layer_weights = self.layers[0].weights_per_layer()
 
@@ -156,6 +168,7 @@ class Transformer:
         ].view(self.num_monads, self.d_model, self.output_dim)
 
     def forward(self, inputs):
+        # inputs = inputs.to(self.device)
         # Input projection
         x = torch.bmm(
             inputs.view(self.num_monads, 1, self.input_dim),
@@ -167,9 +180,12 @@ class Transformer:
             x = layer.forward(x)
 
         # Output projection
-        return torch.tanh(
+        output = torch.tanh(
             torch.bmm(
                 x.view(self.num_monads, 1, self.d_model),
                 self.output_proj
             )
         ).view(self.num_monads, self.output_dim)
+
+        return output
+        return output.to("cpu")
