@@ -1,17 +1,17 @@
 import torch
 
 class nn2:
-    def __init__(self, weights, input_size, L1_size, L2_size, output_size):
+    def __init__(self, weights, input_size, output_size):
         # Get the number of monads
         self.num_monads = weights.shape[0]
+        L1_size = input_size * 4
+        L2_size = input_size
 
         # Size check
-        # 16*(16+1)+12*(16+1)+9*(12+1) = 593
+        # 8*16**2+16*(9+5)+9 = 2281
         assert (
             weights.shape[1] ==
-            L1_size * (input_size + 1) +
-            L2_size * (L1_size + 1) +
-            output_size * (L2_size + 1),
+            8 * input_size ** 2 + input_size * (output_size + 5) + output_size,
             "Weight size mismatch"
         )
 

@@ -34,11 +34,13 @@
 
 #### Experiment 4: 270 Balls
 * Taichi PoC
-* Monad653: Monad with 16 input and 9 output neurons, controlled by a simple
-						feed-forward architecture with 2 hidden layers using ReLU, first of
-						16 and second of 12 neurons, governed by 593 parameters
+* nn2: Simple feed-forward network with 2 hidden layers using ReLU, where the
+			 first hidden layer has 4x expansion from the input layer, and the second
+			 hidden layer goes back to 1x, finally transformed into the output layer
+			 with tanh
+* Monad6105: Monad with 16 input and 9 output neurons, controlled by an nn2,
+						 governed by 2281 parameters
 * Spatial partitioning
-* Color-based periodic table and molecular interactions
 * Autogenetic breeding
 
 #### Experiment 5: LUCA

@@ -46,7 +46,7 @@ class Things:
                             for i in range(1, 145)}"""
 
         # Initialize genomes and lineages
-        self.genomes = torch.zeros((self.Pop, 593)) # GENOME653_0
+        self.genomes = torch.zeros((self.Pop, 2281)) # GENOME6105_0
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
@@ -75,7 +75,7 @@ class Things:
 
     def apply_genomes(self):
         """Monad653 neurogenetics"""
-        self.nn = nn2(self.genomes, 16, 16, 12, 9)
+        self.nn = nn2(self.genomes, 16, 9)
 
     def mutate(self, i, probability = 0.1, strength = 1.):
         original_genome = self.genomes[i].clone()

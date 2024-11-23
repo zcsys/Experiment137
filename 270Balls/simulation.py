@@ -123,15 +123,15 @@ class UIManager:
         self.info_toggle_button.draw()
         self.network_toggle_button.draw()
 
-        # Display simulation state (Epochs, Periods, Steps)
+        # Display simulation state (Period, Cycle, Step)
         start_y = self.screen.get_height() // 2
 
-        epoch_text = self.font.render(f"Epoch: {state.get('epochs', 0)}", True,
+        epoch_text = self.font.render(f"Period: {state.get('period', 0)}", True,
                                       (0, 0, 0))
-        period_text = self.font.render(f"Period: {state.get('periods', 0)} " +
-                                       f"(\'{state.get('crr_period_dur', 0)})",
+        period_text = self.font.render(f"Cycle: {state.get('cycle', 0)} " +
+                                       f"(\'{state.get('crr_cycle_dur', 0)})",
                                        True, (0, 0, 0))
-        steps_text = self.font.render(f"Steps: {state.get('steps', 0)}", True,
+        steps_text = self.font.render(f"Step: {state.get('step', 0)}", True,
                                       (0, 0, 0))
         N_text = self.font.render(f"N: {N}", True, (0, 0, 0))
         Pop_text = self.font.render(f"Pop.: {Pop}", True, (0, 0, 0))
@@ -156,7 +156,7 @@ class Simulation:
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         pygame.display.set_caption("Experiment 137.03: FUCA")
         self.things = things_object
-        self.period_start_time = time.time()
+        self.cycle_start_time = time.time()
         self.transparent_surface = pygame.Surface(
             (SIMUL_WIDTH, SIMUL_HEIGHT), pygame.SRCALPHA
         ).convert_alpha()
@@ -172,36 +172,36 @@ class Simulation:
 
         self.paused = False
         self.ui_manager = UIManager(self.screen, MENU_WIDTH, self.paused)
-        self.steps, self.periods, self.epochs = 0, 0, 0
-        self.crr_period_dur = 0
+        self.step, self.cycle, self.period = 0, 0, 0
+        self.crr_cycle_dur = 0
 
     def update_state(self):
-        self.steps += 1
-        if self.steps == 2400:
-            self.periods += 1
-            self.steps = 0
+        self.step += 1
+        if self.step == 2400:
+            self.cycle += 1
+            self.step = 0
             current_time = time.time()
-            self.crr_period_dur = int(current_time - self.period_start_time)
-            self.period_start_time = current_time
-        if self.periods == 80:
-            self.epochs += 1
-            self.periods = 0
+            self.crr_cycle_dur = int(current_time - self.cycle_start_time)
+            self.cycle_start_time = current_time
+        if self.cycle == 80:
+            self.period += 1
+            self.cycle = 0
             self.save_simulation()
 
     def get_state(self):
         return {
-            'steps': self.steps,
-            'periods': self.periods,
-            'epochs': self.epochs,
-            'period_start_time': self.period_start_time,
-            'crr_period_dur': self.crr_period_dur
+            'step': self.step,
+            'cycle': self.cycle,
+            'period': self.period,
+            'cycle_start_time': self.cycle_start_time,
+            'crr_cycle_dur': self.crr_cycle_dur
         }
 
     def load_state(self, state):
-        self.steps = state.get('steps', 0)
-        self.periods = state.get('periods', 0)
-        self.epochs = state.get('epochs', 0)
-        self.crr_period_dur = state.get('crr_period_dur', 0)
+        self.step = state.get('step', 0)
+        self.cycle = state.get('cycle', 0)
+        self.period = state.get('period', 0)
+        self.crr_cycle_dur = state.get('crr_cycle_dur', 0)
 
     def run(self):
         running = True
