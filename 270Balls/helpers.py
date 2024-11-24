@@ -79,7 +79,7 @@ def hex_to_rgb(hex_color):
     return tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
 
 def get_color_by_genome(genome, scale = 100., base_color = (160, 160, 160)):
-    n = len(genome) // 6
+    n = len(genome) // 3
     return (
         max(min(base_color[0] + int(scale * genome[:n].sum().item()),
             255), 64),
@@ -127,8 +127,6 @@ def create_initial_genomes(num_monads, num_input, num_output):
         [0 for _ in range(4 * num_input)] +
         flattened_identity_matrix(4 * num_input)[:4 * num_input ** 2] +
         [0 for _ in range(num_input)] +
-        [0 for _ in range((num_input + 1) * num_output)] +
-        [0 for _ in range(8 * num_input ** 2 + 5 * num_input)] +
-        [1 for _ in range(num_output * (num_input + 1))],
+        [0 for _ in range((num_input + 1) * num_output)],
         dtype = torch.float32
     ).repeat(num_monads, 1)

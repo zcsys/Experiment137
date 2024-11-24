@@ -38,7 +38,7 @@
 			 hidden layer goes back to 1x, finally transformed into the output layer
 			 with tanh
 * Monad6105: Monad with 16 input and 9 output neurons, controlled by an nn2,
-						 governed by 2281 parameters modulated by 2x genomes
+						 governed by 2281 parameters
 * Spatial partitioning
 * Autogenetic breeding
 
