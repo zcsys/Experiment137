@@ -46,7 +46,7 @@ class Things:
                             for i in range(1, 145)}"""
 
         # Initialize genomes and lineages
-        self.genomes = torch.zeros((self.Pop, 2281)) # GENOME6105_0
+        self.genomes = create_initial_genomes(self.Pop, 16, 9)
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
@@ -75,26 +75,44 @@ class Things:
 
     def apply_genomes(self):
         """Monad653 neurogenetics"""
-        self.nn = nn2(self.genomes, 16, 9)
+        self.nn = nn2(self.genomes[:, :int(self.genomes.shape[1] / 2)], 16, 9)
 
-    def mutate(self, i, probability = 0.1, strength = 1.):
+    def mutate(self, i, prob_coding = 0.1, strength = 1.,
+               prob_regulatory = 0.01):
+        # Split genome
         original_genome = self.genomes[i].clone()
-        mutation_mask = torch.rand_like(original_genome) < probability
-        mutations = torch.rand_like(original_genome) * 2 - 1
-        return original_genome + mutation_mask * mutations * strength
+        n = int(round(len(original_genome) / 2))
+        coding_part = original_genome[:n]
+        regulatory_part = original_genome[n:].bool()
+
+        # Coding part mutations
+        genome_to_mutate = coding_part[regulatory_part]
+        mutation_mask = torch.rand_like(genome_to_mutate) < prob_coding
+        mutations = torch.rand_like(genome_to_mutate) * 2 - 1
+        coding_part[regulatory_part] = (
+            genome_to_mutate + mutation_mask * mutations * strength
+        )
+
+        # Regulatory part mutations
+        regulatory_part = regulatory_part.float()
+        helper = torch.rand_like(regulatory_part) < prob_regulatory
+        regulatory_part = torch.abs(regulatory_part - helper.float())
+
+        # Combine and return genome
+        return torch.cat((coding_part, regulatory_part), dim = 0)
 
     def sensory_inputs(self):
         # For each non-sugar, there's a vector pointing towards the center of
         # the universe, with increasing magnitude as the thing gets closer to
-        # edges. This is the first input vector for each particle.
+        # edges. This is the first input vector for each monad.
         if self.monad_mask.any():
             midpoint = torch.tensor([SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2])
             col1 = (1 - self.positions[self.monad_mask] / midpoint)
         else:
             col1 = torch.zeros((self.Pop, 2))
 
-        # For each non-sugar, the combined effect of sugar particles in their
-        # vicinity is calculated. This is the second input vector for particles.
+        # For each monad, the combined effect of sugar particles in their
+        # vicinity is calculated. This is the second input vector for monads.
         if self.monad_mask.any() and self.sugar_mask.any():
             self.diffs = (self.positions[self.sugar_mask].unsqueeze(0) -
                           self.positions[self.monad_mask].unsqueeze(1))
@@ -639,11 +657,8 @@ class Things:
                 pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
                                    int(pos[1].item())), size)
             elif thing_type == "monad":
-                nucleus_size = THING_TYPES["monad"]["nucleus_size"]
-                draw_dashed_circle(screen, thing_color, (int(pos[0].item()),
-                                   int(pos[1].item())), size)
                 pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
-                                   int(pos[1].item())), nucleus_size)
+                                   int(pos[1].item())), size)
 
             if show_info and thing_type == "monad":
                 # Show energy
@@ -658,7 +673,7 @@ class Things:
                 energy_rect = energy_text.get_rect(
                     center = (
                         int(pos[0].item()),
-                        int(pos[1].item() - 2 * nucleus_size)
+                        int(pos[1].item() - 2 * size)
                     )
                 )
                 screen.blit(energy_text, energy_rect)
@@ -669,7 +684,7 @@ class Things:
                 message_rect = message_text.get_rect(
                     center = (
                         int(pos[0].item()),
-                        int(pos[1].item() + 2 * nucleus_size)
+                        int(pos[1].item() + 2 * size)
                     )
                 )
                 screen.blit(message_text, message_rect)

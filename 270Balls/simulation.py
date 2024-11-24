@@ -123,12 +123,14 @@ class UIManager:
         self.info_toggle_button.draw()
         self.network_toggle_button.draw()
 
-        # Display simulation state (Period, Cycle, Step)
+        # Display simulation state (Epoch, Age, Cycle, Step)
         start_y = self.screen.get_height() // 2
 
-        epoch_text = self.font.render(f"Period: {state.get('period', 0)}", True,
+        epoch_text = self.font.render(f"Epoch: {state.get('epoch', 0)}", True,
                                       (0, 0, 0))
-        period_text = self.font.render(f"Cycle: {state.get('cycle', 0)} " +
+        age_text = self.font.render(f"Age: {state.get('age', 0)}", True,
+                                      (0, 0, 0))
+        cycle_text = self.font.render(f"Cycle: {state.get('cycle', 0)} " +
                                        f"(\'{state.get('crr_cycle_dur', 0)})",
                                        True, (0, 0, 0))
         steps_text = self.font.render(f"Step: {state.get('step', 0)}", True,
@@ -139,22 +141,24 @@ class UIManager:
 
         self.screen.blit(epoch_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y))
-        self.screen.blit(period_text, (self.screen.get_width() -
+        self.screen.blit(age_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y + 30))
-        self.screen.blit(steps_text, (self.screen.get_width() -
+        self.screen.blit(cycle_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y + 60))
-        self.screen.blit(N_text, (self.screen.get_width() -
+        self.screen.blit(steps_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y + 90))
-        self.screen.blit(Pop_text, (self.screen.get_width() -
+        self.screen.blit(N_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y + 120))
-        self.screen.blit(E_text, (self.screen.get_width() -
+        self.screen.blit(Pop_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y + 150))
+        self.screen.blit(E_text, (self.screen.get_width() -
+                         self.menu_width + 10, start_y + 180))
 
 class Simulation:
     def __init__(self, things_object, load_file = None):
         pygame.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        pygame.display.set_caption("Experiment 137.03: FUCA")
+        pygame.display.set_caption("Experiment 137.04: 270Balls")
         self.things = things_object
         self.cycle_start_time = time.time()
         self.transparent_surface = pygame.Surface(
@@ -172,7 +176,7 @@ class Simulation:
 
         self.paused = False
         self.ui_manager = UIManager(self.screen, MENU_WIDTH, self.paused)
-        self.step, self.cycle, self.period = 0, 0, 0
+        self.step, self.cycle, self.age, self.epoch = 0, 0, 0, 0
         self.crr_cycle_dur = 0
 
     def update_state(self):
@@ -184,15 +188,20 @@ class Simulation:
             self.crr_cycle_dur = int(current_time - self.cycle_start_time)
             self.cycle_start_time = current_time
         if self.cycle == 80:
-            self.period += 1
+            self.age += 1
             self.cycle = 0
+            self.save_simulation()
+        if self.age == 80:
+            self.epoch += 1
+            self.age = 0
             self.save_simulation()
 
     def get_state(self):
         return {
             'step': self.step,
             'cycle': self.cycle,
-            'period': self.period,
+            'age': self.age,
+            'epoch': self.epoch,
             'cycle_start_time': self.cycle_start_time,
             'crr_cycle_dur': self.crr_cycle_dur
         }
@@ -200,7 +209,8 @@ class Simulation:
     def load_state(self, state):
         self.step = state.get('step', 0)
         self.cycle = state.get('cycle', 0)
-        self.period = state.get('period', 0)
+        self.age = state.get('age', 0)
+        self.epoch = state.get('epoch', 0)
         self.crr_cycle_dur = state.get('crr_cycle_dur', 0)
 
     def run(self):

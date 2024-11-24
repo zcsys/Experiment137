@@ -4,7 +4,7 @@ MENU_WIDTH = 180
 SCREEN_WIDTH = SIMUL_WIDTH + MENU_WIDTH
 SCREEN_HEIGHT = SIMUL_HEIGHT
 
-SIGHT = 120
+SIGHT = 60
 N_TARGET = 500
 AUTO_FISSION_THRESHOLD = 10000
 METABOLIC_ACTIVITY_CONSTANT = 0.1
@@ -44,15 +44,13 @@ colors = {
 THING_TYPES = {
     "monad": {
         "color": colors["F"],
-        "size": 10,
-        "nucleus_size": 5,
+        "size": 5,
         "initial_energy": 1000.,
         "overlap": False
     },
     "sugar": {
         "color": colors["L"],
         "size": 1,
-        "nucleus_size": "N/A",
         "initial_energy": 0.,
         "overlap": True
     }

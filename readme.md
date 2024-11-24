@@ -1,4 +1,4 @@
-### Aeon of Chaos
+### Eon of Chaos
 (Aug 18, 2024 - Nov 23, 2024)
 
 #### Experiment 1: Abiogenesis
@@ -29,17 +29,16 @@
 								  by a transformer network of 6 layers, 16 dimensions, 4
 								  attention heads, and 4x feed-forward expansion with bias term present LayerNorm and FF layers, governed by ~300k parameters
 
-### Aeon of Abundance
+### Eon of Abundance
 (Nov 23, 2024 - *ongoing*)
 
 #### Experiment 4: 270 Balls
-* Taichi PoC
 * nn2: Simple feed-forward network with 2 hidden layers using ReLU, where the
 			 first hidden layer has 4x expansion from the input layer, and the second
 			 hidden layer goes back to 1x, finally transformed into the output layer
 			 with tanh
 * Monad6105: Monad with 16 input and 9 output neurons, controlled by an nn2,
-						 governed by 2281 parameters
+						 governed by 2281 parameters modulated by 2x genomes
 * Spatial partitioning
 * Autogenetic breeding
 

@@ -4,8 +4,6 @@ class nn2:
     def __init__(self, weights, input_size, output_size):
         # Get the number of monads
         self.num_monads = weights.shape[0]
-        L1_size = input_size * 4
-        L2_size = input_size
 
         # Size check
         # 8*16**2+16*(9+5)+9 = 2281
@@ -16,6 +14,9 @@ class nn2:
         )
 
         # Set up weights
+        L1_size = input_size * 4
+        L2_size = input_size
+
         pos = 0
         self.W1 = weights[
             :, :L1_size * input_size
