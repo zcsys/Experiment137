@@ -7,6 +7,7 @@ from base_vars import *
 from helpers import *
 from nn import nn2
 from simulation import draw_dashed_circle
+from diffusion import Grid
 
 class Things:
     def __init__(self, thing_types = None, state_file = None):
@@ -62,7 +63,6 @@ class Things:
             dtype = torch.bool
         ).unsqueeze(1)
         self.incoming_messages = torch.zeros((self.Pop, 4))
-        self.sensory_inputs()
 
     def from_general_to_monad_idx(self, i):
         return self.monad_mask[:i].sum().item()
@@ -83,7 +83,7 @@ class Things:
         mutations = torch.rand_like(original_genome) * 2 - 1
         return original_genome + mutation_mask * mutations * strength
 
-    def sensory_inputs(self):
+    def sensory_inputs(self, grid):
         # For each non-sugar, there's a vector pointing towards the center of
         # the universe, with increasing magnitude as the thing gets closer to
         # edges. This is the first input vector for each monad.
@@ -103,7 +103,7 @@ class Things:
                 (distances <= SIGHT).unsqueeze(2),
                 self.diffs / (distances.unsqueeze(2) + 1e-7) ** 2,
                 torch.tensor([0., 0.])
-            ).sum(dim = 1) * 11.
+            ).sum(dim = 1) * 6.
         else:
             col2 = torch.zeros((self.Pop, 2))
 
@@ -139,9 +139,9 @@ class Things:
         ).view(numberOf_sugars, 2)
         return values[indices]
 
-    def final_action(self):
+    def final_action(self, grid):
         # Update sensory inputs
-        self.sensory_inputs()
+        self.sensory_inputs(grid)
 
         # Initialize the movement tensor for this step
         if self.N > 0:
@@ -780,7 +780,6 @@ class Things:
         self.E = self.energies[self.monad_mask].sum().item() // 1000
 
         self.apply_genomes()
-        self.sensory_inputs()
 
         pygame.font.init()
         self.font = pygame.font.SysFont(None, 12)

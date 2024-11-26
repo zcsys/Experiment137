@@ -5,6 +5,7 @@ import torch
 import math
 from base_vars import *
 from rules import Rules
+from diffusion import Grid
 
 def draw_dashed_circle(surface, color, center, radius, dash_length = 5,
                        gap_length = 5):
@@ -161,19 +162,21 @@ class Simulation:
         pygame.display.set_caption("Eon 1 Era 0: 270Balls")
         self.things = things_object
         self.cycle_start_time = time.time()
-        self.transparent_surface = pygame.Surface(
-            (SIMUL_WIDTH, SIMUL_HEIGHT), pygame.SRCALPHA
-        ).convert_alpha()
 
         if load_file:
             with open(load_file, 'r') as f:
                 saved_data = json.load(f)
+                try:
+                    self.grid = Grid(saved_state = saved_data["grid"])
+                except:
+                    self.grid = Grid()
                 self.load_state(saved_data["simulation_state"])
             self.paused = True
             self.ui_manager = UIManager(self.screen, MENU_WIDTH, self.paused)
             print(f"Simulation restored from {load_file}")
             return
 
+        self.grid = Grid()
         self.paused = False
         self.ui_manager = UIManager(self.screen, MENU_WIDTH, self.paused)
         self.step, self.cycle, self.age, self.epoch = 0, 0, 0, 0
@@ -194,7 +197,6 @@ class Simulation:
         if self.age == 80:
             self.epoch += 1
             self.age = 0
-            self.save_simulation()
 
     def get_state(self):
         return {
@@ -226,16 +228,18 @@ class Simulation:
                 self.ui_manager.handle_event(event, self)
 
             if not self.paused:
-                self.things.final_action()
+                self.things.final_action(self.grid)
                 self.update_state()
 
             self.screen.fill(colors["0"])
+            self.grid.draw(self.screen)
             self.things.draw(self.screen, self.ui_manager.show_info,
                              self.ui_manager.show_sight,
                              self.ui_manager.show_forces,
                              self.ui_manager.show_network)
 
             if not self.paused:
+                self.grid.diffuse()
                 Rules(self, [0, 1])
 
             # Draw the right pane
@@ -256,7 +260,8 @@ class Simulation:
         filename = f"simulation_{time.strftime('%Y%m%d_%H%M%S')}.json"
         combined_state = {
             "simulation_state": self.get_state(),
-            "things_state": self.things.get_state()
+            "things_state": self.things.get_state(),
+            "grid": self.grid.grid.tolist()
         }
         with open(filename, 'w') as f:
             json.dump(combined_state, f)

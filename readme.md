@@ -33,14 +33,13 @@
 (Nov 23, 2024 - *ongoing*)
 
 #### Era 0: 270 Balls
-* Taichi PoC
-* Torodial boundary conditions
 * nn2: Simple feed-forward network with 2 hidden layers using ReLU, where the
 			 first hidden layer has 4x expansion from the input layer, and the second
 			 hidden layer goes back to 1x, finally transformed into the output layer
 			 with tanh
 * Monad6105: Monad with 16 input and 9 output neurons, controlled by an nn2,
 						 governed by 2281 parameters
+* Torodial boundary conditions
 * Spatial partitioning
 * Autogenetic breeding
 

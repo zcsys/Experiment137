@@ -43,13 +43,13 @@ colors = {
 
 THING_TYPES = {
     "monad": {
-        "color": colors["F"],
+        "color": colors["A"],
         "size": 5,
         "initial_energy": 1000.,
         "overlap": False
     },
     "sugar": {
-        "color": colors["L"],
+        "color": colors["F"],
         "size": 1,
         "initial_energy": 0.,
         "overlap": True
