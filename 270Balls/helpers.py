@@ -5,9 +5,6 @@ import struct
 import base64
 import numpy as np
 from base_vars import *
-from scipy.spatial import cKDTree
-
-identity = lambda x: x
 
 def unique(x):
     """Gets a list and returns its unique values as a list in same order"""
@@ -49,25 +46,6 @@ def add_positions(sizes,
 
     return sizes, positions
 
-def generate_wave(frequency, duration, waveform = "sine", sample_rate = 44100,
-                  amplitude = 400):
-    t = np.linspace(0, duration, int(sample_rate * duration), False)
-    if waveform == "sine":
-        wave = np.sin(2 * np.pi * frequency * t) * amplitude
-    elif waveform == "square":
-        wave = amplitude * np.sign(np.sin(2 * np.pi * frequency * t))
-    elif waveform == "sawtooth":
-        wave = 2 * amplitude * (t * frequency - np.floor(1/2 + t * frequency))
-    elif waveform == "noise":
-        wave = np.random.uniform(-1, 1, size=t.shape) * amplitude
-    else:
-        raise ValueError("Invalid waveform type. Choose 'sine', 'square'," +
-                         "'sawtooth', or 'noise'.")
-    wave = wave.astype(np.int16)
-    sound_array = np.array([wave, wave]).T
-    sound_array = np.ascontiguousarray(sound_array)
-    return pygame.sndarray.make_sound(sound_array)
-
 def remove_element(tensor, i):
     return torch.cat((tensor[:i], tensor[i + 1:]), dim = 0)
 
@@ -101,24 +79,9 @@ def float_msg_to_str(float_msg):
 def get_box(positions):
     return (positions[:, 0] // 120 + positions[:, 1] // 120 * 16).int()
 
-def find_neighbors(positions, radius):
-    """
-    Find all pairs of particles within a given radius.
-
-    :param positions: numpy array of shape (n_particles, 2) containing particle
-                      positions
-    :param radius: distance within which to find neighbors
-    :return: list of tuples, each containing indices of neighboring particles
-    """
-    tree = cKDTree(positions)
-    return tree.query_pairs(r = radius, output_type = 'ndarray')
-
 def flattened_identity_matrix(N, x = None):
     lt = x if x else N
     return [1 if i == j and i < lt else 0 for j in range(N) for i in range(N)]
-
-def batchdot(A, B):
-    return torch.einsum('bi,bi->b', A, B)
 
 def create_initial_genomes(num_monads, num_input, num_output):
     return torch.tensor(

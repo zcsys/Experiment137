@@ -158,7 +158,7 @@ class Simulation:
     def __init__(self, things_object, load_file = None):
         pygame.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        pygame.display.set_caption("Experiment 137.04: 270Balls")
+        pygame.display.set_caption("Eon 1 Era 0: 270Balls")
         self.things = things_object
         self.cycle_start_time = time.time()
         self.transparent_surface = pygame.Surface(
@@ -237,51 +237,6 @@ class Simulation:
 
             if not self.paused:
                 Rules(self, [0, 1])
-
-            # The Arbeitor of Truth
-            """
-            self.transparent_surface.fill((0, 0, 0, 0))
-            pygame.draw.circle(
-                self.transparent_surface,
-                (254, 254, 0, 50),
-                (SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2),
-                610
-            )
-            pygame.draw.circle(
-                self.transparent_surface,
-                (254, 254, 0, 75),
-                (SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2),
-                377
-            )
-            pygame.draw.circle(
-                self.transparent_surface,
-                (254, 254, 0, 100),
-                (SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2),
-                233
-            )
-            pygame.draw.circle(
-                self.transparent_surface,
-                (254, 254, 0, 125),
-                (SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2),
-                144
-            )
-            pygame.draw.circle(
-                self.transparent_surface,
-                (254, 254, 0, 150),
-                (SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2),
-                89
-            )
-            pygame.draw.circle(
-                self.transparent_surface,
-                (254, 254, 0, 175),
-                (SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2),
-                55
-            )
-            self.screen.blit(
-                self.transparent_surface,
-                (1570 - self.steps - (self.periods % 2) * 2400, 0)
-            )
-            """
 
             # Draw the right pane
             self.ui_manager.draw(

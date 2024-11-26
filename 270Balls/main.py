@@ -6,7 +6,7 @@ POP_0 = 10
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description = "Experiment 137.04: 270Balls"
+        description = "Eon 1 Era 0: 270Balls"
     )
     parser.add_argument('--load', type = str,
                         help = "Load simulation state from a JSON file")

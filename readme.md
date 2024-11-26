@@ -1,17 +1,17 @@
-### Eon of Chaos
+### Eon 0: Chaos
 (Aug 18, 2024 - Nov 23, 2024)
 
-#### Experiment 1: Abiogenesis
+#### Era 0: Abiogenesis
 * pygame PoC
 * Pre-monad creations
 
-#### Experiment 2: Monadology
+#### Era 1: Monadology
 * ANN PoC
 * Creations with a feed-forward action mechanism
 	* Monad05: simple 5-neuron monad with no activation function
 	* Monad15: simple 5-neuron monad with tanh
 
-#### Experiment 3: FUCA
+#### Era 2: FUCA
 * pytorch PoC
 * Creations with fully tensor-based movements
 	* Monad211: 11-neuron monad with full IO flattening and LMWH sensory input
@@ -29,10 +29,12 @@
 								  by a transformer network of 6 layers, 16 dimensions, 4
 								  attention heads, and 4x feed-forward expansion with bias term present LayerNorm and FF layers, governed by ~300k parameters
 
-### Eon of Abundance
+### Eon 1: Abundance
 (Nov 23, 2024 - *ongoing*)
 
-#### Experiment 4: 270 Balls
+#### Era 0: 270 Balls
+* Taichi PoC
+* Torodial boundary conditions
 * nn2: Simple feed-forward network with 2 hidden layers using ReLU, where the
 			 first hidden layer has 4x expansion from the input layer, and the second
 			 hidden layer goes back to 1x, finally transformed into the output layer
@@ -42,7 +44,7 @@
 * Spatial partitioning
 * Autogenetic breeding
 
-#### Experiment 5: LUCA
+#### Era 1: LUCA
 
 
 
