@@ -5,6 +5,7 @@ import math
 import json
 from base_vars import *
 from helpers import *
+from transformer import Transformer
 from simulation import draw_dashed_circle
 
 class Things:
@@ -12,9 +13,6 @@ class Things:
         # Initialize font
         pygame.font.init()
         self.font = pygame.font.SysFont(None, 12)
-
-        # Initialize system heat
-        self.heat = 21
 
         if state_file:
             self.load_state(state_file)
@@ -35,37 +33,35 @@ class Things:
         )
 
         # Initialize state vars
-        self.E = 0.
         self.N = len(self.thing_types)
         self.Pop = self.monad_mask.sum().item()
         self.energies = torch.tensor(
             [THING_TYPES[thing_type]["initial_energy"]
             for thing_type in thing_types]
         )
+        self.E = self.energies[self.monad_mask].sum().item() // 1000
         self.colors = [THING_TYPES[x]["color"] for x in self.thing_types]
-        self.hidden_1 = torch.zeros((self.Pop, 8, 1))
-        self.cell_state_1 = torch.zeros((self.Pop, 8, 1))
-        self.hidden_2 = torch.zeros((self.Pop, 8, 1))
-        self.cell_state_2 = torch.zeros((self.Pop, 8, 1))
         """self.boxes = get_box(self.positions)
         self.box_content = {i: (self.boxes == i).nonzero().squeeze()
                             for i in range(1, 145)}"""
 
         # Initialize genomes and lineages
-        self.genomes = torch.zeros((self.Pop, 2312)) # GENOME529_0
-        # self.genomes = torch.tensor(GENOME529_881).repeat(self.Pop, 1)
+        self.genomes = torch.zeros((self.Pop, 299968)) # GENOME60T6x64_0
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
-        # Initialize the monad messages
-        self.messages = torch.zeros((self.Pop, 1))
+        # Initialize monad messages
+        self.messages = torch.zeros((self.Pop, 2))
+
+        # Initialize memory organ
+        self.memory = torch.zeros((self.Pop, 4))
 
         # Initialize sensory input data
         self.last_movement_was_successful = torch.ones(
             self.Pop,
             dtype = torch.bool
         ).unsqueeze(1)
-        self.incoming_messages = torch.zeros((self.Pop, 3))
+        self.incoming_messages = torch.zeros((self.Pop, 4))
         self.sensory_inputs()
 
     def from_general_to_monad_idx(self, i):
@@ -78,66 +74,23 @@ class Things:
         return self.lineages[i][0] + len(self.lineages[i])
 
     def apply_genomes(self):
-        """Monad529 neurogenetics"""
-        # Layer 1
-        self.W_forget_gate_1 = self.genomes[:, 0:72].view(self.Pop, 8, 9)
-        self.W_input_gate_1 = self.genomes[:, 72:144].view(self.Pop, 8, 9)
-        self.W_candidate_1 = self.genomes[:, 144:216].view(self.Pop, 8, 9)
-        self.W_output_gate_1 = self.genomes[:, 216:288].view(self.Pop, 8, 9)
+        """Monad60T6x64 neurogenetics"""
+        input_dim = 16
+        model_dim = 64
+        num_heads = 4
+        num_layers = 6
+        ff_dim = 256
+        output_dim = 9
 
-        self.W_forget_gate_h1 = self.genomes[:, 288:352].view(self.Pop, 8, 8)
-        self.W_input_gate_h1 = self.genomes[:, 352:416].view(self.Pop, 8, 8)
-        self.W_candidate_h1 = self.genomes[:, 416:480].view(self.Pop, 8, 8)
-        self.W_output_gate_h1 = self.genomes[:, 480:544].view(self.Pop, 8, 8)
+        self.transformer = Transformer(model_dim, num_heads, num_layers, ff_dim,
+                                       input_dim, output_dim, self.Pop)
+        self.transformer.setup_weights(self.genomes)
 
-        self.B_forget_gate_1 = self.genomes[:, 544:552].view(self.Pop, 8, 1)
-        self.B_input_gate_1 = self.genomes[:, 552:560].view(self.Pop, 8, 1)
-        self.B_candidate_1 = self.genomes[:, 560:568].view(self.Pop, 8, 1)
-        self.B_output_gate_1 = self.genomes[:, 568:576].view(self.Pop, 8, 1)
-
-        # Layer 2
-        self.W_forget_gate_2 = self.genomes[:, 576:640].view(self.Pop, 8, 8)
-        self.W_input_gate_2 = self.genomes[:, 640:704].view(self.Pop, 8, 8)
-        self.W_candidate_2 = self.genomes[:, 704:768].view(self.Pop, 8, 8)
-        self.W_output_gate_2 = self.genomes[:, 768:832].view(self.Pop, 8, 8)
-
-        self.W_forget_gate_h2 = self.genomes[:, 832:896].view(self.Pop, 8, 8)
-        self.W_input_gate_h2 = self.genomes[:, 896:960].view(self.Pop, 8, 8)
-        self.W_candidate_h2 = self.genomes[:, 960:1024].view(self.Pop, 8, 8)
-        self.W_output_gate_h2 = self.genomes[:, 1024:1088].view(self.Pop, 8, 8)
-
-        self.B_forget_gate_2 = self.genomes[:, 1088:1096].view(self.Pop, 8, 1)
-        self.B_input_gate_2 = self.genomes[:, 1096:1104].view(self.Pop, 8, 1)
-        self.B_candidate_2 = self.genomes[:, 1104:1112].view(self.Pop, 8, 1)
-        self.B_output_gate_2 = self.genomes[:, 1112:1120].view(self.Pop, 8, 1)
-
-        # Output layer
-        self.W_output_layer = self.genomes[:, 1120:1152].view(self.Pop, 4, 8)
-        self.B_output_layer = self.genomes[:, 1152:1156].view(self.Pop, 4, 1)
-
-    def mutate(self, i, prob_coding = 0.1, strength = 1.,
-               prob_regulatory = 0.01, show = False):
-        # Split genome
+    def mutate(self, i, probability = 0.1, strength = 1.):
         original_genome = self.genomes[i].clone()
-        n = int(round(len(original_genome) / 2))
-        coding_part = original_genome[:n]
-        regulatory_part = original_genome[n:].bool()
-
-        # Coding part mutations
-        genome_to_mutate = coding_part[regulatory_part]
-        mutation_mask = torch.rand_like(genome_to_mutate) < prob_coding
-        mutations = torch.rand_like(genome_to_mutate) * 2 - 1
-        coding_part[regulatory_part] = (
-            genome_to_mutate + mutation_mask * mutations * strength
-        )
-
-        # Regulatory part mutations
-        regulatory_part = regulatory_part.float()
-        helper = torch.rand_like(regulatory_part) < prob_regulatory
-        regulatory_part = torch.abs(regulatory_part - helper.float())
-
-        # Combine and return genome
-        return torch.cat((coding_part, regulatory_part), dim = 0)
+        mutation_mask = torch.rand_like(original_genome) < probability
+        mutations = torch.rand_like(original_genome) * 2 - 1
+        return original_genome + mutation_mask * mutations * strength
 
     def sensory_inputs(self):
         # For each non-sugar, there's a vector pointing towards the center of
@@ -159,101 +112,35 @@ class Things:
                 (distances <= SIGHT).unsqueeze(2),
                 self.diffs / (distances.unsqueeze(2) + 1e-7) ** 2,
                 torch.tensor([0., 0.])
-            ).sum(dim = 1) * 21.
+            ).sum(dim = 1) * 11.
         else:
             col2 = torch.zeros((self.Pop, 2))
 
-        # Combine the inputs to create (Pop, 5, 1)-shaped final input tensor
+        # Combine the inputs to create the final input tensor
         self.input_vectors = torch.cat(
-            [
+            (
                 col1,
                 col2,
                 self.last_movement_was_successful,
                 (self.energies[self.monad_mask] / 10000).unsqueeze(1),
-                self.incoming_messages
-            ],
+                self.incoming_messages,
+                self.messages,
+                self.memory
+            ),
             dim = 1
-        ).view(self.Pop, 9, 1)
+        ).view(self.Pop, 16, 1)
 
     def neural_action(self):
-        # Layer 1
-        forget_gate_1 = torch.sigmoid(
-            torch.bmm(self.W_forget_gate_1, self.input_vectors) +
-            torch.bmm(self.W_forget_gate_h1, self.hidden_1) +
-            self.B_forget_gate_1
-        )
-
-        input_gate_1 = torch.sigmoid(
-            torch.bmm(self.W_input_gate_1, self.input_vectors) +
-            torch.bmm(self.W_input_gate_h1, self.hidden_1) +
-            self.B_input_gate_1
-        )
-
-        candidate_1 = torch.tanh(
-            torch.bmm(self.W_candidate_1, self.input_vectors) +
-            torch.bmm(self.W_candidate_h1, self.hidden_1) +
-            self.B_candidate_1
-        )
-
-        self.cell_state_1 = (
-            forget_gate_1 * self.cell_state_1 +
-            input_gate_1 * candidate_1
-        )
-
-        output_gate_1 = torch.sigmoid(
-            torch.bmm(self.W_output_gate_1, self.input_vectors) +
-            torch.bmm(self.W_output_gate_h1, self.hidden_1) +
-            self.B_output_gate_1
-        )
-
-        self.hidden_1 = output_gate_1 * torch.tanh(self.cell_state_1)
-
-        # Layer 2
-        forget_gate_2 = torch.sigmoid(
-            torch.bmm(self.W_forget_gate_2, self.hidden_1) +
-            torch.bmm(self.W_forget_gate_h2, self.hidden_2) +
-            self.B_forget_gate_2
-        )
-
-        input_gate_2 = torch.sigmoid(
-            torch.bmm(self.W_input_gate_2, self.hidden_1) +
-            torch.bmm(self.W_input_gate_h2, self.hidden_2) +
-            self.B_input_gate_2
-        )
-
-        candidate_2 = torch.tanh(
-            torch.bmm(self.W_candidate_2, self.hidden_1) +
-            torch.bmm(self.W_candidate_h2, self.hidden_2) +
-            self.B_candidate_2
-        )
-
-        self.cell_state_2 = (
-            forget_gate_2 * self.cell_state_2 +
-            input_gate_2 * candidate_2
-        )
-
-        output_gate_2 = torch.sigmoid(
-            torch.bmm(self.W_output_gate_2, self.hidden_1) +
-            torch.bmm(self.W_output_gate_h2, self.hidden_2) +
-            self.B_output_gate_2
-        )
-
-        self.hidden_2 = output_gate_2 * torch.tanh(self.cell_state_2)
-
-        # Output layer
-        return torch.tanh(
-            torch.bmm(self.W_output_layer, self.hidden_2) +
-            self.B_output_layer
-        ).view(self.Pop, 4)
+        return self.transformer.forward(self.input_vectors)
 
     def random_action(self):
         numberOf_sugars = self.sugar_mask.sum().item()
-        if self.heat == 0:
+        if SYSTEM_HEAT == 0:
             return torch.tensor([[0, 0] for _ in range(numberOf_sugars)],
                                 dtype = torch.float32)
-        values = (torch.tensor(list(range(self.heat)), dtype = torch.float32) -
-                  (self.heat - 1) / 2)
-        weights = torch.ones(self.heat, dtype = torch.float32)
+        values = (torch.tensor(list(range(SYSTEM_HEAT)), dtype = torch.float32)
+                  - (SYSTEM_HEAT - 1) / 2)
+        weights = torch.ones(SYSTEM_HEAT, dtype = torch.float32)
         indices = torch.multinomial(
             weights,
             numberOf_sugars * 2,
@@ -270,7 +157,7 @@ class Things:
             self.movement_tensor = torch.tensor([[0., 0.]
                                                  for _ in range(self.N)])
 
-        # monad actions
+        # Monad actions
         if self.monad_mask.any():
             # Get output tensor
             neural_action = self.neural_action()
@@ -279,7 +166,10 @@ class Things:
             self.movement_tensor[self.monad_mask] = neural_action[:, :2]
 
             # Broadcast messages
-            self.messages = neural_action[:, 3]
+            self.messages = neural_action[:, 3:5]
+
+            # Update memory
+            self.memory = neural_action[:, 5:9]
 
             # Apply fissions
             random_gen = torch.rand(self.Pop)
@@ -293,6 +183,9 @@ class Things:
 
         # Apply movements
         self.update_positions()
+
+        # Update total monad energy
+        self.E = self.energies[self.monad_mask].sum().item() // 1000
 
     def update_positions(self):
         provisional_positions = self.positions + self.movement_tensor
@@ -345,14 +238,13 @@ class Things:
             self.monad_mask
         ].unsqueeze(1)
 
-        # Reduce energies from monads and give to system
+        # Reduce energies from monads
         actual_magnitudes = torch.where(
             final_apply_mask & self.monad_mask,
             movement_magnitudes,
             torch.tensor(0.)
         )
         self.energies -= actual_magnitudes
-        # self.E += actual_magnitudes.sum().item() # Works with Rules(0)
 
         # Handle sugar vs monad collisions
         sugar_vs_monad = (
@@ -374,12 +266,12 @@ class Things:
             self.remove_sugars(unique(sugar_idx.tolist()))
 
         # Deliver messages
-        c_pos = self.positions[self.monad_mask]
-        c_diffs = c_pos.unsqueeze(0) - c_pos.unsqueeze(1)
-        c_dist = torch.norm(c_diffs, dim = 2)
-        in_sight_mask = (c_dist < SIGHT).fill_diagonal_(False).int()
+        m_pos = self.positions[self.monad_mask]
+        m_diffs = m_pos.unsqueeze(0) - m_pos.unsqueeze(1)
+        m_dist = torch.norm(m_diffs, dim = 2)
+        in_sight_mask = (m_dist < SIGHT).fill_diagonal_(False).int()
 
-        self.incoming_messages = torch.zeros((self.Pop, 3))
+        self.incoming_messages = torch.zeros((self.Pop, 4))
 
         if in_sight_mask.any():
             self.recipients = torch.unique(in_sight_mask.nonzero())
@@ -388,9 +280,9 @@ class Things:
             )
             direction = (
                 (
-                    c_diffs[self.recipients, self.first_senders] /
+                    m_diffs[self.recipients, self.first_senders] /
                     (
-                        c_dist[self.recipients, self.first_senders].unsqueeze(1)
+                        m_dist[self.recipients, self.first_senders].unsqueeze(1)
                         + 1e-7
                     )
                 )
@@ -398,7 +290,7 @@ class Things:
             self.incoming_messages[self.recipients] = torch.cat(
                 (
                     direction,
-                    self.messages[self.first_senders].unsqueeze(1),
+                    self.messages[self.first_senders],
                 ),
                 dim = 1
             )
@@ -476,14 +368,21 @@ class Things:
         self.messages = torch.cat(
             (
                 self.messages,
-                torch.tensor([0.])
+                torch.zeros((1, 2))
             ),
             dim = 0
         )
         self.incoming_messages = torch.cat(
             (
                 self.incoming_messages,
-                torch.zeros((1, 3))
+                torch.zeros((1, 4))
+            ),
+            dim = 0
+        )
+        self.memory = torch.cat(
+            (
+                self.memory,
+                torch.zeros((1, 4))
             ),
             dim = 0
         )
@@ -517,34 +416,6 @@ class Things:
             dim = 0
         )
         self.apply_genomes()
-        self.hidden_1 = torch.cat(
-            (
-                self.hidden_1,
-                torch.zeros((1, 8, 1))
-            ),
-            dim = 0
-        )
-        self.cell_state_1 = torch.cat(
-            (
-                self.cell_state_1,
-                torch.zeros((1, 8, 1))
-            ),
-            dim = 0
-        )
-        self.hidden_2 = torch.cat(
-            (
-                self.hidden_2,
-                torch.zeros((1, 8, 1))
-            ),
-            dim = 0
-        )
-        self.cell_state_2 = torch.cat(
-            (
-                self.cell_state_2,
-                torch.zeros((1, 8, 1))
-            ),
-            dim = 0
-        )
         if genome is self.genomes[idx]:
             self.lineages.append(self.lineages[idx])
             self.colors.append(self.color[i])
@@ -567,12 +438,9 @@ class Things:
                 self.last_movement_was_successful, i
             )
             self.genomes = remove_element(self.genomes, i)
-            self.hidden_1 = remove_element(self.hidden_1, i)
-            self.cell_state_1 = remove_element(self.cell_state_1, i)
-            self.hidden_2 = remove_element(self.hidden_2, i)
-            self.cell_state_2 = remove_element(self.cell_state_2, i)
             self.messages = remove_element(self.messages, i)
             self.incoming_messages = remove_element(self.incoming_messages, i)
+            self.memory = remove_element(self.memory, i)
             del self.lineages[i]
 
             # Get general index to remove universal attributes
@@ -597,6 +465,113 @@ class Things:
         self.Pop -= len(indices)
 
         self.apply_genomes()
+
+    def monad_autogenesis_v1(self, idx):
+        # Fetch basic properties
+        thing_type = "monad"
+        initial_energy = torch.tensor(THING_TYPES[thing_type]["initial_energy"])
+        size = torch.tensor([THING_TYPES[thing_type]["size"]])
+
+        # Set basic properties
+        self.thing_types.append(thing_type)
+        self.sizes, self.positions = add_positions(
+            size,
+            self.sizes,
+            self.positions
+        )
+        """self.boxes = torch.cat(
+            (
+                self.boxes,
+                get_box(new_position.unsqueeze(0))
+            ),
+            dim = 0
+        )
+        self.box_content = {i: (self.boxes == i).nonzero().squeeze()
+                            for i in range(1, 145)}"""
+        self.energies = torch.cat(
+            (
+                self.energies,
+                initial_energy.unsqueeze(0)
+            ),
+            dim = 0
+        )
+        self.movement_tensor = torch.cat(
+            (
+                self.movement_tensor,
+                torch.tensor([[0., 0.]])
+            ),
+            dim = 0
+        )
+        self.last_movement_was_successful = torch.cat(
+            (
+                self.last_movement_was_successful,
+                torch.tensor([[True]])
+            ),
+            dim = 0
+        )
+        self.messages = torch.cat(
+            (
+                self.messages,
+                torch.zeros((1, 2))
+            ),
+            dim = 0
+        )
+        self.incoming_messages = torch.cat(
+            (
+                self.incoming_messages,
+                torch.zeros((1, 4))
+            ),
+            dim = 0
+        )
+        self.memory = torch.cat(
+            (
+                self.memory,
+                torch.zeros((1, 4))
+            ),
+            dim = 0
+        )
+
+        # Update state vars
+        self.monad_mask = torch.cat(
+            (
+                self.monad_mask,
+                torch.tensor([True])
+            ),
+            dim = 0
+        )
+        self.sugar_mask = torch.cat(
+            (
+                self.sugar_mask,
+                torch.tensor([False])
+            ),
+            dim = 0
+        )
+        self.N += 1
+        self.Pop += 1
+
+        # Mutate the old genome & apply the new genome
+        genome = self.mutate(idx)
+        self.genomes = torch.cat(
+            (
+                self.genomes,
+                genome.unsqueeze(0)
+            ),
+            dim = 0
+        )
+        self.apply_genomes()
+        if genome is self.genomes[idx]:
+            self.lineages.append(self.lineages[idx])
+        else:
+            new_lineage = self.lineages[idx] + [0]
+            while True:
+                new_lineage[-1] += 1
+                if new_lineage not in self.lineages:
+                    break
+            self.lineages.append(new_lineage)
+            # print(new_lineage)
+        self.colors.append(get_color_by_genome(genome))
+
+        return 1
 
     def add_sugars(self, N):
         for _ in range(N):
@@ -698,7 +673,7 @@ class Things:
                 screen.blit(energy_text, energy_rect)
 
                 # Show message
-                message_text = float_msg_to_str(self.messages[idx].item())
+                message_text = float_msg_to_str(self.messages[idx].tolist())
                 message_text = self.font.render(message_text, True, colors["Z"])
                 message_rect = message_text.get_rect(
                     center = (
@@ -719,13 +694,13 @@ class Things:
             except:
                 show_forces = False
             if show_forces and thing_type == "monad":
-                input_vector_1 /= (torch.norm(input_vector_1, dim = 0) + 1e-7)
-                input_vector_2 /= (torch.norm(input_vector_2, dim = 0) + 1e-7)
-                movement_vector /= (torch.norm(movement_vector, dim = 0) + 1e-7)
+                input_vector_1 /= torch.norm(input_vector_1, dim = 0) + 1e-7
+                input_vector_2 /= torch.norm(input_vector_2, dim = 0) + 1e-7
+                movement_vector /= torch.norm(movement_vector, dim = 0) + 1e-7
 
                 end_pos_1 = pos + input_vector_1 * self.sizes[i]
                 end_pos_2 = pos + input_vector_2 * self.sizes[i]
-                end_pos_3 = pos - movement_vector * self.sizes[i] * 2
+                end_pos_3 = pos - movement_vector * self.sizes[i]
 
                 pygame.draw.line(screen, colors["R"], (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_1[0].item()),
@@ -735,7 +710,7 @@ class Things:
                                  int(end_pos_2[1].item())), 1)
                 pygame.draw.line(screen, colors["Z"], (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_3[0].item()),
-                                 int(end_pos_3[1].item())), 3)
+                                 int(end_pos_3[1].item())), 1)
 
         # Draw communication network
         try:
@@ -776,17 +751,13 @@ class Things:
             'types': self.thing_types,
             'positions': self.positions.tolist(),
             'energies': self.energies.tolist(),
-            'E': self.E,
             'genomes': self.genomes.tolist(),
             'lineages': self.lineages,
             'colors': self.colors,
             'LMWS': self.last_movement_was_successful.tolist(),
-            'hidden_1': self.hidden_1.tolist(),
-            'cell_state_1': self.cell_state_1.tolist(),
-            'hidden_2': self.hidden_2.tolist(),
-            'cell_state_2': self.cell_state_2.tolist(),
             'messages': self.messages.tolist(),
-            'incoming': self.incoming_messages.tolist()
+            'incoming': self.incoming_messages.tolist(),
+            'memory': self.memory.tolist()
         }
 
     def load_state(self, state_file):
@@ -803,17 +774,13 @@ class Things:
                             for i in range(1, 145)}"""
         self.energies = torch.tensor(state['energies'])
         self.N = len(self.positions)
-        self.E = state['E']
         self.genomes = torch.tensor(state['genomes'])
         self.lineages = state['lineages']
         self.colors = state['colors']
         self.last_movement_was_successful = torch.tensor(state['LMWS'])
-        self.hidden_1 = torch.tensor(state['hidden_1'])
-        self.cell_state_1 = torch.tensor(state['cell_state_1'])
-        self.hidden_2 = torch.tensor(state['hidden_2'])
-        self.cell_state_2 = torch.tensor(state['cell_state_2'])
         self.messages = torch.tensor(state['messages'])
         self.incoming_messages = torch.tensor(state['incoming'])
+        self.memory = torch.tensor(state['memory'])
 
         self.monad_mask = torch.tensor(
             [thing_type == "monad" for thing_type in self.thing_types]
@@ -822,6 +789,7 @@ class Things:
             [thing_type == "sugar" for thing_type in self.thing_types]
         )
         self.Pop = self.monad_mask.sum().item()
+        self.E = self.energies[self.monad_mask].sum().item() // 1000
 
         self.apply_genomes()
         self.sensory_inputs()

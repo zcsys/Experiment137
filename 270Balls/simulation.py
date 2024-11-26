@@ -5,6 +5,7 @@ import torch
 import math
 from base_vars import *
 from rules import Rules
+from diffusion import Grid
 
 def draw_dashed_circle(surface, color, center, radius, dash_length = 5,
                        gap_length = 5):
@@ -109,7 +110,7 @@ class UIManager:
         if self.network_toggle_button.handle_event(event):
             self.show_network = not self.show_network
 
-    def draw(self, state, N, E, Pop):
+    def draw(self, state, N, Pop, E):
         # Draw the right menu section (white background)
         pygame.draw.rect(self.screen, (255, 255, 255),
                          (self.screen.get_width() - self.menu_width, 0,
@@ -123,85 +124,96 @@ class UIManager:
         self.info_toggle_button.draw()
         self.network_toggle_button.draw()
 
-        # Display simulation state (Epochs, Periods, Steps)
+        # Display simulation state (Epoch, Age, Cycle, Step)
         start_y = self.screen.get_height() // 2
 
-        epoch_text = self.font.render(f"Epoch: {state.get('epochs', 0)}", True,
+        epoch_text = self.font.render(f"Epoch: {state.get('epoch', 0)}", True,
                                       (0, 0, 0))
-        period_text = self.font.render(f"Period: {state.get('periods', 0)} " +
-                                       f"({state.get('crr_period_dur', 0)}\")",
+        age_text = self.font.render(f"Age: {state.get('age', 0)}", True,
+                                      (0, 0, 0))
+        cycle_text = self.font.render(f"Cycle: {state.get('cycle', 0)} " +
+                                       f"(\'{state.get('crr_cycle_dur', 0)})",
                                        True, (0, 0, 0))
-        steps_text = self.font.render(f"Steps: {state.get('steps', 0)}", True,
+        steps_text = self.font.render(f"Step: {state.get('step', 0)}", True,
                                       (0, 0, 0))
         N_text = self.font.render(f"N: {N}", True, (0, 0, 0))
         Pop_text = self.font.render(f"Pop.: {Pop}", True, (0, 0, 0))
-        E_text = self.font.render(f"E: {int(E)}", True, (0, 0, 0))
+        E_text = self.font.render(f"E: {int(E)}k", True, (0, 0, 0))
 
         self.screen.blit(epoch_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y))
-        self.screen.blit(period_text, (self.screen.get_width() -
+        self.screen.blit(age_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y + 30))
-        self.screen.blit(steps_text, (self.screen.get_width() -
+        self.screen.blit(cycle_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y + 60))
-        self.screen.blit(N_text, (self.screen.get_width() -
+        self.screen.blit(steps_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y + 90))
-        self.screen.blit(Pop_text, (self.screen.get_width() -
+        self.screen.blit(N_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y + 120))
-        self.screen.blit(E_text, (self.screen.get_width() -
+        self.screen.blit(Pop_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y + 150))
+        self.screen.blit(E_text, (self.screen.get_width() -
+                         self.menu_width + 10, start_y + 180))
 
 class Simulation:
     def __init__(self, things_object, load_file = None):
         pygame.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        pygame.display.set_caption("Experiment 137.03: FUCA")
+        pygame.display.set_caption("Eon 1 Era 0: 270Balls")
         self.things = things_object
-        self.period_start_time = time.time()
-        self.transparent_surface = pygame.Surface(
-            (SIMUL_WIDTH, SIMUL_HEIGHT), pygame.SRCALPHA
-        ).convert_alpha()
+        self.cycle_start_time = time.time()
 
         if load_file:
             with open(load_file, 'r') as f:
                 saved_data = json.load(f)
+                try:
+                    self.grid = Grid(saved_state = saved_data["grid"])
+                except:
+                    self.grid = Grid()
                 self.load_state(saved_data["simulation_state"])
             self.paused = True
             self.ui_manager = UIManager(self.screen, MENU_WIDTH, self.paused)
             print(f"Simulation restored from {load_file}")
             return
 
+        self.grid = Grid()
         self.paused = False
         self.ui_manager = UIManager(self.screen, MENU_WIDTH, self.paused)
-        self.steps, self.periods, self.epochs = 0, 0, 0
-        self.crr_period_dur = 0
+        self.step, self.cycle, self.age, self.epoch = 0, 0, 0, 0
+        self.crr_cycle_dur = 0
 
     def update_state(self):
-        self.steps += 1
-        if self.steps == 2400:
-            self.periods += 1
-            self.steps = 0
+        self.step += 1
+        if self.step == 2400:
+            self.cycle += 1
+            self.step = 0
             current_time = time.time()
-            self.crr_period_dur = int(current_time - self.period_start_time)
-            self.period_start_time = current_time
-        if self.periods == 80:
-            self.epochs += 1
-            self.periods = 0
+            self.crr_cycle_dur = int(current_time - self.cycle_start_time)
+            self.cycle_start_time = current_time
+        if self.cycle == 80:
+            self.age += 1
+            self.cycle = 0
             self.save_simulation()
+        if self.age == 80:
+            self.epoch += 1
+            self.age = 0
 
     def get_state(self):
         return {
-            'steps': self.steps,
-            'periods': self.periods,
-            'epochs': self.epochs,
-            'period_start_time': self.period_start_time,
-            'crr_period_dur': self.crr_period_dur
+            'step': self.step,
+            'cycle': self.cycle,
+            'age': self.age,
+            'epoch': self.epoch,
+            'cycle_start_time': self.cycle_start_time,
+            'crr_cycle_dur': self.crr_cycle_dur
         }
 
     def load_state(self, state):
-        self.steps = state.get('steps', 0)
-        self.periods = state.get('periods', 0)
-        self.epochs = state.get('epochs', 0)
-        self.crr_period_dur = state.get('crr_period_dur', 0)
+        self.step = state.get('step', 0)
+        self.cycle = state.get('cycle', 0)
+        self.age = state.get('age', 0)
+        self.epoch = state.get('epoch', 0)
+        self.crr_cycle_dur = state.get('crr_cycle_dur', 0)
 
     def run(self):
         running = True
@@ -216,69 +228,26 @@ class Simulation:
                 self.ui_manager.handle_event(event, self)
 
             if not self.paused:
-                self.things.final_action()
+                self.things.final_action(self.grid)
                 self.update_state()
 
-            self.screen.fill(colors["∅"])
+            self.screen.fill(colors["0"])
+            self.grid.draw(self.screen)
             self.things.draw(self.screen, self.ui_manager.show_info,
                              self.ui_manager.show_sight,
                              self.ui_manager.show_forces,
                              self.ui_manager.show_network)
 
             if not self.paused:
-                Rules(self, [1, 2, 3, 4, 5])
-
-            # The Arbeitor of Truth
-            """
-            self.transparent_surface.fill((0, 0, 0, 0))
-            pygame.draw.circle(
-                self.transparent_surface,
-                (254, 254, 0, 50),
-                (SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2),
-                610
-            )
-            pygame.draw.circle(
-                self.transparent_surface,
-                (254, 254, 0, 75),
-                (SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2),
-                377
-            )
-            pygame.draw.circle(
-                self.transparent_surface,
-                (254, 254, 0, 100),
-                (SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2),
-                233
-            )
-            pygame.draw.circle(
-                self.transparent_surface,
-                (254, 254, 0, 125),
-                (SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2),
-                144
-            )
-            pygame.draw.circle(
-                self.transparent_surface,
-                (254, 254, 0, 150),
-                (SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2),
-                89
-            )
-            pygame.draw.circle(
-                self.transparent_surface,
-                (254, 254, 0, 175),
-                (SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2),
-                55
-            )
-            self.screen.blit(
-                self.transparent_surface,
-                (1570 - self.steps - (self.periods % 2) * 2400, 0)
-            )
-            """
+                self.grid.diffuse()
+                Rules(self, [0, 1])
 
             # Draw the right pane
             self.ui_manager.draw(
                 self.get_state(),
                 self.things.N,
-                self.things.E,
-                self.things.Pop
+                self.things.Pop,
+                self.things.E
             )
 
             # Put it all on display and limit FPS
@@ -291,7 +260,8 @@ class Simulation:
         filename = f"simulation_{time.strftime('%Y%m%d_%H%M%S')}.json"
         combined_state = {
             "simulation_state": self.get_state(),
-            "things_state": self.things.get_state()
+            "things_state": self.things.get_state(),
+            "grid": self.grid.grid.tolist()
         }
         with open(filename, 'w') as f:
             json.dump(combined_state, f)

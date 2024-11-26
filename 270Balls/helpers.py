@@ -5,9 +5,6 @@ import struct
 import base64
 import numpy as np
 from base_vars import *
-from scipy.spatial import cKDTree
-
-identity = lambda x: x
 
 def unique(x):
     """Gets a list and returns its unique values as a list in same order"""
@@ -49,25 +46,6 @@ def add_positions(sizes,
 
     return sizes, positions
 
-def generate_wave(frequency, duration, waveform = "sine", sample_rate = 44100,
-                  amplitude = 400):
-    t = np.linspace(0, duration, int(sample_rate * duration), False)
-    if waveform == "sine":
-        wave = np.sin(2 * np.pi * frequency * t) * amplitude
-    elif waveform == "square":
-        wave = amplitude * np.sign(np.sin(2 * np.pi * frequency * t))
-    elif waveform == "sawtooth":
-        wave = 2 * amplitude * (t * frequency - np.floor(1/2 + t * frequency))
-    elif waveform == "noise":
-        wave = np.random.uniform(-1, 1, size=t.shape) * amplitude
-    else:
-        raise ValueError("Invalid waveform type. Choose 'sine', 'square'," +
-                         "'sawtooth', or 'noise'.")
-    wave = wave.astype(np.int16)
-    sound_array = np.array([wave, wave]).T
-    sound_array = np.ascontiguousarray(sound_array)
-    return pygame.sndarray.make_sound(sound_array)
-
 def remove_element(tensor, i):
     return torch.cat((tensor[:i], tensor[i + 1:]), dim = 0)
 
@@ -79,13 +57,13 @@ def hex_to_rgb(hex_color):
     return tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
 
 def get_color_by_genome(genome, scale = 100., base_color = (160, 160, 160)):
-    n = len(genome) // 6
+    n = len(genome) // 3
     return (
         max(min(base_color[0] + int(scale * genome[:n].sum().item()),
             255), 64),
-        max(min(base_color[1] + int(scale * genome[n:2*n].sum().item()),
+        max(min(base_color[1] + int(scale * genome[n:2 * n].sum().item()),
             255), 64),
-        max(min(base_color[2] + int(scale * genome[2*n:3*n].sum().item()),
+        max(min(base_color[2] + int(scale * genome[2 * n:3 * n].sum().item()),
             255), 64)
     )
 
@@ -94,27 +72,24 @@ def reverse_color(color):
     return 255 - r, 255 - g, 255 - b
 
 def float_msg_to_str(float_msg):
-    packed_bytes = struct.pack('>f', np.float32(float_msg))
-    return base64.b64encode(packed_bytes)[:4].decode('ascii')
+    packed_bytes = struct.pack('>ff', np.float32(float_msg[0]),
+                               np.float32(float_msg[1]))
+    return base64.b64encode(packed_bytes).decode('ascii')[:4]
 
 def get_box(positions):
     return (positions[:, 0] // 120 + positions[:, 1] // 120 * 16).int()
-
-def find_neighbors(positions, radius):
-    """
-    Find all pairs of particles within a given radius.
-
-    :param positions: numpy array of shape (n_particles, 2) containing particle
-                      positions
-    :param radius: distance within which to find neighbors
-    :return: list of tuples, each containing indices of neighboring particles
-    """
-    tree = cKDTree(positions)
-    return tree.query_pairs(r = radius, output_type = 'ndarray')
 
 def flattened_identity_matrix(N, x = None):
     lt = x if x else N
     return [1 if i == j and i < lt else 0 for j in range(N) for i in range(N)]
 
-def batchdot(A, B):
-    return torch.einsum('bi,bi->b', A, B)
+def create_initial_genomes(num_monads, num_input, num_output):
+    return torch.tensor(
+        flattened_identity_matrix(num_input) +
+        [0 for _ in range(3 * num_input ** 2)] +
+        [0 for _ in range(4 * num_input)] +
+        flattened_identity_matrix(4 * num_input)[:4 * num_input ** 2] +
+        [0 for _ in range(num_input)] +
+        [0 for _ in range((num_input + 1) * num_output)],
+        dtype = torch.float32
+    ).repeat(num_monads, 1)
