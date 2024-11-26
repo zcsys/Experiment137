@@ -93,3 +93,11 @@ def create_initial_genomes(num_monads, num_input, num_output):
         [0 for _ in range((num_input + 1) * num_output)],
         dtype = torch.float32
     ).repeat(num_monads, 1)
+
+def circular_pad(x, pad):
+    padded = torch.cat(
+        [x[..., -pad:], x, x[..., :pad]], dim = -1
+    ).transpose(-1, -2)
+    return torch.cat(
+        [padded[..., -pad:], padded, padded[..., :pad]], dim = -1
+    ).transpose(-1, -2)

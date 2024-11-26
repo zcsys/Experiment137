@@ -74,7 +74,7 @@ class Things:
         return self.lineages[i][0] + len(self.lineages[i])
 
     def apply_genomes(self):
-        """Monad653 neurogenetics"""
+        """Monad6105 neurogenetics"""
         self.nn = nn2(self.genomes, 16, 9)
 
     def mutate(self, i, probability = 0.1, strength = 1.):

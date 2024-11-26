@@ -39,17 +39,9 @@ class Grid:
             y_indices = indices // self.grid_x
             self.grid[0, channel, y_indices, x_indices] = 255.
 
-    def circular_pad(self, x, pad):
-        return torch.cat([x[..., -pad:], x, x[..., :pad]], dim = -1)
-
     def diffuse(self):
-        padded = self.circular_pad(self.grid, 1)
-        padded = self.circular_pad(
-            padded.transpose(-1, -2),
-            1
-        ).transpose(-1, -2)
         laplacian = torch.nn.functional.conv2d(
-            padded,
+            circular_pad(self.grid, 1),
             self.kernel,
             padding = 0,
             groups = self.feature_dim
