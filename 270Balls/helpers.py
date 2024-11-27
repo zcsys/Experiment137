@@ -5,6 +5,7 @@ import struct
 import base64
 import numpy as np
 from base_vars import *
+from scipy.spatial import cKDTree
 
 def unique(x):
     """Gets a list and returns its unique values as a list in same order"""
@@ -101,3 +102,9 @@ def circular_pad(x, pad):
     return torch.cat(
         [padded[..., -pad:], padded, padded[..., :pad]], dim = -1
     ).transpose(-1, -2)
+
+def toroidal_vicinity(positions, radius):
+    tree = cKDTree(positions.numpy(), boxsize = (SIMUL_WIDTH, SIMUL_HEIGHT))
+    distances = tree.sparse_distance_matrix(tree, radius, p = 2.0)
+    rows, cols = distances.nonzero()
+    return np.stack([rows, cols]), distances, positions[cols] - positions[rows]
