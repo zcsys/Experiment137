@@ -10,10 +10,14 @@ N_PARTICLES = 1000  # Number of particles
 RADIUS = 60.0        # Search radius
 
 def toroidal_vicinity(positions, radius):
-    tree = cKDTree(positions.numpy(), boxsize=(SIMUL_WIDTH, SIMUL_HEIGHT))
-    distances = tree.sparse_distance_matrix(tree, radius, p=2.0)
+    tree = cKDTree(positions.numpy(), boxsize = (SIMUL_WIDTH, SIMUL_HEIGHT))
+    distances = tree.sparse_distance_matrix(tree, radius, p = 2.0)
     rows, cols = distances.nonzero()
-    return np.stack([rows, cols]), distances, positions[cols] - positions[rows]
+    return (
+        torch.stack([torch.from_numpy(rows), torch.from_numpy(cols)]),
+        torch.tensor(distances.toarray(), dtype = torch.float32),
+        positions[cols] - positions[rows]
+    )
 
 def generate_random_positions():
     # Generate random positions using torch

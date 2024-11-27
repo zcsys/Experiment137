@@ -73,9 +73,8 @@ def reverse_color(color):
     return 255 - r, 255 - g, 255 - b
 
 def float_msg_to_str(float_msg):
-    packed_bytes = struct.pack('>ff', np.float32(float_msg[0]),
-                               np.float32(float_msg[1]))
-    return base64.b64encode(packed_bytes).decode('ascii')[:4]
+    packed_bytes = struct.pack('ff', float_msg[0], float_msg[1])
+    return base64.b64encode(packed_bytes).decode('ascii')
 
 def get_box(positions):
     return (positions[:, 0] // 120 + positions[:, 1] // 120 * 16).int()
@@ -107,4 +106,8 @@ def toroidal_vicinity(positions, radius):
     tree = cKDTree(positions.numpy(), boxsize = (SIMUL_WIDTH, SIMUL_HEIGHT))
     distances = tree.sparse_distance_matrix(tree, radius, p = 2.0)
     rows, cols = distances.nonzero()
-    return np.stack([rows, cols]), distances, positions[cols] - positions[rows]
+    return (
+        torch.stack([torch.from_numpy(rows), torch.from_numpy(cols)]),
+        torch.tensor(distances.toarray(), dtype = torch.float32),
+        positions[cols] - positions[rows]
+    )

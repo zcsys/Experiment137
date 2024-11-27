@@ -88,11 +88,15 @@ class UIManager:
         self.network_toggle_button = Button(self.screen, screen.get_width() -
                                           menu_width + 10, 260, 160, 40,
                                           "Toggle Network", self.font)
+        self.resources_toggle_button = Button(self.screen, screen.get_width() -
+                                          menu_width + 10, 310, 160, 40,
+                                          "Toggle Resources", self.font)
 
         self.show_info = False
         self.show_sight = False
         self.show_forces = False
         self.show_network = False
+        self.show_resources = True
 
     def handle_event(self, event, simulation):
         if self.save_button.handle_event(event):
@@ -109,6 +113,8 @@ class UIManager:
             self.show_info = not self.show_info
         if self.network_toggle_button.handle_event(event):
             self.show_network = not self.show_network
+        if self.resources_toggle_button.handle_event(event):
+            self.show_resources = not self.show_resources
 
     def draw(self, state, N, Pop, E):
         # Draw the right menu section (white background)
@@ -123,6 +129,7 @@ class UIManager:
         self.force_toggle_button.draw()
         self.info_toggle_button.draw()
         self.network_toggle_button.draw()
+        self.resources_toggle_button.draw()
 
         # Display simulation state (Epoch, Age, Cycle, Step)
         start_y = self.screen.get_height() // 2
@@ -232,7 +239,8 @@ class Simulation:
                 self.update_state()
 
             self.screen.fill(colors["0"])
-            self.grid.draw(self.screen)
+            if self.ui_manager.show_resources:
+                self.grid.draw(self.screen)
             self.things.draw(self.screen, self.ui_manager.show_info,
                              self.ui_manager.show_sight,
                              self.ui_manager.show_forces,
