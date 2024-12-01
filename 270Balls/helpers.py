@@ -5,7 +5,7 @@ import struct
 import base64
 import numpy as np
 from base_vars import *
-from scipy.spatial import cKDTree
+from scipy.spatial import KDTree
 
 def unique(x):
     """Gets a list and returns its unique values as a list in same order"""
@@ -94,20 +94,16 @@ def create_initial_genomes(num_monads, num_input, num_output):
         dtype = torch.float32
     ).repeat(num_monads, 1)
 
-def circular_pad(x, pad):
-    padded = torch.cat(
-        [x[..., -pad:], x, x[..., :pad]], dim = -1
-    ).transpose(-1, -2)
-    return torch.cat(
-        [padded[..., -pad:], padded, padded[..., :pad]], dim = -1
-    ).transpose(-1, -2)
-
-def toroidal_vicinity(positions, radius):
-    tree = cKDTree(positions.numpy(), boxsize = (SIMUL_WIDTH, SIMUL_HEIGHT))
-    distances = tree.sparse_distance_matrix(tree, radius, p = 2.0)
+def vicinity(source_positions, radius, target_positions = None):
+    source_tree = KDTree(source_positions.numpy())
+    if target_positions:
+        target_tree = KDTree(target_positions.numpy())
+    else:
+        target_tree, target_positions = source_tree, source_positions
+    distances = source_tree.sparse_distance_matrix(target_tree, radius, p = 2.0)
     rows, cols = distances.nonzero()
     return (
-        torch.stack([torch.from_numpy(rows), torch.from_numpy(cols)]),
+        torch.from_numpy(np.stack([rows, cols])),
         torch.tensor(distances.toarray(), dtype = torch.float32),
-        positions[cols] - positions[rows]
+        target_positions[cols] - source_positions[rows]
     )

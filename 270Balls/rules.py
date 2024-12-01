@@ -30,16 +30,16 @@ def Rules(simul, n):
 
     # Population control
     if 1 in n:
-        if 1 <= simul.age:
+        if simul.epoch > 0 or simul.age >= 20:
             N_TARGET = 100
             SYSTEM_HEAT = 3
-        elif 15 <= simul.age < 20:
+        elif simul.age >= 15:
             N_TARGET = 200
             SYSTEM_HEAT = 5
-        elif 10 <= simul.age < 15:
+        elif simul.age >= 10:
             N_TARGET = 300
             SYSTEM_HEAT = 7
-        elif 5 <= simul.age < 10:
+        elif simul.age >= 5:
             N_TARGET = 400
             SYSTEM_HEAT = 9
 

@@ -174,8 +174,8 @@ class Simulation:
             with open(load_file, 'r') as f:
                 saved_data = json.load(f)
                 try:
-                    self.grid = Grid(saved_state = saved_data["grid"])
                     a
+                    self.grid = Grid(saved_state = saved_data["grid"])
                 except:
                     self.grid = Grid()
                 self.load_state(saved_data["simulation_state"])

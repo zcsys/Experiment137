@@ -42,9 +42,6 @@ class Things:
         )
         self.E = self.energies[self.monad_mask].sum().item() // 1000
         self.colors = [THING_TYPES[x]["color"] for x in self.thing_types]
-        """self.boxes = get_box(self.positions)
-        self.box_content = {i: (self.boxes == i).nonzero().squeeze()
-                            for i in range(1, 145)}"""
 
         # Initialize genomes and lineages
         self.genomes = create_initial_genomes(self.Pop, 16, 9)
@@ -83,7 +80,16 @@ class Things:
         mutations = torch.rand_like(original_genome) * 2 - 1
         return original_genome + mutation_mask * mutations * strength
 
+    def calculate_distances(self):
+        self.neighboring_indices, self.distances, self.displacement_tensor = (
+            vicinity(self.positions, SIGHT)
+        )
+
     def sensory_inputs(self, grid):
+        self.calculate_distances()
+
+        
+
         # For each non-sugar, there's a vector pointing towards the center of
         # the universe, with increasing magnitude as the thing gets closer to
         # edges. This is the first input vector for each monad.
@@ -325,15 +331,6 @@ class Things:
             ),
             dim = 0
         )
-        """self.boxes = torch.cat(
-            (
-                self.boxes,
-                get_box(new_position.unsqueeze(0))
-            ),
-            dim = 0
-        )
-        self.box_content = {i: (self.boxes == i).nonzero().squeeze()
-                            for i in range(1, 145)}"""
         self.energies[i] -= initial_energy
         self.energies = torch.cat(
             (
@@ -443,9 +440,6 @@ class Things:
             self.sizes = remove_element(self.sizes, idx)
             self.positions = remove_element(self.positions, idx)
             self.energies = remove_element(self.energies, idx)
-            """self.boxes = remove_element(self.boxes, idx)
-            self.box_content = {i: (self.boxes == i).nonzero().squeeze()
-                                for i in range(1, 145)}"""
 
             # Update state vars
             self.monad_mask = remove_element(self.monad_mask, idx)
@@ -470,15 +464,6 @@ class Things:
             self.sizes,
             self.positions
         )
-        """self.boxes = torch.cat(
-            (
-                self.boxes,
-                get_box(new_position.unsqueeze(0))
-            ),
-            dim = 0
-        )
-        self.box_content = {i: (self.boxes == i).nonzero().squeeze()
-                            for i in range(1, 145)}"""
         self.energies = torch.cat(
             (
                 self.energies,
@@ -573,15 +558,6 @@ class Things:
             self.sizes,
             self.positions
         )
-        """self.boxes = torch.cat(
-            (
-                self.boxes,
-                get_box(self.positions[:N])
-            ),
-            dim = 0
-        )
-        self.box_content = {i: (self.boxes == i).nonzero().squeeze()
-                            for i in range(1, 145)}"""
         self.N += N
         self.energies = torch.cat(
             (
@@ -618,11 +594,6 @@ class Things:
         self.sizes = self.sizes[mask]
         self.positions = self.positions[mask]
         self.energies = self.energies[mask]
-        """self.boxes = self.boxes[mask]
-        # Updating box contents to be optimized
-        self.box_content = {i: (self.boxes == i).nonzero().squeeze()
-                            for i in range(1, 145)}"""
-
         self.monad_mask = self.monad_mask[mask]
         self.sugar_mask = self.sugar_mask[mask]
         self.Pop = self.monad_mask.sum().item()
@@ -757,9 +728,6 @@ class Things:
             [THING_TYPES[x]["size"] for x in self.thing_types]
         )
         self.positions = torch.tensor(state['positions'])
-        """self.boxes = get_box(self.positions)
-        self.box_content = {i: (self.boxes == i).nonzero().squeeze()
-                            for i in range(1, 145)}"""
         self.energies = torch.tensor(state['energies'])
         self.N = len(self.positions)
         self.genomes = torch.tensor(state['genomes'])

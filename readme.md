@@ -39,8 +39,8 @@
 			 with tanh
 * Monad6105: Monad with 16 input and 9 output neurons, controlled by an nn2,
 						 governed by 2281 parameters
-* Torodial boundary conditions
-* Spatial partitioning
+* KDTree to calculate sparse distance matrix
+* conv2d to calculate diffusion
 * Autogenetic breeding
 
 #### Era 1: LUCA

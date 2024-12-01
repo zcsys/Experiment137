@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 import pygame
 import json
 import numpy as np
@@ -40,8 +41,8 @@ class Grid:
             self.grid[0, channel, y_indices, x_indices] = 255.
 
     def diffuse(self):
-        laplacian = torch.nn.functional.conv2d(
-            circular_pad(self.grid, 1),
+        laplacian = F.conv2d(
+            F.pad(self.grid, (1, 1, 1, 1), mode = "replicate"),
             self.kernel,
             padding = 0,
             groups = self.feature_dim
