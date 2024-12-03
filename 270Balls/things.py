@@ -261,31 +261,29 @@ class Things:
             self.remove_sugars(unique(sugar_idx_general.tolist()))
 
         # Deliver messages
-        m_pos = self.positions[self.monad_mask]
-        m_diffs = m_pos.unsqueeze(0) - m_pos.unsqueeze(1)
-        m_dist = torch.norm(m_diffs, dim = 2)
-        in_sight_mask = (m_dist < SIGHT).fill_diagonal_(False).int()
-
         self.incoming_messages = torch.zeros((self.Pop, 4))
-
-        if in_sight_mask.any():
-            self.recipients = torch.unique(in_sight_mask.nonzero())
-            self.first_senders = torch.argmax(
-                in_sight_mask[self.recipients], dim = 1
+        indices, distances, diffs = vicinity(self.positions[self.monad_mask])
+        if len(indices[0]) > 0:
+            self.recipients = torch.unique(indices[0])
+            self.closest_senders = torch.argmin(
+                distances[self.recipients].masked_fill(
+                    distances[self.recipients] == 0.,
+                    float('inf')
+                ),
+                dim = 1
             )
             direction = (
+                diffs[self.recipients, self.closest_senders] /
                 (
-                    m_diffs[self.recipients, self.first_senders] /
-                    (
-                        m_dist[self.recipients, self.first_senders].unsqueeze(1)
-                        + 1e-7
-                    )
+                    distances[
+                        self.recipients, self.closest_senders
+                    ].unsqueeze(1) + 1e-7
                 )
             )
             self.incoming_messages[self.recipients] = torch.cat(
                 (
                     direction,
-                    self.messages[self.first_senders],
+                    self.messages[self.closest_senders],
                 ),
                 dim = 1
             )
@@ -450,104 +448,6 @@ class Things:
 
         self.apply_genomes()
 
-    def monad_autogenesis_v1(self, idx):
-        # Fetch basic properties
-        thing_type = "monad"
-        initial_energy = torch.tensor(THING_TYPES[thing_type]["initial_energy"])
-        size = torch.tensor([THING_TYPES[thing_type]["size"]])
-
-        # Set basic properties
-        self.thing_types.append(thing_type)
-        self.sizes, self.positions = add_positions(
-            size,
-            self.sizes,
-            self.positions
-        )
-        self.energies = torch.cat(
-            (
-                self.energies,
-                initial_energy.unsqueeze(0)
-            ),
-            dim = 0
-        )
-        self.movement_tensor = torch.cat(
-            (
-                self.movement_tensor,
-                torch.tensor([[0., 0.]])
-            ),
-            dim = 0
-        )
-        self.last_movement_was_successful = torch.cat(
-            (
-                self.last_movement_was_successful,
-                torch.tensor([[True]])
-            ),
-            dim = 0
-        )
-        self.messages = torch.cat(
-            (
-                self.messages,
-                torch.zeros((1, 2))
-            ),
-            dim = 0
-        )
-        self.incoming_messages = torch.cat(
-            (
-                self.incoming_messages,
-                torch.zeros((1, 4))
-            ),
-            dim = 0
-        )
-        self.memory = torch.cat(
-            (
-                self.memory,
-                torch.zeros((1, 4))
-            ),
-            dim = 0
-        )
-
-        # Update state vars
-        self.monad_mask = torch.cat(
-            (
-                self.monad_mask,
-                torch.tensor([True])
-            ),
-            dim = 0
-        )
-        self.sugar_mask = torch.cat(
-            (
-                self.sugar_mask,
-                torch.tensor([False])
-            ),
-            dim = 0
-        )
-        self.N += 1
-        self.Pop += 1
-
-        # Mutate the old genome & apply the new genome
-        genome = self.mutate(idx)
-        self.genomes = torch.cat(
-            (
-                self.genomes,
-                genome.unsqueeze(0)
-            ),
-            dim = 0
-        )
-        self.apply_genomes()
-        if genome is self.genomes[idx]:
-            self.lineages.append(self.lineages[idx])
-        else:
-            new_lineage = self.lineages[idx] + [0]
-            while True:
-                new_lineage[-1] += 1
-                if new_lineage not in self.lineages:
-                    break
-            self.lineages.append(new_lineage)
-            # print(new_lineage)
-        self.colors.append(get_color_by_genome(genome))
-
-        return 1
-
     def add_sugars(self, N):
         for _ in range(N):
             self.thing_types.append("sugar")
@@ -662,16 +562,16 @@ class Things:
 
         # Draw communication network
         try:
-            first_senders = self.first_senders.tolist()
+            closest_senders = self.closest_senders.tolist()
             recipients = self.recipients.tolist()
 
-            if recipients[-1] >= self.Pop or first_senders[-1] >= self.Pop:
+            if recipients[-1] >= self.Pop or closest_senders[-1] >= self.Pop:
                 show_communication = False
         except:
             show_communication = False
 
         if show_communication:
-            for sender, recipient in zip(first_senders, recipients):
+            for sender, recipient in zip(closest_senders, recipients):
                 recipient_pos = self.positions[
                     self.from_monad_to_general_idx(recipient)
                 ].tolist()

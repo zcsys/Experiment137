@@ -14,10 +14,6 @@ def Rules(simul, n):
         simul.things.energies -= METABOLIC_ACTIVITY_CONSTANT
         to_remove = torch.nonzero(simul.things.energies <= 0)
         if len(to_remove) > 0:
-            # Autogenetic breeding
-            if simul.things.Pop <= 5:
-                for idx in range(simul.things.Pop):
-                    simul.things.monad_autogenesis_v1(idx)
             simul.things.monad_death(to_remove.squeeze(1).tolist())
         simul.things.E = simul.things.energies.sum().item() // 1000
 
@@ -39,6 +35,8 @@ def Rules(simul, n):
         if simul.things.N < N_TARGET:
             simul.things.add_sugars(N_TARGET - simul.things.N)
 
+    # Population control II
+    if 2 in n:
         if simul.things.E <= 100:
             METABOLIC_ACTIVITY_CONSTANT = 0.1
         elif 100 < simul.things.E <= 200:
