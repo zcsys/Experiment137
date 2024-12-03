@@ -96,7 +96,7 @@ class UIManager:
         self.show_sight = False
         self.show_forces = False
         self.show_network = False
-        self.show_resources = True
+        self.show_resources = False
 
     def handle_event(self, event, simulation):
         if self.save_button.handle_event(event):
@@ -229,7 +229,6 @@ class Simulation:
 
         while running:
             # print("\n\n==== BEGIN STEP ====\n")
-
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False

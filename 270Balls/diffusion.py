@@ -7,7 +7,7 @@ from base_vars import *
 from helpers import *
 
 class Grid:
-    def __init__(self, cell_size = 30, feature_dim = 3, diffusion_rate = 0.001,
+    def __init__(self, cell_size = 10, feature_dim = 3, diffusion_rate = 0.001,
                  saved_state = None):
         self.cell_size = cell_size
         self.feature_dim = feature_dim
@@ -35,7 +35,7 @@ class Grid:
 
         # Initialize random values
         for channel in range(3):
-            indices = torch.randint(0, self.grid_x * self.grid_y, (1000,))
+            indices = torch.randint(0, self.grid_x * self.grid_y, (10000,))
             x_indices = indices % self.grid_x
             y_indices = indices // self.grid_x
             self.grid[0, channel, y_indices, x_indices] = 255.

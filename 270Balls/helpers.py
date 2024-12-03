@@ -76,9 +76,6 @@ def float_msg_to_str(float_msg):
     packed_bytes = struct.pack('ff', float_msg[0], float_msg[1])
     return base64.b64encode(packed_bytes).decode('ascii')
 
-def get_box(positions):
-    return (positions[:, 0] // 120 + positions[:, 1] // 120 * 16).int()
-
 def flattened_identity_matrix(N, x = None):
     lt = x if x else N
     return [1 if i == j and i < lt else 0 for j in range(N) for i in range(N)]
@@ -94,16 +91,24 @@ def create_initial_genomes(num_monads, num_input, num_output):
         dtype = torch.float32
     ).repeat(num_monads, 1)
 
-def vicinity(source_positions, radius, target_positions = None):
+def vicinity(source_positions, radius = SIGHT, target_positions = None):
     source_tree = KDTree(source_positions.numpy())
     if target_positions:
         target_tree = KDTree(target_positions.numpy())
     else:
         target_tree, target_positions = source_tree, source_positions
+
     distances = source_tree.sparse_distance_matrix(target_tree, radius, p = 2.0)
     rows, cols = distances.nonzero()
+
+    vector_diff = torch.zeros(
+        (len(source_positions), len(target_positions), 2),
+        dtype = torch.float32
+    )
+    vector_diff[rows, cols] = target_positions[cols] - source_positions[rows]
+
     return (
         torch.from_numpy(np.stack([rows, cols])),
         torch.tensor(distances.toarray(), dtype = torch.float32),
-        target_positions[cols] - source_positions[rows]
+        vector_diff
     )

@@ -51,7 +51,6 @@ THING_TYPES = {
     "sugar": {
         "color": colors["F"],
         "size": 1,
-        "initial_energy": 0.,
         "overlap": True
     }
 }

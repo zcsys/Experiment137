@@ -37,10 +37,10 @@ class Things:
         self.N = len(self.thing_types)
         self.Pop = self.monad_mask.sum().item()
         self.energies = torch.tensor(
-            [THING_TYPES[thing_type]["initial_energy"]
-            for thing_type in thing_types]
+            [THING_TYPES["monad"]["initial_energy"]
+            for _ in range(self.Pop)]
         )
-        self.E = self.energies[self.monad_mask].sum().item() // 1000
+        self.E = self.energies.sum().item() // 1000
         self.colors = [THING_TYPES[x]["color"] for x in self.thing_types]
 
         # Initialize genomes and lineages
@@ -81,18 +81,13 @@ class Things:
         return original_genome + mutation_mask * mutations * strength
 
     def calculate_distances(self):
-        self.neighboring_indices, self.distances, self.displacement_tensor = (
-            vicinity(self.positions, SIGHT)
+        self.neighboring_indices, self.distances, self.diffs = (
+            vicinity(self.positions)
         )
 
     def sensory_inputs(self, grid):
-        self.calculate_distances()
-
-        
-
-        # For each non-sugar, there's a vector pointing towards the center of
-        # the universe, with increasing magnitude as the thing gets closer to
-        # edges. This is the first input vector for each monad.
+        # For each monad, there's a vector pointing towards the center of the
+        # universe, with increasing magnitude as the thing gets closer to edges.
         if self.monad_mask.any():
             midpoint = torch.tensor([SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2])
             col1 = (1 - self.positions[self.monad_mask] / midpoint)
@@ -102,13 +97,12 @@ class Things:
         # For each monad, the combined effect of sugar particles in their
         # vicinity is calculated. This is the second input vector for monads.
         if self.monad_mask.any() and self.sugar_mask.any():
-            self.diffs = (self.positions[self.sugar_mask].unsqueeze(0) -
-                          self.positions[self.monad_mask].unsqueeze(1))
-            distances = torch.norm(self.diffs, dim = 2)
-            col2 = torch.where(
-                (distances <= SIGHT).unsqueeze(2),
-                self.diffs / (distances.unsqueeze(2) + 1e-7) ** 2,
-                torch.tensor([0., 0.])
+            indices, distances, diffs = vicinity(self.positions)
+            col2  = (
+                diffs[self.monad_mask][:, self.sugar_mask] /
+                (
+                    distances[self.monad_mask][:, self.sugar_mask] ** 2 + 1e-5
+                ).unsqueeze(2)
             ).sum(dim = 1) * 6.
         else:
             col2 = torch.zeros((self.Pop, 2))
@@ -119,7 +113,7 @@ class Things:
                 col1,
                 col2,
                 self.last_movement_was_successful,
-                (self.energies[self.monad_mask] / 10000).unsqueeze(1),
+                (self.energies / 10000).unsqueeze(1),
                 self.incoming_messages,
                 self.messages,
                 self.memory
@@ -172,7 +166,7 @@ class Things:
             random_gen = torch.rand(self.Pop)
             to_divide = neural_action[:, 2] > random_gen
             for i in to_divide.nonzero():
-                self.monad_division(self.from_monad_to_general_idx(i))
+                self.monad_division(i.item())
 
         # Fetch sugar movements
         if self.sugar_mask.any():
@@ -182,12 +176,12 @@ class Things:
         self.update_positions()
 
         # Update total monad energy
-        self.E = self.energies[self.monad_mask].sum().item() // 1000
+        self.E = self.energies.sum().item() // 1000
 
     def update_positions(self):
         provisional_positions = self.positions + self.movement_tensor
 
-        # Prevent moving beyond the edges
+        # Apply rigid boundaries
         provisional_positions = torch.stack(
             [
                 torch.clamp(
@@ -204,24 +198,26 @@ class Things:
             dim = 1
         )
 
-        # Detect collisions
-        diffs = provisional_positions.unsqueeze(1) - self.positions.unsqueeze(0)
-        distances = torch.norm(diffs, dim = 2)
-        size_sums = self.sizes.unsqueeze(1) + self.sizes.unsqueeze(0)
-        overlap_mask = (distances < size_sums).fill_diagonal_(False)
-        monad_vs_monad = (
-            self.monad_mask.unsqueeze(1) &
-            self.monad_mask.unsqueeze(0) &
-            overlap_mask
+        # Get neighboring things
+        indices, distances, diffs = vicinity(provisional_positions)
+
+        # Monad-monad collisions
+        monad_monad_dist = distances[self.monad_mask][:, self.monad_mask]
+        collision_mask = (
+            (0. < monad_monad_dist) &
+            (monad_monad_dist < THING_TYPES["monad"]["size"] * 2)
         ).any(dim = 1)
 
-        # Allow movement only if there's enough energy or if type is 'sugar'
-        movement_magnitudes = torch.diag(distances)
-        final_apply_mask = (
-            (self.energies > movement_magnitudes) &
-            ~monad_vs_monad |
-            self.sugar_mask
+        # Check energy levels
+        movement_magnitudes = torch.norm(
+            self.movement_tensor[self.monad_mask],
+            dim = 1
         )
+        enough_energy = self.energies >= movement_magnitudes
+
+        # Construct final apply mask
+        final_apply_mask = torch.ones((self.N), dtype = torch.bool)
+        final_apply_mask[self.monad_mask] = enough_energy & ~collision_mask
 
         # Apply the movements
         self.positions = torch.where(
@@ -237,30 +233,32 @@ class Things:
 
         # Reduce energies from monads
         actual_magnitudes = torch.where(
-            final_apply_mask & self.monad_mask,
+            final_apply_mask[self.monad_mask],
             movement_magnitudes,
-            torch.tensor(0.)
+            torch.tensor([0.])
         )
         self.energies -= actual_magnitudes
 
-        # Handle sugar vs monad collisions
-        sugar_vs_monad = (
-            overlap_mask &
-            self.sugar_mask.unsqueeze(1) &
-            self.monad_mask.unsqueeze(0)
+        # Sugar-monad collisions
+        sugar_monad_dist = distances[self.sugar_mask][:, self.monad_mask]
+        collision_mask = (
+            (0. < sugar_monad_dist) &
+            (sugar_monad_dist < (THING_TYPES["monad"]["size"] +
+                                 THING_TYPES["sugar"]["size"]))
         )
 
-        if sugar_vs_monad.any():
-            sugar_idx, monad_idx = sugar_vs_monad.nonzero(as_tuple = True)
-            energy_per_non_sugar = (
-                SUGAR_ENERGY / sugar_vs_monad.sum(dim = 1)[sugar_idx]
+        if collision_mask.any():
+            sugar_idx, monad_idx = collision_mask.nonzero(as_tuple = True)
+            energy_per_monad = (
+                SUGAR_ENERGY / collision_mask[sugar_idx].sum(dim = 1)
             )
             self.energies = self.energies.scatter_add(
                 0,
                 monad_idx,
-                energy_per_non_sugar
+                energy_per_monad
             )
-            self.remove_sugars(unique(sugar_idx.tolist()))
+            sugar_idx_general = torch.where(self.sugar_mask)[0][sugar_idx]
+            self.remove_sugars(unique(sugar_idx_general.tolist()))
 
         # Deliver messages
         m_pos = self.positions[self.monad_mask]
@@ -294,14 +292,15 @@ class Things:
 
     def monad_division(self, i):
         # Set out main attributes and see if division is possible
-        thing_type = self.thing_types[i]
+        thing_type = "monad"
         initial_energy = self.energies[i] / 2
         if (initial_energy <
             torch.tensor(THING_TYPES[thing_type]["initial_energy"])):
             return 0
         # print("Monad division at energy", int(initial_energy.item()))
         size = THING_TYPES[thing_type]["size"]
-        x, y = tuple(self.positions[i].tolist())
+        idx = self.from_monad_to_general_idx(i)
+        x, y = tuple(self.positions[idx].tolist())
         angle = random.random() * 2 * math.pi
         new_position = torch.tensor([
             x + math.cos(angle) * (size + 1) * 2,
@@ -429,6 +428,7 @@ class Things:
             self.messages = remove_element(self.messages, i)
             self.incoming_messages = remove_element(self.incoming_messages, i)
             self.memory = remove_element(self.memory, i)
+            self.energies = remove_element(self.energies, i)
             del self.lineages[i]
 
             # Get general index to remove universal attributes
@@ -439,7 +439,6 @@ class Things:
             del self.colors[idx]
             self.sizes = remove_element(self.sizes, idx)
             self.positions = remove_element(self.positions, idx)
-            self.energies = remove_element(self.energies, idx)
 
             # Update state vars
             self.monad_mask = remove_element(self.monad_mask, idx)
@@ -559,14 +558,6 @@ class Things:
             self.positions
         )
         self.N += N
-        self.energies = torch.cat(
-            (
-                self.energies,
-                torch.tensor([THING_TYPES["sugar"]["initial_energy"]
-                              for _ in range(N)])
-            ),
-            dim = 0
-        )
         self.monad_mask = torch.cat(
             (
                 self.monad_mask,
@@ -593,10 +584,8 @@ class Things:
 
         self.sizes = self.sizes[mask]
         self.positions = self.positions[mask]
-        self.energies = self.energies[mask]
         self.monad_mask = self.monad_mask[mask]
         self.sugar_mask = self.sugar_mask[mask]
-        self.Pop = self.monad_mask.sum().item()
 
     def draw(self, screen, show_info = True, show_sight = False,
              show_forces = True, show_communication = True):
@@ -615,7 +604,7 @@ class Things:
 
             if show_info and thing_type == "monad":
                 # Show energy
-                energy_text = self.energies[i].item()
+                energy_text = self.energies[idx].item()
                 if energy_text < 1000:
                     energy_text = str(int(energy_text))
                 elif energy_text < 10000:
@@ -745,7 +734,7 @@ class Things:
             [thing_type == "sugar" for thing_type in self.thing_types]
         )
         self.Pop = self.monad_mask.sum().item()
-        self.E = self.energies[self.monad_mask].sum().item() // 1000
+        self.E = self.energies.sum().item() // 1000
 
         self.apply_genomes()
 

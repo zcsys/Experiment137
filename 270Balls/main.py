@@ -8,8 +8,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description = "Eon 1 Era 0: 270Balls"
     )
-    parser.add_argument('--load', type = str,
-                        help = "Load simulation state from a JSON file")
+    parser.add_argument('--load', type = str)
     args = parser.parse_args()
 
     if args.load:

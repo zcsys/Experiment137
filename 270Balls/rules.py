@@ -11,22 +11,15 @@ def Rules(simul, n):
         for i, mask in enumerate(fission_mask):
             if mask:
                 simul.things.monad_division(i)
-
-        simul.things.energies[simul.things.monad_mask] -= (
-            METABOLIC_ACTIVITY_CONSTANT
-        )
-        to_remove = torch.nonzero(
-            simul.things.energies[simul.things.monad_mask] <= 0
-        )
+        simul.things.energies -= METABOLIC_ACTIVITY_CONSTANT
+        to_remove = torch.nonzero(simul.things.energies <= 0)
         if len(to_remove) > 0:
             # Autogenetic breeding
             if simul.things.Pop <= 5:
                 for idx in range(simul.things.Pop):
                     simul.things.monad_autogenesis_v1(idx)
             simul.things.monad_death(to_remove.squeeze(1).tolist())
-        simul.things.E = simul.things.energies[
-            simul.things.monad_mask
-        ].sum().item() // 1000
+        simul.things.E = simul.things.energies.sum().item() // 1000
 
     # Population control
     if 1 in n:
