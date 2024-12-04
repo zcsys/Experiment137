@@ -17,7 +17,7 @@ def Rules(simul, n):
             simul.things.monad_death(to_remove.squeeze(1).tolist())
         simul.things.E = simul.things.energies.sum().item() // 1000
 
-    # Population control
+    # Hyperparameter adjustment for the ages of incubation
     if 1 in n:
         if simul.epoch > 0 or simul.age >= 20:
             N_TARGET = 100
@@ -35,7 +35,7 @@ def Rules(simul, n):
         if simul.things.N < N_TARGET:
             simul.things.add_sugars(N_TARGET - simul.things.N)
 
-    # Population control II
+    # Population control
     if 2 in n:
         if simul.things.E <= 100:
             METABOLIC_ACTIVITY_CONSTANT = 0.1

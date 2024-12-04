@@ -50,19 +50,15 @@ class Grid:
         self.grid += self.diffusion_rate * laplacian
 
     def draw(self, surface):
-        # Create upscaled array
-        upscaled = torch.repeat_interleave(
+        pygame.surfarray.blit_array(
+            surface.subsurface((0, 0, SIMUL_WIDTH, SIMUL_HEIGHT)),
             torch.repeat_interleave(
-                self.grid[0].permute(1, 2, 0),
+                torch.repeat_interleave(
+                    self.grid[0].permute(1, 2, 0),
+                    self.cell_size,
+                    dim = 0
+                ),
                 self.cell_size,
-                dim = 0
-            ),
-            self.cell_size,
-            dim = 1
+                dim = 1
+            ).permute(1, 0, 2).numpy().astype(np.uint8)
         )
-
-        # Use surfarray.pixels3d for direct surface manipulation
-        surface_array = pygame.surfarray.pixels3d(
-            surface.subsurface((0, 0, SIMUL_WIDTH, SIMUL_HEIGHT))
-        )
-        surface_array[:] = upscaled.permute(1, 0, 2).numpy().astype(np.uint8)
