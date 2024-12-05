@@ -85,17 +85,13 @@ class UIManager:
         self.info_toggle_button = Button(self.screen, screen.get_width() -
                                           menu_width + 10, 210, 160, 40,
                                           "Toggle Info", self.font)
-        self.network_toggle_button = Button(self.screen, screen.get_width() -
-                                          menu_width + 10, 260, 160, 40,
-                                          "Toggle Network", self.font)
         self.resources_toggle_button = Button(self.screen, screen.get_width() -
-                                          menu_width + 10, 310, 160, 40,
+                                          menu_width + 10, 260, 160, 40,
                                           "Toggle Resources", self.font)
 
         self.show_info = False
         self.show_sight = False
         self.show_forces = False
-        self.show_network = False
         self.show_resources = False
 
     def handle_event(self, event, simulation):
@@ -111,8 +107,6 @@ class UIManager:
             self.show_forces = not self.show_forces
         if self.info_toggle_button.handle_event(event):
             self.show_info = not self.show_info
-        if self.network_toggle_button.handle_event(event):
-            self.show_network = not self.show_network
         if self.resources_toggle_button.handle_event(event):
             self.show_resources = not self.show_resources
 
@@ -128,18 +122,17 @@ class UIManager:
         self.sight_toggle_button.draw()
         self.force_toggle_button.draw()
         self.info_toggle_button.draw()
-        self.network_toggle_button.draw()
         self.resources_toggle_button.draw()
 
-        # Display simulation state (Epoch, Age, Cycle, Step)
+        # Display simulation state (Period, Epoch, Age, Step)
         start_y = self.screen.get_height() // 2
 
+        period_text = self.font.render(f"Period: {state.get('period', 0)}", True,
+                                      (0, 0, 0))
         epoch_text = self.font.render(f"Epoch: {state.get('epoch', 0)}", True,
                                       (0, 0, 0))
-        age_text = self.font.render(f"Age: {state.get('age', 0)}", True,
-                                      (0, 0, 0))
-        cycle_text = self.font.render(f"Cycle: {state.get('cycle', 0)} " +
-                                       f"(\'{state.get('crr_cycle_dur', 0)})",
+        age_text = self.font.render(f"Age: {state.get('age', 0)} " +
+                                       f"(\'{state.get('crr_age_dur', 0)})",
                                        True, (0, 0, 0))
         steps_text = self.font.render(f"Step: {state.get('step', 0)}", True,
                                       (0, 0, 0))
@@ -147,11 +140,11 @@ class UIManager:
         Pop_text = self.font.render(f"Pop.: {Pop}", True, (0, 0, 0))
         E_text = self.font.render(f"E: {int(E)}k", True, (0, 0, 0))
 
-        self.screen.blit(epoch_text, (self.screen.get_width() -
+        self.screen.blit(period_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y))
-        self.screen.blit(age_text, (self.screen.get_width() -
+        self.screen.blit(epoch_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y + 30))
-        self.screen.blit(cycle_text, (self.screen.get_width() -
+        self.screen.blit(age_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y + 60))
         self.screen.blit(steps_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y + 90))
@@ -168,13 +161,12 @@ class Simulation:
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         pygame.display.set_caption("Eon 1 Era 0: 270Balls")
         self.things = things_object
-        self.cycle_start_time = time.time()
+        self.age_start_time = time.time()
 
         if load_file:
             with open(load_file, 'r') as f:
                 saved_data = json.load(f)
                 try:
-                    a
                     self.grid = Grid(saved_state = saved_data["grid"])
                 except:
                     self.grid = Grid()
@@ -187,41 +179,44 @@ class Simulation:
         self.grid = Grid()
         self.paused = False
         self.ui_manager = UIManager(self.screen, MENU_WIDTH, self.paused)
-        self.step, self.cycle, self.age, self.epoch = 0, 0, 0, 0
-        self.crr_cycle_dur = 0
+        self.step, self.age, self.epoch, self.period = 0, 0, 0, 0
+        self.crr_age_dur = 0
+        self.excess = 0
 
     def update_state(self):
         self.step += 1
         if self.step == 2400:
-            self.cycle += 1
+            self.age += 1
             self.step = 0
             current_time = time.time()
-            self.crr_cycle_dur = int(current_time - self.cycle_start_time)
-            self.cycle_start_time = current_time
-        if self.cycle == 80:
-            self.age += 1
-            self.cycle = 0
-            self.save_simulation()
+            self.crr_age_dur = int(current_time - self.age_start_time)
+            self.age_start_time = current_time
         if self.age == 80:
-            self.epoch += 1
+            self.age += 1
             self.age = 0
+            self.save_simulation()
+        if self.epoch == 80:
+            self.period += 1
+            self.epoch = 0
 
     def get_state(self):
         return {
             'step': self.step,
-            'cycle': self.cycle,
             'age': self.age,
             'epoch': self.epoch,
-            'cycle_start_time': self.cycle_start_time,
-            'crr_cycle_dur': self.crr_cycle_dur
+            'period': self.period,
+            'age_start_time': self.age_start_time,
+            'crr_age_dur': self.crr_age_dur,
+            'excess': self.excess
         }
 
     def load_state(self, state):
         self.step = state.get('step', 0)
-        self.cycle = state.get('cycle', 0)
         self.age = state.get('age', 0)
         self.epoch = state.get('epoch', 0)
-        self.crr_cycle_dur = state.get('crr_cycle_dur', 0)
+        self.period = state.get('period', 0)
+        self.crr_age_dur = state.get('crr_age_dur', 0)
+        self.excess = state.get('excess', 0)
 
     def run(self):
         running = True
@@ -235,7 +230,7 @@ class Simulation:
                 self.ui_manager.handle_event(event, self)
 
             if not self.paused:
-                self.things.final_action(self.grid)
+                force_field = self.things.final_action(self.grid)
                 self.update_state()
 
             self.screen.fill(colors["0"])
@@ -243,12 +238,11 @@ class Simulation:
                 self.grid.draw(self.screen)
             self.things.draw(self.screen, self.ui_manager.show_info,
                              self.ui_manager.show_sight,
-                             self.ui_manager.show_forces,
-                             self.ui_manager.show_network)
+                             self.ui_manager.show_forces)
 
             if not self.paused:
-                self.grid.diffuse()
-                Rules(self, [0, 1])
+                self.excess += self.grid.diffuse(force_field)
+                Rules(self, [0, 1, 2])
 
             # Draw the right pane
             self.ui_manager.draw(

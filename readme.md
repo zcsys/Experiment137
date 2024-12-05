@@ -37,8 +37,10 @@
 			 first hidden layer has 4x expansion from the input layer, and the second
 			 hidden layer goes back to 1x, finally transformed into the output layer
 			 with tanh
-* Monad6105: Monad with 16 input and 9 output neurons, controlled by an nn2,
-						 governed by 2281 parameters
+* Monads controlled by an nn2
+	* Monad6105: Monad with 16 input and 9 output neurons, governed by 2281
+							 parameters
+	* Monad7190: 
 * KDTree to calculate sparse distance matrix
 * conv2d to calculate resource diffusion
 * Autogenetic breeding

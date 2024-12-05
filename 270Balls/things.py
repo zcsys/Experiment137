@@ -44,22 +44,12 @@ class Things:
         self.colors = [THING_TYPES[x]["color"] for x in self.thing_types]
 
         # Initialize genomes and lineages
-        self.genomes = create_initial_genomes(self.Pop, 16, 9)
+        self.genomes = create_initial_genomes(self.Pop, 28, 22)
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
-        # Initialize monad messages
-        self.messages = torch.zeros((self.Pop, 2))
-
         # Initialize memory organ
-        self.memory = torch.zeros((self.Pop, 4))
-
-        # Initialize sensory input data
-        self.last_movement_was_successful = torch.ones(
-            self.Pop,
-            dtype = torch.bool
-        ).unsqueeze(1)
-        self.incoming_messages = torch.zeros((self.Pop, 4))
+        self.memory = torch.zeros((self.Pop, 14))
 
     def from_general_to_monad_idx(self, i):
         return self.monad_mask[:i].sum().item()
@@ -71,19 +61,14 @@ class Things:
         return self.lineages[i][0] + len(self.lineages[i])
 
     def apply_genomes(self):
-        """Monad6105 neurogenetics"""
-        self.nn = nn2(self.genomes, 16, 9)
+        """Monad7190 neurogenetics"""
+        self.nn = nn2(self.genomes, 28, 22)
 
     def mutate(self, i, probability = 0.1, strength = 1.):
         original_genome = self.genomes[i].clone()
         mutation_mask = torch.rand_like(original_genome) < probability
         mutations = torch.rand_like(original_genome) * 2 - 1
         return original_genome + mutation_mask * mutations * strength
-
-    def calculate_distances(self):
-        self.neighboring_indices, self.distances, self.diffs = (
-            vicinity(self.positions)
-        )
 
     def sensory_inputs(self, grid):
         # For each monad, there's a vector pointing towards the center of the
@@ -95,7 +80,7 @@ class Things:
             col1 = torch.zeros((self.Pop, 2))
 
         # For each monad, the combined effect of sugar particles in their
-        # vicinity is calculated. This is the second input vector for monads.
+        # vicinity is calculated.
         if self.monad_mask.any() and self.sugar_mask.any():
             indices, distances, diffs = vicinity(self.positions)
             col2  = (
@@ -107,19 +92,27 @@ class Things:
         else:
             col2 = torch.zeros((self.Pop, 2))
 
+        # Gradient sensors
+        y_pos = (self.positions[self.monad_mask][:, 1] // grid.cell_size).int()
+        x_pos = (self.positions[self.monad_mask][:, 0] // grid.cell_size).int()
+        grad_x, grad_y = grid.gradient()
+        col3 = torch.zeros((self.Pop, 9), dtype = torch.float32)
+        for channel in range(3):
+            col3[:, channel * 3] = grid.grid[0, channel, y_pos, x_pos]
+            col3[:, channel * 3 + 1] = grad_x[0, channel, y_pos, x_pos]
+            col3[:, channel * 3 + 2] = grad_y[0, channel, y_pos, x_pos]
+
         # Combine the inputs to create the final input tensor
         self.input_vectors = torch.cat(
             (
                 col1,
                 col2,
-                self.last_movement_was_successful,
+                col3 / 255,
                 (self.energies / 10000).unsqueeze(1),
-                self.incoming_messages,
-                self.messages,
                 self.memory
             ),
             dim = 1
-        ).view(self.Pop, 16, 1)
+        ).view(self.Pop, 28, 1)
 
     def neural_action(self):
         return self.nn.forward(self.input_vectors)
@@ -150,23 +143,9 @@ class Things:
 
         # Monad actions
         if self.monad_mask.any():
-            # Get output tensor
             neural_action = self.neural_action().squeeze(2)
-
-            # Fetch monad movements
             self.movement_tensor[self.monad_mask] = neural_action[:, :2]
-
-            # Broadcast messages
-            self.messages = neural_action[:, 3:5]
-
-            # Update memory
-            self.memory = neural_action[:, 5:9]
-
-            # Apply fissions
-            random_gen = torch.rand(self.Pop)
-            to_divide = neural_action[:, 2] > random_gen
-            for i in to_divide.nonzero():
-                self.monad_division(i.item())
+            self.memory = neural_action[:, 2:16]
 
         # Fetch sugar movements
         if self.sugar_mask.any():
@@ -177,6 +156,13 @@ class Things:
 
         # Update total monad energy
         self.E = self.energies.sum().item() // 1000
+
+        # Calculate and return the force field
+        force_field = torch.zeros_like(grid.grid).repeat(2, 1, 1, 1)
+        y_pos = (self.positions[self.monad_mask][:, 1] // grid.cell_size).int()
+        x_pos = (self.positions[self.monad_mask][:, 0] // grid.cell_size).int()
+        # force_field[..., y_pos, x_pos] += neural_action[:, 16:22].view(self.Pop, 2, 3)
+        return force_field
 
     def update_positions(self):
         provisional_positions = self.positions + self.movement_tensor
@@ -226,11 +212,6 @@ class Things:
             self.positions
         )
 
-        # Update the LMWS input neuron
-        self.last_movement_was_successful = final_apply_mask[
-            self.monad_mask
-        ].unsqueeze(1)
-
         # Reduce energies from monads
         actual_magnitudes = torch.where(
             final_apply_mask[self.monad_mask],
@@ -259,34 +240,6 @@ class Things:
             )
             sugar_idx_general = torch.where(self.sugar_mask)[0][sugar_idx]
             self.remove_sugars(unique(sugar_idx_general.tolist()))
-
-        # Deliver messages
-        self.incoming_messages = torch.zeros((self.Pop, 4))
-        indices, distances, diffs = vicinity(self.positions[self.monad_mask])
-        if len(indices[0]) > 0:
-            self.recipients = torch.unique(indices[0])
-            self.closest_senders = torch.argmin(
-                distances[self.recipients].masked_fill(
-                    distances[self.recipients] == 0.,
-                    float('inf')
-                ),
-                dim = 1
-            )
-            direction = (
-                diffs[self.recipients, self.closest_senders] /
-                (
-                    distances[
-                        self.recipients, self.closest_senders
-                    ].unsqueeze(1) + 1e-7
-                )
-            )
-            self.incoming_messages[self.recipients] = torch.cat(
-                (
-                    direction,
-                    self.messages[self.closest_senders],
-                ),
-                dim = 1
-            )
 
     def monad_division(self, i):
         # Set out main attributes and see if division is possible
@@ -343,36 +296,13 @@ class Things:
             ),
             dim = 0
         )
-        self.last_movement_was_successful = torch.cat(
-            (
-                self.last_movement_was_successful,
-                torch.tensor([[True]])
-            ),
-            dim = 0
-        )
-        self.messages = torch.cat(
-            (
-                self.messages,
-                torch.zeros((1, 2))
-            ),
-            dim = 0
-        )
-        self.incoming_messages = torch.cat(
-            (
-                self.incoming_messages,
-                torch.zeros((1, 4))
-            ),
-            dim = 0
-        )
         self.memory = torch.cat(
             (
                 self.memory,
-                torch.zeros((1, 4))
+                torch.zeros((1, 14))
             ),
             dim = 0
         )
-
-        # Update state vars
         self.monad_mask = torch.cat(
             (
                 self.monad_mask,
@@ -419,12 +349,7 @@ class Things:
     def monad_death(self, indices):
         for i in indices[::-1]:
             # Remove monad-only attributes
-            self.last_movement_was_successful = remove_element(
-                self.last_movement_was_successful, i
-            )
             self.genomes = remove_element(self.genomes, i)
-            self.messages = remove_element(self.messages, i)
-            self.incoming_messages = remove_element(self.incoming_messages, i)
             self.memory = remove_element(self.memory, i)
             self.energies = remove_element(self.energies, i)
             del self.lineages[i]
@@ -432,13 +357,11 @@ class Things:
             # Get general index to remove universal attributes
             idx = self.from_monad_to_general_idx(i)
 
-            # Update main attributes
+            # Update main attributes and state vars
             del self.thing_types[idx]
             del self.colors[idx]
             self.sizes = remove_element(self.sizes, idx)
             self.positions = remove_element(self.positions, idx)
-
-            # Update state vars
             self.monad_mask = remove_element(self.monad_mask, idx)
             self.sugar_mask = remove_element(self.sugar_mask, idx)
 
@@ -520,17 +443,6 @@ class Things:
                 )
                 screen.blit(energy_text, energy_rect)
 
-                # Show message
-                message_text = float_msg_to_str(self.messages[idx].tolist())
-                message_text = self.font.render(message_text, True, colors["Z"])
-                message_rect = message_text.get_rect(
-                    center = (
-                        int(pos[0].item()),
-                        int(pos[1].item() + 2 * size)
-                    )
-                )
-                screen.blit(message_text, message_rect)
-
             if show_sight and thing_type == "monad":
                 draw_dashed_circle(screen, self.colors[i], (int(pos[0].item()),
                                    int(pos[1].item())), SIGHT)
@@ -542,13 +454,13 @@ class Things:
             except:
                 show_forces = False
             if show_forces and thing_type == "monad":
-                input_vector_1 /= torch.norm(input_vector_1, dim = 0) + 1e-7
-                input_vector_2 /= torch.norm(input_vector_2, dim = 0) + 1e-7
-                movement_vector /= torch.norm(movement_vector, dim = 0) + 1e-7
+                input_vector_1 /= torch.norm(input_vector_1, dim = 0) + 1e-5
+                input_vector_2 /= torch.norm(input_vector_2, dim = 0) + 1e-5
+                movement_vector /= torch.norm(movement_vector, dim = 0) + 1e-5
 
-                end_pos_1 = pos + input_vector_1 * self.sizes[i]
-                end_pos_2 = pos + input_vector_2 * self.sizes[i]
-                end_pos_3 = pos - movement_vector * self.sizes[i]
+                end_pos_1 = pos + 2 * input_vector_1 * self.sizes[i]
+                end_pos_2 = pos + 2 * input_vector_2 * self.sizes[i]
+                end_pos_3 = pos - 2 * movement_vector * self.sizes[i]
 
                 pygame.draw.line(screen, colors["R"], (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_1[0].item()),
@@ -560,40 +472,6 @@ class Things:
                                  int(pos[1].item())), (int(end_pos_3[0].item()),
                                  int(end_pos_3[1].item())), 1)
 
-        # Draw communication network
-        try:
-            closest_senders = self.closest_senders.tolist()
-            recipients = self.recipients.tolist()
-
-            if recipients[-1] >= self.Pop or closest_senders[-1] >= self.Pop:
-                show_communication = False
-        except:
-            show_communication = False
-
-        if show_communication:
-            for sender, recipient in zip(closest_senders, recipients):
-                recipient_pos = self.positions[
-                    self.from_monad_to_general_idx(recipient)
-                ].tolist()
-
-                sender_pos = self.positions[
-                    self.from_monad_to_general_idx(sender)
-                ].tolist()
-
-                pygame.draw.line(
-                    screen,
-                    colors["T"],
-                    (
-                        int(recipient_pos[0]),
-                        int(recipient_pos[1])
-                    ),
-                    (
-                        int(sender_pos[0]),
-                        int(sender_pos[1])
-                    ),
-                    1
-                )
-
     def get_state(self):
         return {
             'types': self.thing_types,
@@ -602,9 +480,6 @@ class Things:
             'genomes': self.genomes.tolist(),
             'lineages': self.lineages,
             'colors': self.colors,
-            'LMWS': self.last_movement_was_successful.tolist(),
-            'messages': self.messages.tolist(),
-            'incoming': self.incoming_messages.tolist(),
             'memory': self.memory.tolist()
         }
 
@@ -622,9 +497,6 @@ class Things:
         self.genomes = torch.tensor(state['genomes'])
         self.lineages = state['lineages']
         self.colors = state['colors']
-        self.last_movement_was_successful = torch.tensor(state['LMWS'])
-        self.messages = torch.tensor(state['messages'])
-        self.incoming_messages = torch.tensor(state['incoming'])
         self.memory = torch.tensor(state['memory'])
 
         self.monad_mask = torch.tensor(
