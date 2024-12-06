@@ -44,12 +44,12 @@ class Things:
         self.colors = [THING_TYPES[x]["color"] for x in self.thing_types]
 
         # Initialize genomes and lineages
-        self.genomes = create_initial_genomes(self.Pop, 28, 22)
+        self.genomes = create_initial_genomes(self.Pop, 32, 24)
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
         # Initialize memory organ
-        self.memory = torch.zeros((self.Pop, 14))
+        self.memory = torch.zeros((self.Pop, 16))
 
     def from_general_to_monad_idx(self, i):
         return self.monad_mask[:i].sum().item()
@@ -61,8 +61,8 @@ class Things:
         return self.lineages[i][0] + len(self.lineages[i])
 
     def apply_genomes(self):
-        """Monad7190 neurogenetics"""
-        self.nn = nn2(self.genomes, 28, 22)
+        """Monad7216 neurogenetics"""
+        self.nn = nn2(self.genomes, 32, 24)
 
     def mutate(self, i, probability = 0.1, strength = 1.):
         original_genome = self.genomes[i].clone()
@@ -81,8 +81,8 @@ class Things:
 
         # For each monad, the combined effect of sugar particles in their
         # vicinity is calculated.
+        indices, distances, diffs = vicinity(self.positions)
         if self.monad_mask.any() and self.sugar_mask.any():
-            indices, distances, diffs = vicinity(self.positions)
             col2  = (
                 diffs[self.monad_mask][:, self.sugar_mask] /
                 (
@@ -92,27 +92,40 @@ class Things:
         else:
             col2 = torch.zeros((self.Pop, 2))
 
+        # For each monad, the combined effect of other monads in their vicinity
+        # is calculated.
+        if self.Pop > 1:
+            col3  = (
+                diffs[self.monad_mask][:, self.monad_mask] /
+                (
+                    distances[self.monad_mask][:, self.monad_mask] ** 2 + 1e-5
+                ).unsqueeze(2)
+            ).sum(dim = 1) * 10.
+        else:
+            col3 = torch.zeros((self.Pop, 2))
+
         # Gradient sensors
         y_pos = (self.positions[self.monad_mask][:, 1] // grid.cell_size).int()
         x_pos = (self.positions[self.monad_mask][:, 0] // grid.cell_size).int()
         grad_x, grad_y = grid.gradient()
-        col3 = torch.zeros((self.Pop, 9), dtype = torch.float32)
+        col4 = torch.zeros((self.Pop, 9), dtype = torch.float32)
         for channel in range(3):
-            col3[:, channel * 3] = grid.grid[0, channel, y_pos, x_pos]
-            col3[:, channel * 3 + 1] = grad_x[0, channel, y_pos, x_pos]
-            col3[:, channel * 3 + 2] = grad_y[0, channel, y_pos, x_pos]
+            col4[:, channel * 3] = grid.grid[0, channel, y_pos, x_pos]
+            col4[:, channel * 3 + 1] = grad_x[0, channel, y_pos, x_pos]
+            col4[:, channel * 3 + 2] = grad_y[0, channel, y_pos, x_pos]
 
         # Combine the inputs to create the final input tensor
         self.input_vectors = torch.cat(
             (
                 col1,
                 col2,
-                col3 / 255,
+                col3,
+                col4 / 255,
                 (self.energies / 10000).unsqueeze(1),
                 self.memory
             ),
             dim = 1
-        ).view(self.Pop, 28, 1)
+        ).view(self.Pop, 32, 1)
 
     def neural_action(self):
         return self.nn.forward(self.input_vectors)
@@ -145,7 +158,7 @@ class Things:
         if self.monad_mask.any():
             neural_action = self.neural_action().squeeze(2)
             self.movement_tensor[self.monad_mask] = neural_action[:, :2]
-            self.memory = neural_action[:, 2:16]
+            self.memory = neural_action[:, 2:18]
 
         # Fetch sugar movements
         if self.sugar_mask.any():
@@ -158,10 +171,15 @@ class Things:
         self.E = self.energies.sum().item() // 1000
 
         # Calculate and return the force field
-        force_field = torch.zeros_like(grid.grid).repeat(2, 1, 1, 1)
-        y_pos = (self.positions[self.monad_mask][:, 1] // grid.cell_size).int()
-        x_pos = (self.positions[self.monad_mask][:, 0] // grid.cell_size).int()
-        # force_field[..., y_pos, x_pos] += neural_action[:, 16:22].view(self.Pop, 2, 3)
+        force_field = torch.zeros_like(grid.grid).repeat(2, 1, 1, 1).squeeze(1)
+        indices = (self.positions[self.monad_mask] // grid.cell_size).long()
+
+        for i in range(2):  # For each force_field dimension
+            for j in range(3):  # For each channel
+                force_field[i, j][
+                    indices[:, 1], indices[:, 0]
+                ] += neural_action[:, 18:24][:, i * 3 + j]
+
         return force_field
 
     def update_positions(self):
@@ -233,7 +251,7 @@ class Things:
             energy_per_monad = (
                 SUGAR_ENERGY / collision_mask[sugar_idx].sum(dim = 1)
             )
-            self.energies = self.energies.scatter_add(
+            self.energies.scatter_add_(
                 0,
                 monad_idx,
                 energy_per_monad
@@ -299,7 +317,7 @@ class Things:
         self.memory = torch.cat(
             (
                 self.memory,
-                torch.zeros((1, 14))
+                torch.zeros((1, 16))
             ),
             dim = 0
         )

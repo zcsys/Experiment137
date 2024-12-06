@@ -40,7 +40,9 @@
 * Monads controlled by an nn2
 	* Monad6105: Monad with 16 input and 9 output neurons, governed by 2281
 							 parameters
-	* Monad7190: 
+	* Monad7216: Monad with 16 input, 8 output, 16 memory (both input & output),
+							 and 160 hidden neurons, governed by 9144 parameters - LMWS and messaging neurons are removed; ability to sense the resource
+							 gradient and to apply force on the resource grid are added
 * KDTree to calculate sparse distance matrix
 * conv2d to calculate resource diffusion
 * Autogenetic breeding
