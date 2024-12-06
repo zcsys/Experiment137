@@ -45,4 +45,5 @@ def Rules(simul, n):
     # Resource management
     if 2 in n:
         numberOf_sugars_to_create, simul.excess = divmod(simul.excess, 10)
-        simul.things.add_sugars(int(numberOf_sugars_to_create))
+        if numberOf_sugars_to_create > 0:
+            simul.things.add_sugars(int(numberOf_sugars_to_create))

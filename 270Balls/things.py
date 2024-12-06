@@ -44,12 +44,13 @@ class Things:
         self.colors = [THING_TYPES[x]["color"] for x in self.thing_types]
 
         # Initialize genomes and lineages
-        self.genomes = create_initial_genomes(self.Pop, 32, 24)
+        # self.genomes = create_initial_genomes(self.Pop, 32, 25)
+        self.genomes = create_initial_genomes(self.Pop, 16, 9)
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
         # Initialize memory organ
-        self.memory = torch.zeros((self.Pop, 16))
+        # self.memory = torch.zeros((self.Pop, 16))
 
     def from_general_to_monad_idx(self, i):
         return self.monad_mask[:i].sum().item()
@@ -61,8 +62,9 @@ class Things:
         return self.lineages[i][0] + len(self.lineages[i])
 
     def apply_genomes(self):
-        """Monad7216 neurogenetics"""
-        self.nn = nn2(self.genomes, 32, 24)
+        """Monad7B105 neurogenetics"""
+        # self.nn = nn2(self.genomes, 32, 25)
+        self.nn = nn2(self.genomes, 16, 9)
 
     def mutate(self, i, probability = 0.1, strength = 1.):
         original_genome = self.genomes[i].clone()
@@ -122,10 +124,11 @@ class Things:
                 col3,
                 col4 / 255,
                 (self.energies / 10000).unsqueeze(1),
-                self.memory
+                # self.memory
             ),
             dim = 1
-        ).view(self.Pop, 32, 1)
+        # ).view(self.Pop, 16, 1)
+        ).view(self.Pop, 16, 1)
 
     def neural_action(self):
         return self.nn.forward(self.input_vectors)
@@ -154,11 +157,25 @@ class Things:
             self.movement_tensor = torch.tensor([[0., 0.]
                                                  for _ in range(self.N)])
 
+        # Initialize force field
+        force_field = torch.zeros_like(
+            grid.grid
+        ).repeat(2, 1, 1, 1).squeeze(1)
+        indices = (self.positions[self.monad_mask] // grid.cell_size).long()
+
         # Monad actions
         if self.monad_mask.any():
+            # Movement and memory
             neural_action = self.neural_action().squeeze(2)
             self.movement_tensor[self.monad_mask] = neural_action[:, :2]
-            self.memory = neural_action[:, 2:18]
+            # self.memory = neural_action[:, 2:18]
+
+            # Auto-fission
+            random_gen = torch.rand(self.Pop)
+            # to_divide = neural_action[:, 24] > random_gen
+            to_divide = neural_action[:, 8] > random_gen
+            for i in to_divide.nonzero():
+                self.monad_division(i.item())
 
         # Fetch sugar movements
         if self.sugar_mask.any():
@@ -170,15 +187,13 @@ class Things:
         # Update total monad energy
         self.E = self.energies.sum().item() // 1000
 
-        # Calculate and return the force field
-        force_field = torch.zeros_like(grid.grid).repeat(2, 1, 1, 1).squeeze(1)
-        indices = (self.positions[self.monad_mask] // grid.cell_size).long()
-
+        # Apply and return the force field
         for i in range(2):  # For each force_field dimension
             for j in range(3):  # For each channel
                 force_field[i, j][
                     indices[:, 1], indices[:, 0]
-                ] += neural_action[:, 18:24][:, i * 3 + j]
+                # ] += neural_action[:, 18:24][:, i * 3 + j]
+                ] += neural_action[:, 2:8][:, i * 3 + j]
 
         return force_field
 
@@ -314,13 +329,13 @@ class Things:
             ),
             dim = 0
         )
-        self.memory = torch.cat(
+        """self.memory = torch.cat(
             (
                 self.memory,
                 torch.zeros((1, 16))
             ),
             dim = 0
-        )
+        )"""
         self.monad_mask = torch.cat(
             (
                 self.monad_mask,
@@ -368,7 +383,7 @@ class Things:
         for i in indices[::-1]:
             # Remove monad-only attributes
             self.genomes = remove_element(self.genomes, i)
-            self.memory = remove_element(self.memory, i)
+            # self.memory = remove_element(self.memory, i)
             self.energies = remove_element(self.energies, i)
             del self.lineages[i]
 
@@ -504,7 +519,7 @@ class Things:
             'genomes': self.genomes.tolist(),
             'lineages': self.lineages,
             'colors': self.colors,
-            'memory': self.memory.tolist()
+            # 'memory': self.memory.tolist()
         }
 
     def load_state(self, state_file):
@@ -521,7 +536,7 @@ class Things:
         self.genomes = torch.tensor(state['genomes'])
         self.lineages = state['lineages']
         self.colors = state['colors']
-        self.memory = torch.tensor(state['memory'])
+        # self.memory = torch.tensor(state['memory'])
 
         self.monad_mask = torch.tensor(
             [thing_type == "monad" for thing_type in self.thing_types]

@@ -181,7 +181,6 @@ class Simulation:
         self.ui_manager = UIManager(self.screen, MENU_WIDTH, self.paused)
         self.step, self.age, self.epoch, self.period = 0, 0, 0, 0
         self.crr_age_dur = 0
-        self.excess = 0
 
     def update_state(self):
         self.step += 1
@@ -206,8 +205,7 @@ class Simulation:
             'epoch': self.epoch,
             'period': self.period,
             'age_start_time': self.age_start_time,
-            'crr_age_dur': self.crr_age_dur,
-            'excess': self.excess
+            'crr_age_dur': self.crr_age_dur
         }
 
     def load_state(self, state):
@@ -216,7 +214,6 @@ class Simulation:
         self.epoch = state.get('epoch', 0)
         self.period = state.get('period', 0)
         self.crr_age_dur = state.get('crr_age_dur', 0)
-        self.excess = state.get('excess', 0)
 
     def run(self):
         running = True
@@ -242,9 +239,6 @@ class Simulation:
 
             if not self.paused:
                 self.grid.diffuse(force_field)
-                # self.excess += self.grid.diffuse(force_field)
-                # print(self.excess)
-                # self.excess = max(0, self.excess)
                 Rules(self, [0, 1, ])
 
             # Draw the right pane

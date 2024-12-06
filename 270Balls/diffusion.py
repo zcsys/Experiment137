@@ -37,18 +37,21 @@ class Grid:
 
         if saved_state:
             self.grid = torch.tensor(saved_state, dtype = torch.float32)
+            self.fill()
             return
 
         # Initialize with correct dimensions (NCHW format)
         self.grid = torch.zeros((1, feature_dim, self.grid_y, self.grid_x),
                                 dtype = torch.float32)
+        self.fill()
 
-        # Initialize random values
-        for channel in range(3):
-            indices = torch.randint(0, self.grid_x * self.grid_y, (10000,))
-            x_indices = indices % self.grid_x
-            y_indices = indices // self.grid_x
-            self.grid[0, channel, y_indices, x_indices] = 255.
+    def fill(self, V = 7e+6):
+        excess = ((self.grid[0].sum() - V) // 255).int()
+        if excess < 0:
+            channel = torch.randint(0, self.feature_dim, (-excess,))
+            y = torch.randint(0, self.grid_y, (-excess,))
+            x = torch.randint(0, self.grid_x, (-excess,))
+            self.grid[0, channel, y, x] = 255.
 
     def gradient(self):
         self.padded = F.pad(self.grid, (1, 1, 1, 1), mode = "replicate")
@@ -74,31 +77,30 @@ class Grid:
             groups = self.feature_dim
         )
         self.grid += self.diffusion_rate * laplacian
-        return self.apply_forces(force_field) if force_field is not None else 0.
+        if force_field is not None:
+            self.apply_forces(force_field)
+        torch.clamp_(self.grid[0], 0, 255)
+        self.fill()
 
-    def apply_forces(self, force_field):
-        # For x direction
-        x_pos = torch.clamp(force_field[0], min = 0)
-        x_neg = torch.clamp(force_field[0], max = 0)
+    def apply_forces(self, force_field, scale = 0.01):
+        # Get movements
+        x_positive = torch.clamp(force_field[0], min = 0) * self.grid[0] * scale
+        x_negative = torch.clamp(force_field[0], max = 0) * self.grid[0] * scale
+        y_positive = torch.clamp(force_field[1], min = 0) * self.grid[0] * scale
+        y_negative = torch.clamp(force_field[1], max = 0) * self.grid[0] * scale
 
-        # Apply x movements
-        self.grid[0] -= x_pos + x_neg
-        self.grid[0] += x_pos.roll(1, dims = -1)  # Move right
-        self.grid[0] += x_neg.roll(-1, dims = -1) # Move left
+        # Zero out edge movements
+        x_positive[..., -1] = 0
+        x_negative[..., 0] = 0
+        y_positive[:, -1, :] = 0
+        y_negative[:, 0, :] = 0
 
-        # For y direction
-        y_pos = torch.clamp(force_field[1], min = 0)
-        y_neg = torch.clamp(force_field[1], max = 0)
-
-        # Apply y movements
-        self.grid[0] -= y_pos + y_neg
-        self.grid[0] += y_pos.roll(1, dims = -2)  # Move down
-        self.grid[0] += y_neg.roll(-1, dims = -2) # Move up
-
-        # Check mass conservation and return the excess
-        total_before = self.grid[0].sum()
-        self.grid[0] = torch.clamp(self.grid[0], 0, 255)
-        return (total_before - self.grid[0].sum()).item()
+        # Apply movements
+        self.grid[0] -= x_positive + x_negative + y_positive + y_negative
+        self.grid[0] += x_positive.roll(1, dims = -1)  # Right
+        self.grid[0] += x_negative.roll(-1, dims = -1) # Left
+        self.grid[0] += y_positive.roll(1, dims = -2)  # Down
+        self.grid[0] += y_negative.roll(-1, dims = -2) # Up
 
     def draw(self, surface):
         pygame.surfarray.blit_array(
