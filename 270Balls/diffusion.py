@@ -98,7 +98,7 @@ class Grid:
         # Check mass conservation and return the excess
         total_before = self.grid[0].sum()
         self.grid[0] = torch.clamp(self.grid[0], 0, 255)
-        return (self.grid[0].sum() - total_before).item()
+        return (total_before - self.grid[0].sum()).item()
 
     def draw(self, surface):
         pygame.surfarray.blit_array(

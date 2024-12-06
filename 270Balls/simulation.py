@@ -92,7 +92,7 @@ class UIManager:
         self.show_info = False
         self.show_sight = False
         self.show_forces = False
-        self.show_resources = False
+        self.show_resources = True
 
     def handle_event(self, event, simulation):
         if self.save_button.handle_event(event):
@@ -192,7 +192,7 @@ class Simulation:
             self.crr_age_dur = int(current_time - self.age_start_time)
             self.age_start_time = current_time
         if self.age == 80:
-            self.age += 1
+            self.epoch += 1
             self.age = 0
             self.save_simulation()
         if self.epoch == 80:
@@ -241,8 +241,11 @@ class Simulation:
                              self.ui_manager.show_forces)
 
             if not self.paused:
-                self.excess += self.grid.diffuse(force_field)
-                Rules(self, [0, 1, 2])
+                self.grid.diffuse(force_field)
+                # self.excess += self.grid.diffuse(force_field)
+                # print(self.excess)
+                # self.excess = max(0, self.excess)
+                Rules(self, [0, 1, ])
 
             # Draw the right pane
             self.ui_manager.draw(

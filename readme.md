@@ -38,11 +38,12 @@
 			 hidden layer goes back to 1x, finally transformed into the output layer
 			 with tanh
 * Monads controlled by an nn2
-	* Monad6105: Monad with 16 input and 9 output neurons, governed by 2281
-							 parameters
-	* Monad7216: Monad with 16 input, 8 output, 16 memory (both input & output),
-							 and 160 hidden neurons, governed by 9144 parameters - LMWS and messaging neurons are removed; ability to sense the resource
-							 gradient and to apply force on the resource grid are added
+	* Monad6105: Monad with 12 input, 5 output, 4 memory (both input & output),
+							 and 80 hidden neurons, governed by 2281 parameters
+	* Monad7216: Monad with 16 input, 8 output, 16 memory, and 160 hidden neurons,
+							 governed by 9144 parameters - LMWS and messaging neurons are
+							 removed; ability to sense the resource gradient and to apply
+							 force on the resource grid are added
 * KDTree to calculate sparse distance matrix
 * conv2d to calculate resource diffusion
 * Autogenetic breeding

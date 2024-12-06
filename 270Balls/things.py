@@ -452,7 +452,7 @@ class Things:
                     energy_text = f"{int(energy_text / 100) / 10:.1f}k"
                 else:
                     energy_text = f"{int(energy_text / 1000)}k"
-                energy_text = self.font.render(energy_text, True, colors["Z"])
+                energy_text = self.font.render(energy_text, True, colors["RGB"])
                 energy_rect = energy_text.get_rect(
                     center = (
                         int(pos[0].item()),
@@ -468,27 +468,33 @@ class Things:
             try:
                 input_vector_1 = self.input_vectors[idx, 0:2].squeeze(1)
                 input_vector_2 = self.input_vectors[idx, 2:4].squeeze(1)
+                input_vector_3 = self.input_vectors[idx, 4:6].squeeze(1)
                 movement_vector = self.movement_tensor[i]
             except:
                 show_forces = False
             if show_forces and thing_type == "monad":
                 input_vector_1 /= torch.norm(input_vector_1, dim = 0) + 1e-5
                 input_vector_2 /= torch.norm(input_vector_2, dim = 0) + 1e-5
+                input_vector_3 /= torch.norm(input_vector_3, dim = 0) + 1e-5
                 movement_vector /= torch.norm(movement_vector, dim = 0) + 1e-5
 
                 end_pos_1 = pos + 2 * input_vector_1 * self.sizes[i]
                 end_pos_2 = pos + 2 * input_vector_2 * self.sizes[i]
-                end_pos_3 = pos - 2 * movement_vector * self.sizes[i]
+                end_pos_3 = pos + 2 * input_vector_3 * self.sizes[i]
+                end_pos_4 = pos - 2 * movement_vector * self.sizes[i]
 
                 pygame.draw.line(screen, colors["R"], (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_1[0].item()),
                                  int(end_pos_1[1].item())), 1)
-                pygame.draw.line(screen, colors["H"], (int(pos[0].item()),
+                pygame.draw.line(screen, colors["GB"], (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_2[0].item()),
                                  int(end_pos_2[1].item())), 1)
-                pygame.draw.line(screen, colors["Z"], (int(pos[0].item()),
+                pygame.draw.line(screen, colors["RB"], (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_3[0].item()),
-                                 int(end_pos_3[1].item())), 1)
+                                 int(end_pos_2[1].item())), 1)
+                pygame.draw.line(screen, colors["RGB"], (int(pos[0].item()),
+                                 int(pos[1].item())), (int(end_pos_4[0].item()),
+                                 int(end_pos_3[1].item())), 2)
 
     def get_state(self):
         return {
