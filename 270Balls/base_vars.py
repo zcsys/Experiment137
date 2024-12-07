@@ -8,7 +8,7 @@ SIGHT = 60
 N_TARGET = 500
 AUTO_FISSION_THRESHOLD = 10000
 METABOLIC_ACTIVITY_CONSTANT = 0.1
-SUGAR_ENERGY = 1000
+UNIT_ENERGY = 1000
 SYSTEM_HEAT = 11
 
 colors = {
@@ -43,13 +43,29 @@ colors = {
 
 THING_TYPES = {
     "monad": {
-        "color": colors["B"],
+        "color": colors["rgb"],
         "size": 5,
         "initial_energy": 1000.,
         "overlap": False
     },
-    "sugar": {
+    "energyUnit": {
         "color": colors["G"],
+        "size": 1,
+        "overlap": True
+    },
+    "memoryUnit": {
+        "color": colors["B"],
+        "size": 10,
+        "overlap": True
+    },
+    "monad2": {
+        "color": colors["rgb"],
+        "size": 5,
+        "initial_energy": 1000.,
+        "overlap": False
+    },
+    "energyUnit2": {
+        "color": colors["R"],
         "size": 1,
         "overlap": True
     }

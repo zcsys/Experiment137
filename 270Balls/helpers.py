@@ -57,7 +57,7 @@ def hex_to_rgb(hex_color):
     hex_color = hex_color.lstrip('#')
     return tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
 
-def get_color_by_genome(genome, scale = 10., base_color = (128, 128, 128)):
+def get_color_by_genome(genome, scale = 1., base_color = (128, 128, 128)):
     n = len(genome) // 3
     return (
         max(min(base_color[0] + int(scale * genome[:n].sum().item()),

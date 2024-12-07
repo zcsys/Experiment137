@@ -22,18 +22,22 @@ def Rules(simul, n):
         if simul.period > 0 or simul.epoch >= 20:
             N_TARGET = 100
             SYSTEM_HEAT = 3
+            AUTO_FISSION_THRESHOLD = 20000
         elif simul.epoch >= 15:
             N_TARGET = 200
             SYSTEM_HEAT = 5
+            AUTO_FISSION_THRESHOLD = 17500
         elif simul.epoch >= 10:
             N_TARGET = 300
             SYSTEM_HEAT = 7
+            AUTO_FISSION_THRESHOLD = 15000
         elif simul.epoch >= 5:
             N_TARGET = 400
             SYSTEM_HEAT = 9
+            AUTO_FISSION_THRESHOLD = 12500
 
         if simul.things.N < N_TARGET:
-            simul.things.add_sugars(N_TARGET - simul.things.N)
+            simul.things.add_energyUnits(N_TARGET - simul.things.N)
 
         if simul.things.E <= 100:
             METABOLIC_ACTIVITY_CONSTANT = 0.1
@@ -44,6 +48,6 @@ def Rules(simul, n):
 
     # Resource management
     if 2 in n:
-        numberOf_sugars_to_create, simul.excess = divmod(simul.excess, 10)
-        if numberOf_sugars_to_create > 0:
-            simul.things.add_sugars(int(numberOf_sugars_to_create))
+        numberOf_energyUnits_to_create, simul.excess = divmod(simul.excess, 10)
+        if numberOf_energyUnits_to_create > 0:
+            simul.things.add_energyUnits(int(numberOf_energyUnits_to_create))

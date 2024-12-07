@@ -29,8 +29,8 @@ class Things:
         self.monad_mask = torch.tensor(
             [thing_type == "monad" for thing_type in self.thing_types]
         )
-        self.sugar_mask = torch.tensor(
-            [thing_type == "sugar" for thing_type in self.thing_types]
+        self.energy_mask = torch.tensor(
+            [thing_type == "energyUnit" for thing_type in self.thing_types]
         )
 
         # Initialize state vars
@@ -44,7 +44,6 @@ class Things:
         self.colors = [THING_TYPES[x]["color"] for x in self.thing_types]
 
         # Initialize genomes and lineages
-        # self.genomes = create_initial_genomes(self.Pop, 32, 25)
         self.genomes = create_initial_genomes(self.Pop, 16, 9)
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
@@ -77,16 +76,16 @@ class Things:
         else:
             col1 = torch.zeros((self.Pop, 2))
 
-        # For each monad, the combined effect of sugar particles in their
+        # For each monad, the combined effect of energy particles in their
         # vicinity is calculated.
         indices, distances, diffs = vicinity(self.positions)
-        if self.monad_mask.any() and self.sugar_mask.any():
+        if self.monad_mask.any() and self.energy_mask.any():
             col2  = (
-                diffs[self.monad_mask][:, self.sugar_mask] /
+                diffs[self.monad_mask][:, self.energy_mask] /
                 (
-                    distances[self.monad_mask][:, self.sugar_mask] ** 2 + 1e-5
+                    distances[self.monad_mask][:, self.energy_mask] ** 2 + 1e-5
                 ).unsqueeze(2)
-            ).sum(dim = 1) * 6.
+            ).sum(dim = 1)
         else:
             col2 = torch.zeros((self.Pop, 2))
 
@@ -98,7 +97,7 @@ class Things:
                 (
                     distances[self.monad_mask][:, self.monad_mask] ** 2 + 1e-5
                 ).unsqueeze(2)
-            ).sum(dim = 1) * 10.
+            ).sum(dim = 1)
         else:
             col3 = torch.zeros((self.Pop, 2))
 
@@ -128,18 +127,18 @@ class Things:
         return self.nn.forward(self.input_vectors)
 
     def random_action(self):
-        numberOf_sugars = self.sugar_mask.sum().item()
+        numberOf_energyUnits = self.energy_mask.sum().item()
         if SYSTEM_HEAT == 0:
-            return torch.tensor([[0, 0] for _ in range(numberOf_sugars)],
+            return torch.tensor([[0, 0] for _ in range(numberOf_energyUnits)],
                                 dtype = torch.float32)
         values = (torch.tensor(list(range(SYSTEM_HEAT)), dtype = torch.float32)
                   - (SYSTEM_HEAT - 1) / 2)
         weights = torch.ones(SYSTEM_HEAT, dtype = torch.float32)
         indices = torch.multinomial(
             weights,
-            numberOf_sugars * 2,
+            numberOf_energyUnits * 2,
             replacement = True
-        ).view(numberOf_sugars, 2)
+        ).view(numberOf_energyUnits, 2)
         return values[indices]
 
     def final_action(self, grid):
@@ -169,9 +168,9 @@ class Things:
             for i in to_divide.nonzero():
                 self.monad_division(i.item())
 
-        # Fetch sugar movements
-        if self.sugar_mask.any():
-            self.movement_tensor[self.sugar_mask] = self.random_action()
+        # Fetch energyUnit movements
+        if self.energy_mask.any():
+            self.movement_tensor[self.energy_mask] = self.random_action()
 
         # Apply movements
         self.update_positions()
@@ -244,26 +243,26 @@ class Things:
         )
         self.energies -= actual_magnitudes
 
-        # Sugar-monad collisions
-        sugar_monad_dist = distances[self.sugar_mask][:, self.monad_mask]
+        # EnergyUnit-monad collisions
+        energy_monad_dist = distances[self.energy_mask][:, self.monad_mask]
         collision_mask = (
-            (0. < sugar_monad_dist) &
-            (sugar_monad_dist < (THING_TYPES["monad"]["size"] +
-                                 THING_TYPES["sugar"]["size"]))
+            (0. < energy_monad_dist) &
+            (energy_monad_dist < (THING_TYPES["monad"]["size"] +
+                                 THING_TYPES["energyUnit"]["size"]))
         )
 
         if collision_mask.any():
-            sugar_idx, monad_idx = collision_mask.nonzero(as_tuple = True)
+            energy_idx, monad_idx = collision_mask.nonzero(as_tuple = True)
             energy_per_monad = (
-                SUGAR_ENERGY / collision_mask[sugar_idx].sum(dim = 1)
+                UNIT_ENERGY / collision_mask[energy_idx].sum(dim = 1)
             )
             self.energies.scatter_add_(
                 0,
                 monad_idx,
                 energy_per_monad
             )
-            sugar_idx_general = torch.where(self.sugar_mask)[0][sugar_idx]
-            self.remove_sugars(unique(sugar_idx_general.tolist()))
+            energy_idx_general = torch.where(self.energy_mask)[0][energy_idx]
+            self.remove_energyUnits(unique(energy_idx_general.tolist()))
 
     def monad_division(self, i):
         # Set out main attributes and see if division is possible
@@ -272,7 +271,6 @@ class Things:
         if (initial_energy <
             torch.tensor(THING_TYPES[thing_type]["initial_energy"])):
             return 0
-        # print("Monad division at energy", int(initial_energy.item()))
         size = THING_TYPES[thing_type]["size"]
         idx = self.from_monad_to_general_idx(i)
         x, y = tuple(self.positions[idx].tolist())
@@ -327,9 +325,9 @@ class Things:
             ),
             dim = 0
         )
-        self.sugar_mask = torch.cat(
+        self.energy_mask = torch.cat(
             (
-                self.sugar_mask,
+                self.energy_mask,
                 torch.tensor([False])
             ),
             dim = 0
@@ -379,7 +377,7 @@ class Things:
             self.sizes = remove_element(self.sizes, idx)
             self.positions = remove_element(self.positions, idx)
             self.monad_mask = remove_element(self.monad_mask, idx)
-            self.sugar_mask = remove_element(self.sugar_mask, idx)
+            self.energy_mask = remove_element(self.energy_mask, idx)
 
         # Update collective state vars
         self.N -= len(indices)
@@ -387,12 +385,12 @@ class Things:
 
         self.apply_genomes()
 
-    def add_sugars(self, N):
+    def add_energyUnits(self, N):
         for _ in range(N):
-            self.thing_types.append("sugar")
-            self.colors.append(THING_TYPES["sugar"]["color"])
+            self.thing_types.append("energyUnit")
+            self.colors.append(THING_TYPES["energyUnit"]["color"])
         self.sizes, self.positions = add_positions(
-            torch.tensor([THING_TYPES["sugar"]["size"] for _ in range(N)]),
+            torch.tensor([THING_TYPES["energyUnit"]["size"] for _ in range(N)]),
             self.sizes,
             self.positions
         )
@@ -404,15 +402,15 @@ class Things:
             ),
             dim = 0
         )
-        self.sugar_mask = torch.cat(
+        self.energy_mask = torch.cat(
             (
-                self.sugar_mask,
+                self.energy_mask,
                 torch.ones(N, dtype = torch.bool)
             ),
             dim = 0
         )
 
-    def remove_sugars(self, indices):
+    def remove_energyUnits(self, indices):
         for i in indices[::-1]:
             del self.thing_types[i]
             del self.colors[i]
@@ -424,7 +422,7 @@ class Things:
         self.sizes = self.sizes[mask]
         self.positions = self.positions[mask]
         self.monad_mask = self.monad_mask[mask]
-        self.sugar_mask = self.sugar_mask[mask]
+        self.energy_mask = self.energy_mask[mask]
 
     def draw(self, screen, show_info = True, show_sight = False,
              show_forces = True, show_communication = True):
@@ -434,7 +432,7 @@ class Things:
             size = self.sizes[i].item()
             idx = self.from_general_to_monad_idx(i)
 
-            if thing_type == "sugar":
+            if thing_type == "energyUnit":
                 pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
                                    int(pos[1].item())), size)
             elif thing_type == "monad":
@@ -522,8 +520,8 @@ class Things:
         self.monad_mask = torch.tensor(
             [thing_type == "monad" for thing_type in self.thing_types]
         )
-        self.sugar_mask = torch.tensor(
-            [thing_type == "sugar" for thing_type in self.thing_types]
+        self.energy_mask = torch.tensor(
+            [thing_type == "energyUnit" for thing_type in self.thing_types]
         )
         self.Pop = self.monad_mask.sum().item()
         self.E = self.energies.sum().item() // 1000

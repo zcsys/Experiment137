@@ -44,7 +44,8 @@
 							  neurons, governed by 9177 parameters - LMWS and messaging
 							  neurons are removed; ability to sense the resource gradient and
 								to apply force on the resource grid are added
-  * Monad7B105: Monad7A217 minus memory (down to 2k parameters)
+  * Monad7B105: Monad7A217 minus memory (down to 2k parameters; faster not
+								step-wise but learning-wise)
 
 * KDTree to calculate sparse distance matrix
 * conv2d to calculate resource diffusion
