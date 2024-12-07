@@ -5,6 +5,7 @@ import struct
 import base64
 import numpy as np
 from base_vars import *
+from scipy.spatial import KDTree
 
 def unique(x):
     """Gets a list and returns its unique values as a list in same order"""
@@ -56,15 +57,15 @@ def hex_to_rgb(hex_color):
     hex_color = hex_color.lstrip('#')
     return tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
 
-def get_color_by_genome(genome, scale = 100., base_color = (160, 160, 160)):
+def get_color_by_genome(genome, scale = 1., base_color = (128, 128, 128)):
     n = len(genome) // 3
     return (
         max(min(base_color[0] + int(scale * genome[:n].sum().item()),
-            255), 64),
+            255), 0),
         max(min(base_color[1] + int(scale * genome[n:2 * n].sum().item()),
-            255), 64),
+            255), 0),
         max(min(base_color[2] + int(scale * genome[2 * n:3 * n].sum().item()),
-            255), 64)
+            255), 0)
     )
 
 def reverse_color(color):
@@ -72,12 +73,8 @@ def reverse_color(color):
     return 255 - r, 255 - g, 255 - b
 
 def float_msg_to_str(float_msg):
-    packed_bytes = struct.pack('>ff', np.float32(float_msg[0]),
-                               np.float32(float_msg[1]))
-    return base64.b64encode(packed_bytes).decode('ascii')[:4]
-
-def get_box(positions):
-    return (positions[:, 0] // 120 + positions[:, 1] // 120 * 16).int()
+    packed_bytes = struct.pack('ff', float_msg[0], float_msg[1])
+    return base64.b64encode(packed_bytes).decode('ascii')
 
 def flattened_identity_matrix(N, x = None):
     lt = x if x else N
@@ -93,3 +90,25 @@ def create_initial_genomes(num_monads, num_input, num_output):
         [0 for _ in range((num_input + 1) * num_output)],
         dtype = torch.float32
     ).repeat(num_monads, 1)
+
+def vicinity(source_positions, radius = SIGHT, target_positions = None):
+    source_tree = KDTree(source_positions.numpy())
+    if target_positions:
+        target_tree = KDTree(target_positions.numpy())
+    else:
+        target_tree, target_positions = source_tree, source_positions
+
+    distances = source_tree.sparse_distance_matrix(target_tree, radius, p = 2.0)
+    rows, cols = distances.nonzero()
+
+    vector_diff = torch.zeros(
+        (len(source_positions), len(target_positions), 2),
+        dtype = torch.float32
+    )
+    vector_diff[rows, cols] = target_positions[cols] - source_positions[rows]
+
+    return (
+        torch.from_numpy(np.stack([rows, cols])),
+        torch.tensor(distances.toarray(), dtype = torch.float32),
+        vector_diff
+    )

@@ -29,40 +29,24 @@ class Things:
         self.monad_mask = torch.tensor(
             [thing_type == "monad" for thing_type in self.thing_types]
         )
-        self.sugar_mask = torch.tensor(
-            [thing_type == "sugar" for thing_type in self.thing_types]
+        self.energy_mask = torch.tensor(
+            [thing_type == "energyUnit" for thing_type in self.thing_types]
         )
 
         # Initialize state vars
         self.N = len(self.thing_types)
         self.Pop = self.monad_mask.sum().item()
         self.energies = torch.tensor(
-            [THING_TYPES[thing_type]["initial_energy"]
-            for thing_type in thing_types]
+            [THING_TYPES["monad"]["initial_energy"]
+            for _ in range(self.Pop)]
         )
-        self.E = self.energies[self.monad_mask].sum().item() // 1000
+        self.E = self.energies.sum().item() // 1000
         self.colors = [THING_TYPES[x]["color"] for x in self.thing_types]
-        """self.boxes = get_box(self.positions)
-        self.box_content = {i: (self.boxes == i).nonzero().squeeze()
-                            for i in range(1, 145)}"""
 
         # Initialize genomes and lineages
         self.genomes = create_initial_genomes(self.Pop, 16, 9)
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
-
-        # Initialize monad messages
-        self.messages = torch.zeros((self.Pop, 2))
-
-        # Initialize memory organ
-        self.memory = torch.zeros((self.Pop, 4))
-
-        # Initialize sensory input data
-        self.last_movement_was_successful = torch.ones(
-            self.Pop,
-            dtype = torch.bool
-        ).unsqueeze(1)
-        self.incoming_messages = torch.zeros((self.Pop, 4))
 
     def from_general_to_monad_idx(self, i):
         return self.monad_mask[:i].sum().item()
@@ -74,7 +58,7 @@ class Things:
         return self.lineages[i][0] + len(self.lineages[i])
 
     def apply_genomes(self):
-        """Monad653 neurogenetics"""
+        """Monad7B105 neurogenetics"""
         self.nn = nn2(self.genomes, 16, 9)
 
     def mutate(self, i, probability = 0.1, strength = 1.):
@@ -84,39 +68,57 @@ class Things:
         return original_genome + mutation_mask * mutations * strength
 
     def sensory_inputs(self, grid):
-        # For each non-sugar, there's a vector pointing towards the center of
-        # the universe, with increasing magnitude as the thing gets closer to
-        # edges. This is the first input vector for each monad.
+        # For each monad, there's a vector pointing towards the center of the
+        # universe, with increasing magnitude as the thing gets closer to edges.
         if self.monad_mask.any():
             midpoint = torch.tensor([SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2])
             col1 = (1 - self.positions[self.monad_mask] / midpoint)
         else:
             col1 = torch.zeros((self.Pop, 2))
 
-        # For each monad, the combined effect of sugar particles in their
-        # vicinity is calculated. This is the second input vector for monads.
-        if self.monad_mask.any() and self.sugar_mask.any():
-            self.diffs = (self.positions[self.sugar_mask].unsqueeze(0) -
-                          self.positions[self.monad_mask].unsqueeze(1))
-            distances = torch.norm(self.diffs, dim = 2)
-            col2 = torch.where(
-                (distances <= SIGHT).unsqueeze(2),
-                self.diffs / (distances.unsqueeze(2) + 1e-7) ** 2,
-                torch.tensor([0., 0.])
-            ).sum(dim = 1) * 6.
+        # For each monad, the combined effect of energy particles in their
+        # vicinity is calculated.
+        indices, distances, diffs = vicinity(self.positions)
+        if self.monad_mask.any() and self.energy_mask.any():
+            col2  = (
+                diffs[self.monad_mask][:, self.energy_mask] /
+                (
+                    distances[self.monad_mask][:, self.energy_mask] ** 2 + 1e-5
+                ).unsqueeze(2)
+            ).sum(dim = 1)
         else:
             col2 = torch.zeros((self.Pop, 2))
+
+        # For each monad, the combined effect of other monads in their vicinity
+        # is calculated.
+        if self.Pop > 1:
+            col3  = (
+                diffs[self.monad_mask][:, self.monad_mask] /
+                (
+                    distances[self.monad_mask][:, self.monad_mask] ** 2 + 1e-5
+                ).unsqueeze(2)
+            ).sum(dim = 1)
+        else:
+            col3 = torch.zeros((self.Pop, 2))
+
+        # Gradient sensors
+        y_pos = (self.positions[self.monad_mask][:, 1] // grid.cell_size).int()
+        x_pos = (self.positions[self.monad_mask][:, 0] // grid.cell_size).int()
+        grad_x, grad_y = grid.gradient()
+        col4 = torch.zeros((self.Pop, 9), dtype = torch.float32)
+        for channel in range(3):
+            col4[:, channel * 3] = grid.grid[0, channel, y_pos, x_pos]
+            col4[:, channel * 3 + 1] = grad_x[0, channel, y_pos, x_pos]
+            col4[:, channel * 3 + 2] = grad_y[0, channel, y_pos, x_pos]
 
         # Combine the inputs to create the final input tensor
         self.input_vectors = torch.cat(
             (
                 col1,
                 col2,
-                self.last_movement_was_successful,
-                (self.energies[self.monad_mask] / 10000).unsqueeze(1),
-                self.incoming_messages,
-                self.messages,
-                self.memory
+                col3,
+                col4 / 255,
+                (self.energies / 10000).unsqueeze(1)
             ),
             dim = 1
         ).view(self.Pop, 16, 1)
@@ -125,18 +127,18 @@ class Things:
         return self.nn.forward(self.input_vectors)
 
     def random_action(self):
-        numberOf_sugars = self.sugar_mask.sum().item()
+        numberOf_energyUnits = self.energy_mask.sum().item()
         if SYSTEM_HEAT == 0:
-            return torch.tensor([[0, 0] for _ in range(numberOf_sugars)],
+            return torch.tensor([[0, 0] for _ in range(numberOf_energyUnits)],
                                 dtype = torch.float32)
         values = (torch.tensor(list(range(SYSTEM_HEAT)), dtype = torch.float32)
                   - (SYSTEM_HEAT - 1) / 2)
         weights = torch.ones(SYSTEM_HEAT, dtype = torch.float32)
         indices = torch.multinomial(
             weights,
-            numberOf_sugars * 2,
+            numberOf_energyUnits * 2,
             replacement = True
-        ).view(numberOf_sugars, 2)
+        ).view(numberOf_energyUnits, 2)
         return values[indices]
 
     def final_action(self, grid):
@@ -148,40 +150,47 @@ class Things:
             self.movement_tensor = torch.tensor([[0., 0.]
                                                  for _ in range(self.N)])
 
+        # Initialize force field
+        force_field = torch.zeros_like(
+            grid.grid
+        ).repeat(2, 1, 1, 1).squeeze(1)
+        indices = (self.positions[self.monad_mask] // grid.cell_size).long()
+
         # Monad actions
         if self.monad_mask.any():
-            # Get output tensor
+            # Movement and memory
             neural_action = self.neural_action().squeeze(2)
-
-            # Fetch monad movements
             self.movement_tensor[self.monad_mask] = neural_action[:, :2]
 
-            # Broadcast messages
-            self.messages = neural_action[:, 3:5]
-
-            # Update memory
-            self.memory = neural_action[:, 5:9]
-
-            # Apply fissions
+            # Auto-fission
             random_gen = torch.rand(self.Pop)
-            to_divide = neural_action[:, 2] > random_gen
+            to_divide = neural_action[:, 8] > random_gen
             for i in to_divide.nonzero():
-                self.monad_division(self.from_monad_to_general_idx(i))
+                self.monad_division(i.item())
 
-        # Fetch sugar movements
-        if self.sugar_mask.any():
-            self.movement_tensor[self.sugar_mask] = self.random_action()
+        # Fetch energyUnit movements
+        if self.energy_mask.any():
+            self.movement_tensor[self.energy_mask] = self.random_action()
 
         # Apply movements
         self.update_positions()
 
         # Update total monad energy
-        self.E = self.energies[self.monad_mask].sum().item() // 1000
+        self.E = self.energies.sum().item() // 1000
+
+        # Apply and return the force field
+        for i in range(2): # For vertical and horizontal axes
+            for j in range(3): # For each channel
+                force_field[i, j][
+                    indices[:, 1], indices[:, 0]
+                ] += neural_action[:, 2:8][:, i * 3 + j]
+
+        return force_field
 
     def update_positions(self):
         provisional_positions = self.positions + self.movement_tensor
 
-        # Prevent moving beyond the edges
+        # Apply rigid boundaries
         provisional_positions = torch.stack(
             [
                 torch.clamp(
@@ -198,24 +207,26 @@ class Things:
             dim = 1
         )
 
-        # Detect collisions
-        diffs = provisional_positions.unsqueeze(1) - self.positions.unsqueeze(0)
-        distances = torch.norm(diffs, dim = 2)
-        size_sums = self.sizes.unsqueeze(1) + self.sizes.unsqueeze(0)
-        overlap_mask = (distances < size_sums).fill_diagonal_(False)
-        monad_vs_monad = (
-            self.monad_mask.unsqueeze(1) &
-            self.monad_mask.unsqueeze(0) &
-            overlap_mask
+        # Get neighboring things
+        indices, distances, diffs = vicinity(provisional_positions)
+
+        # Monad-monad collisions
+        monad_monad_dist = distances[self.monad_mask][:, self.monad_mask]
+        collision_mask = (
+            (0. < monad_monad_dist) &
+            (monad_monad_dist < THING_TYPES["monad"]["size"] * 2)
         ).any(dim = 1)
 
-        # Allow movement only if there's enough energy or if type is 'sugar'
-        movement_magnitudes = torch.diag(distances)
-        final_apply_mask = (
-            (self.energies > movement_magnitudes) &
-            ~monad_vs_monad |
-            self.sugar_mask
+        # Check energy levels
+        movement_magnitudes = torch.norm(
+            self.movement_tensor[self.monad_mask],
+            dim = 1
         )
+        enough_energy = self.energies >= movement_magnitudes
+
+        # Construct final apply mask
+        final_apply_mask = torch.ones((self.N), dtype = torch.bool)
+        final_apply_mask[self.monad_mask] = enough_energy & ~collision_mask
 
         # Apply the movements
         self.positions = torch.where(
@@ -224,78 +235,45 @@ class Things:
             self.positions
         )
 
-        # Update the LMWS input neuron
-        self.last_movement_was_successful = final_apply_mask[
-            self.monad_mask
-        ].unsqueeze(1)
-
         # Reduce energies from monads
         actual_magnitudes = torch.where(
-            final_apply_mask & self.monad_mask,
+            final_apply_mask[self.monad_mask],
             movement_magnitudes,
-            torch.tensor(0.)
+            torch.tensor([0.])
         )
         self.energies -= actual_magnitudes
 
-        # Handle sugar vs monad collisions
-        sugar_vs_monad = (
-            overlap_mask &
-            self.sugar_mask.unsqueeze(1) &
-            self.monad_mask.unsqueeze(0)
+        # EnergyUnit-monad collisions
+        energy_monad_dist = distances[self.energy_mask][:, self.monad_mask]
+        collision_mask = (
+            (0. < energy_monad_dist) &
+            (energy_monad_dist < (THING_TYPES["monad"]["size"] +
+                                 THING_TYPES["energyUnit"]["size"]))
         )
 
-        if sugar_vs_monad.any():
-            sugar_idx, monad_idx = sugar_vs_monad.nonzero(as_tuple = True)
-            energy_per_non_sugar = (
-                SUGAR_ENERGY / sugar_vs_monad.sum(dim = 1)[sugar_idx]
+        if collision_mask.any():
+            energy_idx, monad_idx = collision_mask.nonzero(as_tuple = True)
+            energy_per_monad = (
+                UNIT_ENERGY / collision_mask[energy_idx].sum(dim = 1)
             )
-            self.energies = self.energies.scatter_add(
+            self.energies.scatter_add_(
                 0,
                 monad_idx,
-                energy_per_non_sugar
+                energy_per_monad
             )
-            self.remove_sugars(unique(sugar_idx.tolist()))
-
-        # Deliver messages
-        m_pos = self.positions[self.monad_mask]
-        m_diffs = m_pos.unsqueeze(0) - m_pos.unsqueeze(1)
-        m_dist = torch.norm(m_diffs, dim = 2)
-        in_sight_mask = (m_dist < SIGHT).fill_diagonal_(False).int()
-
-        self.incoming_messages = torch.zeros((self.Pop, 4))
-
-        if in_sight_mask.any():
-            self.recipients = torch.unique(in_sight_mask.nonzero())
-            self.first_senders = torch.argmax(
-                in_sight_mask[self.recipients], dim = 1
-            )
-            direction = (
-                (
-                    m_diffs[self.recipients, self.first_senders] /
-                    (
-                        m_dist[self.recipients, self.first_senders].unsqueeze(1)
-                        + 1e-7
-                    )
-                )
-            )
-            self.incoming_messages[self.recipients] = torch.cat(
-                (
-                    direction,
-                    self.messages[self.first_senders],
-                ),
-                dim = 1
-            )
+            energy_idx_general = torch.where(self.energy_mask)[0][energy_idx]
+            self.remove_energyUnits(unique(energy_idx_general.tolist()))
 
     def monad_division(self, i):
         # Set out main attributes and see if division is possible
-        thing_type = self.thing_types[i]
+        thing_type = "monad"
         initial_energy = self.energies[i] / 2
         if (initial_energy <
             torch.tensor(THING_TYPES[thing_type]["initial_energy"])):
             return 0
-        # print("Monad division at energy", int(initial_energy.item()))
         size = THING_TYPES[thing_type]["size"]
-        x, y = tuple(self.positions[i].tolist())
+        idx = self.from_monad_to_general_idx(i)
+        x, y = tuple(self.positions[idx].tolist())
         angle = random.random() * 2 * math.pi
         new_position = torch.tensor([
             x + math.cos(angle) * (size + 1) * 2,
@@ -325,15 +303,6 @@ class Things:
             ),
             dim = 0
         )
-        """self.boxes = torch.cat(
-            (
-                self.boxes,
-                get_box(new_position.unsqueeze(0))
-            ),
-            dim = 0
-        )
-        self.box_content = {i: (self.boxes == i).nonzero().squeeze()
-                            for i in range(1, 145)}"""
         self.energies[i] -= initial_energy
         self.energies = torch.cat(
             (
@@ -349,36 +318,6 @@ class Things:
             ),
             dim = 0
         )
-        self.last_movement_was_successful = torch.cat(
-            (
-                self.last_movement_was_successful,
-                torch.tensor([[True]])
-            ),
-            dim = 0
-        )
-        self.messages = torch.cat(
-            (
-                self.messages,
-                torch.zeros((1, 2))
-            ),
-            dim = 0
-        )
-        self.incoming_messages = torch.cat(
-            (
-                self.incoming_messages,
-                torch.zeros((1, 4))
-            ),
-            dim = 0
-        )
-        self.memory = torch.cat(
-            (
-                self.memory,
-                torch.zeros((1, 4))
-            ),
-            dim = 0
-        )
-
-        # Update state vars
         self.monad_mask = torch.cat(
             (
                 self.monad_mask,
@@ -386,9 +325,9 @@ class Things:
             ),
             dim = 0
         )
-        self.sugar_mask = torch.cat(
+        self.energy_mask = torch.cat(
             (
-                self.sugar_mask,
+                self.energy_mask,
                 torch.tensor([False])
             ),
             dim = 0
@@ -425,31 +364,20 @@ class Things:
     def monad_death(self, indices):
         for i in indices[::-1]:
             # Remove monad-only attributes
-            self.last_movement_was_successful = remove_element(
-                self.last_movement_was_successful, i
-            )
             self.genomes = remove_element(self.genomes, i)
-            self.messages = remove_element(self.messages, i)
-            self.incoming_messages = remove_element(self.incoming_messages, i)
-            self.memory = remove_element(self.memory, i)
+            self.energies = remove_element(self.energies, i)
             del self.lineages[i]
 
             # Get general index to remove universal attributes
             idx = self.from_monad_to_general_idx(i)
 
-            # Update main attributes
+            # Update main attributes and state vars
             del self.thing_types[idx]
             del self.colors[idx]
             self.sizes = remove_element(self.sizes, idx)
             self.positions = remove_element(self.positions, idx)
-            self.energies = remove_element(self.energies, idx)
-            """self.boxes = remove_element(self.boxes, idx)
-            self.box_content = {i: (self.boxes == i).nonzero().squeeze()
-                                for i in range(1, 145)}"""
-
-            # Update state vars
             self.monad_mask = remove_element(self.monad_mask, idx)
-            self.sugar_mask = remove_element(self.sugar_mask, idx)
+            self.energy_mask = remove_element(self.energy_mask, idx)
 
         # Update collective state vars
         self.N -= len(indices)
@@ -457,140 +385,16 @@ class Things:
 
         self.apply_genomes()
 
-    def monad_autogenesis_v1(self, idx):
-        # Fetch basic properties
-        thing_type = "monad"
-        initial_energy = torch.tensor(THING_TYPES[thing_type]["initial_energy"])
-        size = torch.tensor([THING_TYPES[thing_type]["size"]])
-
-        # Set basic properties
-        self.thing_types.append(thing_type)
-        self.sizes, self.positions = add_positions(
-            size,
-            self.sizes,
-            self.positions
-        )
-        """self.boxes = torch.cat(
-            (
-                self.boxes,
-                get_box(new_position.unsqueeze(0))
-            ),
-            dim = 0
-        )
-        self.box_content = {i: (self.boxes == i).nonzero().squeeze()
-                            for i in range(1, 145)}"""
-        self.energies = torch.cat(
-            (
-                self.energies,
-                initial_energy.unsqueeze(0)
-            ),
-            dim = 0
-        )
-        self.movement_tensor = torch.cat(
-            (
-                self.movement_tensor,
-                torch.tensor([[0., 0.]])
-            ),
-            dim = 0
-        )
-        self.last_movement_was_successful = torch.cat(
-            (
-                self.last_movement_was_successful,
-                torch.tensor([[True]])
-            ),
-            dim = 0
-        )
-        self.messages = torch.cat(
-            (
-                self.messages,
-                torch.zeros((1, 2))
-            ),
-            dim = 0
-        )
-        self.incoming_messages = torch.cat(
-            (
-                self.incoming_messages,
-                torch.zeros((1, 4))
-            ),
-            dim = 0
-        )
-        self.memory = torch.cat(
-            (
-                self.memory,
-                torch.zeros((1, 4))
-            ),
-            dim = 0
-        )
-
-        # Update state vars
-        self.monad_mask = torch.cat(
-            (
-                self.monad_mask,
-                torch.tensor([True])
-            ),
-            dim = 0
-        )
-        self.sugar_mask = torch.cat(
-            (
-                self.sugar_mask,
-                torch.tensor([False])
-            ),
-            dim = 0
-        )
-        self.N += 1
-        self.Pop += 1
-
-        # Mutate the old genome & apply the new genome
-        genome = self.mutate(idx)
-        self.genomes = torch.cat(
-            (
-                self.genomes,
-                genome.unsqueeze(0)
-            ),
-            dim = 0
-        )
-        self.apply_genomes()
-        if genome is self.genomes[idx]:
-            self.lineages.append(self.lineages[idx])
-        else:
-            new_lineage = self.lineages[idx] + [0]
-            while True:
-                new_lineage[-1] += 1
-                if new_lineage not in self.lineages:
-                    break
-            self.lineages.append(new_lineage)
-            # print(new_lineage)
-        self.colors.append(get_color_by_genome(genome))
-
-        return 1
-
-    def add_sugars(self, N):
+    def add_energyUnits(self, N):
         for _ in range(N):
-            self.thing_types.append("sugar")
-            self.colors.append(THING_TYPES["sugar"]["color"])
+            self.thing_types.append("energyUnit")
+            self.colors.append(THING_TYPES["energyUnit"]["color"])
         self.sizes, self.positions = add_positions(
-            torch.tensor([THING_TYPES["sugar"]["size"] for _ in range(N)]),
+            torch.tensor([THING_TYPES["energyUnit"]["size"] for _ in range(N)]),
             self.sizes,
             self.positions
         )
-        """self.boxes = torch.cat(
-            (
-                self.boxes,
-                get_box(self.positions[:N])
-            ),
-            dim = 0
-        )
-        self.box_content = {i: (self.boxes == i).nonzero().squeeze()
-                            for i in range(1, 145)}"""
         self.N += N
-        self.energies = torch.cat(
-            (
-                self.energies,
-                torch.tensor([THING_TYPES["sugar"]["initial_energy"]
-                              for _ in range(N)])
-            ),
-            dim = 0
-        )
         self.monad_mask = torch.cat(
             (
                 self.monad_mask,
@@ -598,15 +402,15 @@ class Things:
             ),
             dim = 0
         )
-        self.sugar_mask = torch.cat(
+        self.energy_mask = torch.cat(
             (
-                self.sugar_mask,
+                self.energy_mask,
                 torch.ones(N, dtype = torch.bool)
             ),
             dim = 0
         )
 
-    def remove_sugars(self, indices):
+    def remove_energyUnits(self, indices):
         for i in indices[::-1]:
             del self.thing_types[i]
             del self.colors[i]
@@ -617,15 +421,8 @@ class Things:
 
         self.sizes = self.sizes[mask]
         self.positions = self.positions[mask]
-        self.energies = self.energies[mask]
-        """self.boxes = self.boxes[mask]
-        # Updating box contents to be optimized
-        self.box_content = {i: (self.boxes == i).nonzero().squeeze()
-                            for i in range(1, 145)}"""
-
         self.monad_mask = self.monad_mask[mask]
-        self.sugar_mask = self.sugar_mask[mask]
-        self.Pop = self.monad_mask.sum().item()
+        self.energy_mask = self.energy_mask[mask]
 
     def draw(self, screen, show_info = True, show_sight = False,
              show_forces = True, show_communication = True):
@@ -635,7 +432,7 @@ class Things:
             size = self.sizes[i].item()
             idx = self.from_general_to_monad_idx(i)
 
-            if thing_type == "sugar":
+            if thing_type == "energyUnit":
                 pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
                                    int(pos[1].item())), size)
             elif thing_type == "monad":
@@ -644,14 +441,14 @@ class Things:
 
             if show_info and thing_type == "monad":
                 # Show energy
-                energy_text = self.energies[i].item()
+                energy_text = self.energies[idx].item()
                 if energy_text < 1000:
                     energy_text = str(int(energy_text))
                 elif energy_text < 10000:
                     energy_text = f"{int(energy_text / 100) / 10:.1f}k"
                 else:
                     energy_text = f"{int(energy_text / 1000)}k"
-                energy_text = self.font.render(energy_text, True, colors["Z"])
+                energy_text = self.font.render(energy_text, True, colors["RGB"])
                 energy_rect = energy_text.get_rect(
                     center = (
                         int(pos[0].item()),
@@ -660,17 +457,6 @@ class Things:
                 )
                 screen.blit(energy_text, energy_rect)
 
-                # Show message
-                message_text = float_msg_to_str(self.messages[idx].tolist())
-                message_text = self.font.render(message_text, True, colors["Z"])
-                message_rect = message_text.get_rect(
-                    center = (
-                        int(pos[0].item()),
-                        int(pos[1].item() + 2 * size)
-                    )
-                )
-                screen.blit(message_text, message_rect)
-
             if show_sight and thing_type == "monad":
                 draw_dashed_circle(screen, self.colors[i], (int(pos[0].item()),
                                    int(pos[1].item())), SIGHT)
@@ -678,61 +464,33 @@ class Things:
             try:
                 input_vector_1 = self.input_vectors[idx, 0:2].squeeze(1)
                 input_vector_2 = self.input_vectors[idx, 2:4].squeeze(1)
+                input_vector_3 = self.input_vectors[idx, 4:6].squeeze(1)
                 movement_vector = self.movement_tensor[i]
             except:
                 show_forces = False
             if show_forces and thing_type == "monad":
-                input_vector_1 /= torch.norm(input_vector_1, dim = 0) + 1e-7
-                input_vector_2 /= torch.norm(input_vector_2, dim = 0) + 1e-7
-                movement_vector /= torch.norm(movement_vector, dim = 0) + 1e-7
+                input_vector_1 /= torch.norm(input_vector_1, dim = 0) + 1e-5
+                input_vector_2 /= torch.norm(input_vector_2, dim = 0) + 1e-5
+                input_vector_3 /= torch.norm(input_vector_3, dim = 0) + 1e-5
+                movement_vector /= torch.norm(movement_vector, dim = 0) + 1e-5
 
-                end_pos_1 = pos + input_vector_1 * self.sizes[i]
-                end_pos_2 = pos + input_vector_2 * self.sizes[i]
-                end_pos_3 = pos - movement_vector * self.sizes[i]
+                end_pos_1 = pos + 2 * input_vector_1 * self.sizes[i]
+                end_pos_2 = pos + 2 * input_vector_2 * self.sizes[i]
+                end_pos_3 = pos + 2 * input_vector_3 * self.sizes[i]
+                end_pos_4 = pos - 2 * movement_vector * self.sizes[i]
 
                 pygame.draw.line(screen, colors["R"], (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_1[0].item()),
                                  int(end_pos_1[1].item())), 1)
-                pygame.draw.line(screen, colors["H"], (int(pos[0].item()),
+                pygame.draw.line(screen, colors["GB"], (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_2[0].item()),
                                  int(end_pos_2[1].item())), 1)
-                pygame.draw.line(screen, colors["Z"], (int(pos[0].item()),
+                pygame.draw.line(screen, colors["RB"], (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_3[0].item()),
-                                 int(end_pos_3[1].item())), 1)
-
-        # Draw communication network
-        try:
-            first_senders = self.first_senders.tolist()
-            recipients = self.recipients.tolist()
-
-            if recipients[-1] >= self.Pop or first_senders[-1] >= self.Pop:
-                show_communication = False
-        except:
-            show_communication = False
-
-        if show_communication:
-            for sender, recipient in zip(first_senders, recipients):
-                recipient_pos = self.positions[
-                    self.from_monad_to_general_idx(recipient)
-                ].tolist()
-
-                sender_pos = self.positions[
-                    self.from_monad_to_general_idx(sender)
-                ].tolist()
-
-                pygame.draw.line(
-                    screen,
-                    colors["T"],
-                    (
-                        int(recipient_pos[0]),
-                        int(recipient_pos[1])
-                    ),
-                    (
-                        int(sender_pos[0]),
-                        int(sender_pos[1])
-                    ),
-                    1
-                )
+                                 int(end_pos_2[1].item())), 1)
+                pygame.draw.line(screen, colors["RGB"], (int(pos[0].item()),
+                                 int(pos[1].item())), (int(end_pos_4[0].item()),
+                                 int(end_pos_3[1].item())), 2)
 
     def get_state(self):
         return {
@@ -741,11 +499,7 @@ class Things:
             'energies': self.energies.tolist(),
             'genomes': self.genomes.tolist(),
             'lineages': self.lineages,
-            'colors': self.colors,
-            'LMWS': self.last_movement_was_successful.tolist(),
-            'messages': self.messages.tolist(),
-            'incoming': self.incoming_messages.tolist(),
-            'memory': self.memory.tolist()
+            'colors': self.colors
         }
 
     def load_state(self, state_file):
@@ -757,27 +511,20 @@ class Things:
             [THING_TYPES[x]["size"] for x in self.thing_types]
         )
         self.positions = torch.tensor(state['positions'])
-        """self.boxes = get_box(self.positions)
-        self.box_content = {i: (self.boxes == i).nonzero().squeeze()
-                            for i in range(1, 145)}"""
         self.energies = torch.tensor(state['energies'])
         self.N = len(self.positions)
         self.genomes = torch.tensor(state['genomes'])
         self.lineages = state['lineages']
         self.colors = state['colors']
-        self.last_movement_was_successful = torch.tensor(state['LMWS'])
-        self.messages = torch.tensor(state['messages'])
-        self.incoming_messages = torch.tensor(state['incoming'])
-        self.memory = torch.tensor(state['memory'])
 
         self.monad_mask = torch.tensor(
             [thing_type == "monad" for thing_type in self.thing_types]
         )
-        self.sugar_mask = torch.tensor(
-            [thing_type == "sugar" for thing_type in self.thing_types]
+        self.energy_mask = torch.tensor(
+            [thing_type == "energyUnit" for thing_type in self.thing_types]
         )
         self.Pop = self.monad_mask.sum().item()
-        self.E = self.energies[self.monad_mask].sum().item() // 1000
+        self.E = self.energies.sum().item() // 1000
 
         self.apply_genomes()
 

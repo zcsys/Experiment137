@@ -37,10 +37,18 @@
 			 first hidden layer has 4x expansion from the input layer, and the second
 			 hidden layer goes back to 1x, finally transformed into the output layer
 			 with tanh
-* Monad6105: Monad with 16 input and 9 output neurons, controlled by an nn2,
-						 governed by 2281 parameters
-* Torodial boundary conditions
-* Spatial partitioning
+* Monads controlled by an nn2
+	* Monad6105: Monad with 12 input, 5 output, 4 memory (both input & output),
+							 and 80 hidden neurons, governed by 2281 parameters
+	* Monad7A217: Monad with 16 input, 9 output, 16 memory, and 160 hidden
+							  neurons, governed by 9177 parameters - LMWS and messaging
+							  neurons are removed; ability to sense the resource gradient and
+								to apply force on the resource grid are added
+  * Monad7B105: Monad7A217 minus memory (down to 2k parameters; faster not
+								step-wise but learning-wise)
+
+* KDTree to calculate sparse distance matrix
+* conv2d to calculate resource diffusion
 * Autogenetic breeding
 
 #### Era 1: LUCA
