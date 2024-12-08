@@ -1,9 +1,11 @@
 from base_vars import *
-from base_vars import N_TARGET, SYSTEM_HEAT, METABOLIC_ACTIVITY_CONSTANT
+from base_vars import (N_TARGET, SYSTEM_HEAT, METABOLIC_ACTIVITY_CONSTANT,
+                       AUTO_FISSION_THRESHOLD)
 import torch
 
 def Rules(simul, n):
-    global N_TARGET, SYSTEM_HEAT, METABOLIC_ACTIVITY_CONSTANT
+    global N_TARGET, SYSTEM_HEAT, METABOLIC_ACTIVITY_CONSTANT, \
+           AUTO_FISSION_THRESHOLD
 
     # Birth and death
     if 0 in n:
@@ -19,22 +21,40 @@ def Rules(simul, n):
 
     # Population control
     if 1 in n:
-        if simul.period > 0 or simul.epoch >= 20:
-            N_TARGET = 100
+        if simul.period > 0 or simul.epoch >= 40:
+            N_TARGET = 340
+            SYSTEM_HEAT = 3
+            AUTO_FISSION_THRESHOLD = 100000
+        elif simul.epoch >= 35:
+            N_TARGET = 300
+            SYSTEM_HEAT = 3
+            AUTO_FISSION_THRESHOLD = 80000
+            if simul.age == 0:
+                simul.things.add_structuralUnits(1)
+        elif simul.epoch >= 30:
+            N_TARGET = 220
+            SYSTEM_HEAT = 3
+            AUTO_FISSION_THRESHOLD = 40000
+            if simul.age == 0:
+                simul.things.add_structuralUnits(1)
+        elif simul.epoch >= 25:
+            N_TARGET = 140
             SYSTEM_HEAT = 3
             AUTO_FISSION_THRESHOLD = 20000
+            if simul.age == 0:
+                simul.things.add_structuralUnits(1)
+        elif simul.epoch >= 20:
+            N_TARGET = 100
+            SYSTEM_HEAT = 3
         elif simul.epoch >= 15:
             N_TARGET = 200
             SYSTEM_HEAT = 5
-            AUTO_FISSION_THRESHOLD = 17500
         elif simul.epoch >= 10:
             N_TARGET = 300
             SYSTEM_HEAT = 7
-            AUTO_FISSION_THRESHOLD = 15000
         elif simul.epoch >= 5:
             N_TARGET = 400
             SYSTEM_HEAT = 9
-            AUTO_FISSION_THRESHOLD = 12500
 
         if simul.things.N < N_TARGET:
             simul.things.add_energyUnits(N_TARGET - simul.things.N)

@@ -50,31 +50,13 @@ def add_positions(sizes,
 def remove_element(tensor, i):
     return torch.cat((tensor[:i], tensor[i + 1:]), dim = 0)
 
-def rgb_to_hex(rgb):
-    return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
-
-def hex_to_rgb(hex_color):
-    hex_color = hex_color.lstrip('#')
-    return tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
-
 def get_color_by_genome(genome, scale = 1., base_color = (128, 128, 128)):
     n = len(genome) // 3
     return (
-        max(min(base_color[0] + int(scale * genome[:n].sum().item()),
-            255), 0),
-        max(min(base_color[1] + int(scale * genome[n:2 * n].sum().item()),
-            255), 0),
-        max(min(base_color[2] + int(scale * genome[2 * n:3 * n].sum().item()),
-            255), 0)
+        max(min(base_color[0] + int(genome[:n].sum().item()), 255), 0),
+        max(min(base_color[1] + int(genome[n:2 * n].sum().item()), 255), 0),
+        max(min(base_color[2] + int(genome[2 * n:3 * n].sum().item()), 255), 0)
     )
-
-def reverse_color(color):
-    r, g, b = color
-    return 255 - r, 255 - g, 255 - b
-
-def float_msg_to_str(float_msg):
-    packed_bytes = struct.pack('ff', float_msg[0], float_msg[1])
-    return base64.b64encode(packed_bytes).decode('ascii')
 
 def flattened_identity_matrix(N, x = None):
     lt = x if x else N

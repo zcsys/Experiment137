@@ -2,7 +2,8 @@ from simulation import Simulation
 from things import Things
 import argparse
 
-POP_0 = 10
+POP_MND = 10
+POP_STR = 270
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -14,7 +15,8 @@ if __name__ == "__main__":
     if args.load:
         things_instance = Things(state_file = args.load)
     else:
-        things_instance = Things(["monad" for _ in range(2 * POP_0)])
+        things_instance = Things(["monad" for _ in range(POP_MND)] +
+                                 ["structuralUnit" for _ in range(POP_STR)])
 
     simulation = Simulation(things_instance, load_file = args.load)
     simulation.run()

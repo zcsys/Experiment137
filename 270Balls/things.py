@@ -32,6 +32,9 @@ class Things:
         self.energy_mask = torch.tensor(
             [thing_type == "energyUnit" for thing_type in self.thing_types]
         )
+        self.structure_mask = torch.tensor(
+            [thing_type == "structuralUnit" for thing_type in self.thing_types]
+        )
 
         # Initialize state vars
         self.N = len(self.thing_types)
@@ -85,7 +88,7 @@ class Things:
                 (
                     distances[self.monad_mask][:, self.energy_mask] ** 2 + 1e-5
                 ).unsqueeze(2)
-            ).sum(dim = 1)
+            ).sum(dim = 1) * 6.
         else:
             col2 = torch.zeros((self.Pop, 2))
 
@@ -97,7 +100,7 @@ class Things:
                 (
                     distances[self.monad_mask][:, self.monad_mask] ** 2 + 1e-5
                 ).unsqueeze(2)
-            ).sum(dim = 1)
+            ).sum(dim = 1) * 10.
         else:
             col3 = torch.zeros((self.Pop, 2))
 
@@ -172,6 +175,9 @@ class Things:
         if self.energy_mask.any():
             self.movement_tensor[self.energy_mask] = self.random_action()
 
+        if self.structure_mask.any():
+            self.movement_tensor[self.energy_mask] = self.random_action()
+
         # Apply movements
         self.update_positions()
 
@@ -211,7 +217,8 @@ class Things:
         indices, distances, diffs = vicinity(provisional_positions)
 
         # Monad-monad collisions
-        monad_monad_dist = distances[self.monad_mask][:, self.monad_mask]
+        monad_monad_dist = distances[self.monad_mask][:, self.monad_mask |
+                                                      self.structure_mask]
         collision_mask = (
             (0. < monad_monad_dist) &
             (monad_monad_dist < THING_TYPES["monad"]["size"] * 2)
@@ -332,6 +339,13 @@ class Things:
             ),
             dim = 0
         )
+        self.structure_mask = torch.cat(
+            (
+                self.structure_mask,
+                torch.tensor([False])
+            ),
+            dim = 0
+        )
         self.N += 1
         self.Pop += 1
 
@@ -378,6 +392,7 @@ class Things:
             self.positions = remove_element(self.positions, idx)
             self.monad_mask = remove_element(self.monad_mask, idx)
             self.energy_mask = remove_element(self.energy_mask, idx)
+            self.structure_mask = remove_element(self.structure_mask, idx)
 
         # Update collective state vars
         self.N -= len(indices)
@@ -409,6 +424,13 @@ class Things:
             ),
             dim = 0
         )
+        self.structure_mask = torch.cat(
+            (
+                self.structure_mask,
+                torch.zeros(N, dtype = torch.bool)
+            ),
+            dim = 0
+        )
 
     def remove_energyUnits(self, indices):
         for i in indices[::-1]:
@@ -423,6 +445,7 @@ class Things:
         self.positions = self.positions[mask]
         self.monad_mask = self.monad_mask[mask]
         self.energy_mask = self.energy_mask[mask]
+        self.structure_mask = self.structure_mask[mask]
 
     def draw(self, screen, show_info = True, show_sight = False,
              show_forces = True, show_communication = True):
@@ -492,6 +515,11 @@ class Things:
                                  int(pos[1].item())), (int(end_pos_4[0].item()),
                                  int(end_pos_3[1].item())), 2)
 
+            # Draw structural units
+            if thing_type == "structuralUnit":
+                pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
+                                   int(pos[1].item())), size)
+
     def get_state(self):
         return {
             'types': self.thing_types,
@@ -523,6 +551,9 @@ class Things:
         self.energy_mask = torch.tensor(
             [thing_type == "energyUnit" for thing_type in self.thing_types]
         )
+        self.structure_mask = torch.tensor(
+            [thing_type == "structuralUnit" for thing_type in self.thing_types]
+        )
         self.Pop = self.monad_mask.sum().item()
         self.E = self.energies.sum().item() // 1000
 
@@ -530,3 +561,15 @@ class Things:
 
         pygame.font.init()
         self.font = pygame.font.SysFont(None, 12)
+
+    def add_structuralUnits(self, POP_STR = 270):
+        self.thing_types += ["structuralUnit" for _ in range(POP_STR)]
+        self.sizes, self.positions = add_positions(
+            sizes = torch.tensor([THING_TYPES["structuralUnit"]["size"]
+                                 for _ in range(POP_STR)]),
+            existing_sizes = self.sizes,
+            existing_positions = self.positions
+        )
+        self.colors += [THING_TYPES["structuralUnit"]["color"]
+                        for _ in range(POP_STR)]
+        self.N += POP_STR

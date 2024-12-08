@@ -53,20 +53,14 @@ THING_TYPES = {
         "size": 1,
         "overlap": True
     },
+    "structuralUnit": {
+        "color": colors["R"],
+        "size": 3,
+        "overlap": True
+    },
     "memoryUnit": {
         "color": colors["B"],
         "size": 10,
-        "overlap": True
-    },
-    "monad2": {
-        "color": colors["rgb"],
-        "size": 5,
-        "initial_energy": 1000.,
-        "overlap": False
-    },
-    "energyUnit2": {
-        "color": colors["R"],
-        "size": 1,
         "overlap": True
     }
 }
