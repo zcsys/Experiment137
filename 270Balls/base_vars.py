@@ -1,3 +1,5 @@
+import sys
+
 SIMUL_WIDTH = 1920
 SIMUL_HEIGHT = 1080
 MENU_WIDTH = 180
@@ -5,11 +7,11 @@ SCREEN_WIDTH = SIMUL_WIDTH + MENU_WIDTH
 SCREEN_HEIGHT = SIMUL_HEIGHT
 
 SIGHT = 60
-N_TARGET = 500
-AUTO_FISSION_THRESHOLD = 10000
+N_TARGET = 200
+AUTO_FISSION_THRESHOLD = 90000
 METABOLIC_ACTIVITY_CONSTANT = 0.1
 UNIT_ENERGY = 1000
-SYSTEM_HEAT = 11
+SYSTEM_HEAT = 3
 
 colors = {
     "0": (0, 0, 0),
@@ -64,3 +66,10 @@ THING_TYPES = {
         "overlap": True
     }
 }
+
+def update_system_heat(new_value):
+    global SYSTEM_HEAT
+    SYSTEM_HEAT = new_value
+    for module in sys.modules.values():
+        if hasattr(module, 'SYSTEM_HEAT'):
+            module.SYSTEM_HEAT = new_value

@@ -21,40 +21,29 @@ def Rules(simul, n):
 
     # Population control
     if 1 in n:
-        if simul.period > 0 or simul.epoch >= 40:
-            N_TARGET = 340
-            SYSTEM_HEAT = 3
-            AUTO_FISSION_THRESHOLD = 100000
-        elif simul.epoch >= 35:
-            N_TARGET = 300
-            SYSTEM_HEAT = 3
-            AUTO_FISSION_THRESHOLD = 80000
-            if simul.age == 0:
-                simul.things.add_structuralUnits(1)
-        elif simul.epoch >= 30:
-            N_TARGET = 220
-            SYSTEM_HEAT = 3
-            AUTO_FISSION_THRESHOLD = 40000
-            if simul.age == 0:
-                simul.things.add_structuralUnits(1)
-        elif simul.epoch >= 25:
-            N_TARGET = 140
-            SYSTEM_HEAT = 3
-            AUTO_FISSION_THRESHOLD = 20000
-            if simul.age == 0:
-                simul.things.add_structuralUnits(1)
-        elif simul.epoch >= 20:
-            N_TARGET = 100
-            SYSTEM_HEAT = 3
+        if simul.period > 0 or simul.epoch >= 20:
+            pass
         elif simul.epoch >= 15:
-            N_TARGET = 200
-            SYSTEM_HEAT = 5
+            update_system_heat(5)
+            AUTO_FISSION_THRESHOLD = 60000
         elif simul.epoch >= 10:
             N_TARGET = 300
-            SYSTEM_HEAT = 7
+            update_system_heat(7)
+            AUTO_FISSION_THRESHOLD = 30000
+            #if simul.age % 5 == 0 and simul.step == 0:
+            #    simul.things.add_structuralUnits(1)
         elif simul.epoch >= 5:
             N_TARGET = 400
-            SYSTEM_HEAT = 9
+            update_system_heat(9)
+            AUTO_FISSION_THRESHOLD = 15000
+            #if simul.age % 5 == 0 and simul.step == 0:
+            #    simul.things.add_structuralUnits(1)
+        else:
+            N_TARGET = 500
+            update_system_heat(11)
+            AUTO_FISSION_THRESHOLD = 10000
+            if simul.age == 0 and simul.step == 1:
+                simul.things.add_structuralUnits()
 
         if simul.things.N < N_TARGET:
             simul.things.add_energyUnits(N_TARGET - simul.things.N)

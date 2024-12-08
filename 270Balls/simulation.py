@@ -227,7 +227,7 @@ class Simulation:
                 self.ui_manager.handle_event(event, self)
 
             if not self.paused:
-                force_field = self.things.final_action(self.grid)
+                self.things.final_action(self.grid)
                 self.update_state()
 
             self.screen.fill(colors["0"])
@@ -238,7 +238,6 @@ class Simulation:
                              self.ui_manager.show_forces)
 
             if not self.paused:
-                self.grid.diffuse(force_field)
                 Rules(self, [0, 1, ])
 
             # Draw the right pane

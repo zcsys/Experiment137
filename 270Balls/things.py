@@ -45,6 +45,7 @@ class Things:
         )
         self.E = self.energies.sum().item() // 1000
         self.colors = [THING_TYPES[x]["color"] for x in self.thing_types]
+        self.resource_movements = torch.zeros((0, 2, 3), dtype = torch.float32)
 
         # Initialize genomes and lineages
         self.genomes = create_initial_genomes(self.Pop, 16, 9)
@@ -114,6 +115,8 @@ class Things:
             col4[:, channel * 3 + 1] = grad_x[0, channel, y_pos, x_pos]
             col4[:, channel * 3 + 2] = grad_y[0, channel, y_pos, x_pos]
 
+
+
         # Combine the inputs to create the final input tensor
         self.input_vectors = torch.cat(
             (
@@ -144,6 +147,26 @@ class Things:
         ).view(numberOf_energyUnits, 2)
         return values[indices]
 
+    def re_action(self, grid):
+        numberOf_structuralUnits = self.structure_mask.sum().item()
+
+        # Initialize force field
+        force_field = torch.zeros_like(
+            grid.grid
+        ).repeat(2, 1, 1, 1).squeeze(1)
+        indices = (self.positions[self.structure_mask] // grid.cell_size).long()
+
+        # Apply and return the force field
+        for i in range(2): # For vertical and horizontal axes
+            for j in range(3): # For each channel
+                force_field[i, j][
+                    indices[:, 1], indices[:, 0]
+                ] += self.resource_movements[:, i, j]
+
+        grid.diffuse(force_field)
+
+        return torch.tensor([0., 0.])
+
     def final_action(self, grid):
         # Update sensory inputs
         self.sensory_inputs(grid)
@@ -152,12 +175,6 @@ class Things:
         if self.N > 0:
             self.movement_tensor = torch.tensor([[0., 0.]
                                                  for _ in range(self.N)])
-
-        # Initialize force field
-        force_field = torch.zeros_like(
-            grid.grid
-        ).repeat(2, 1, 1, 1).squeeze(1)
-        indices = (self.positions[self.monad_mask] // grid.cell_size).long()
 
         # Monad actions
         if self.monad_mask.any():
@@ -175,23 +192,15 @@ class Things:
         if self.energy_mask.any():
             self.movement_tensor[self.energy_mask] = self.random_action()
 
+        # Fetch structuralUnit reactions
         if self.structure_mask.any():
-            self.movement_tensor[self.energy_mask] = self.random_action()
+            self.movement_tensor[self.structure_mask] = self.re_action(grid)
 
         # Apply movements
         self.update_positions()
 
         # Update total monad energy
         self.E = self.energies.sum().item() // 1000
-
-        # Apply and return the force field
-        for i in range(2): # For vertical and horizontal axes
-            for j in range(3): # For each channel
-                force_field[i, j][
-                    indices[:, 1], indices[:, 0]
-                ] += neural_action[:, 2:8][:, i * 3 + j]
-
-        return force_field
 
     def update_positions(self):
         provisional_positions = self.positions + self.movement_tensor
@@ -217,11 +226,15 @@ class Things:
         indices, distances, diffs = vicinity(provisional_positions)
 
         # Monad-monad collisions
-        monad_monad_dist = distances[self.monad_mask][:, self.monad_mask |
-                                                      self.structure_mask]
+        dist = distances[self.monad_mask][:, self.monad_mask]
         collision_mask = (
-            (0. < monad_monad_dist) &
-            (monad_monad_dist < THING_TYPES["monad"]["size"] * 2)
+            (0. < dist) & (dist < THING_TYPES["monad"]["size"] * 2)
+        ).any(dim = 1)
+
+        # StructureUnit-anything collisions
+        dist = distances[:, self.structure_mask]
+        collision_mask_str = (
+            (0. < dist) & (dist < THING_TYPES["structuralUnit"]["size"] * 2)
         ).any(dim = 1)
 
         # Check energy levels
@@ -232,7 +245,7 @@ class Things:
         enough_energy = self.energies >= movement_magnitudes
 
         # Construct final apply mask
-        final_apply_mask = torch.ones((self.N), dtype = torch.bool)
+        final_apply_mask = ~collision_mask_str
         final_apply_mask[self.monad_mask] = enough_energy & ~collision_mask
 
         # Apply the movements
@@ -526,6 +539,7 @@ class Things:
             'positions': self.positions.tolist(),
             'energies': self.energies.tolist(),
             'genomes': self.genomes.tolist(),
+            'resource_movements': self.resource_movements.tolist(),
             'lineages': self.lineages,
             'colors': self.colors
         }
@@ -544,6 +558,7 @@ class Things:
         self.genomes = torch.tensor(state['genomes'])
         self.lineages = state['lineages']
         self.colors = state['colors']
+        self.resource_movements = torch.tensor(state['resource_movements'])
 
         self.monad_mask = torch.tensor(
             [thing_type == "monad" for thing_type in self.thing_types]
@@ -562,7 +577,7 @@ class Things:
         pygame.font.init()
         self.font = pygame.font.SysFont(None, 12)
 
-    def add_structuralUnits(self, POP_STR = 270):
+    def add_structuralUnits(self, POP_STR = 80):
         self.thing_types += ["structuralUnit" for _ in range(POP_STR)]
         self.sizes, self.positions = add_positions(
             sizes = torch.tensor([THING_TYPES["structuralUnit"]["size"]
@@ -573,3 +588,19 @@ class Things:
         self.colors += [THING_TYPES["structuralUnit"]["color"]
                         for _ in range(POP_STR)]
         self.N += POP_STR
+        self.monad_mask = torch.tensor(
+            [thing_type == "monad" for thing_type in self.thing_types]
+        )
+        self.energy_mask = torch.tensor(
+            [thing_type == "energyUnit" for thing_type in self.thing_types]
+        )
+        self.structure_mask = torch.tensor(
+            [thing_type == "structuralUnit" for thing_type in self.thing_types]
+        )
+        self.resource_movements = torch.cat(
+            (
+                self.resource_movements,
+                torch.zeros((POP_STR, 2, 3), dtype = torch.float32)
+            ),
+            dim = 0
+        )
