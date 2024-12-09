@@ -42,7 +42,7 @@ def Rules(simul, n):
             N_TARGET = 500
             update_system_heat(11)
             AUTO_FISSION_THRESHOLD = 10000
-            if simul.age == 0 and simul.step == 1:
+            if simul.epoch == 0 and simul.age == 0 and simul.step == 1:
                 simul.things.add_structuralUnits()
 
         if simul.things.N < N_TARGET:

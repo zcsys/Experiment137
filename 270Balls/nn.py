@@ -6,7 +6,7 @@ class nn2:
         self.num_monads = weights.shape[0]
 
         # Size check
-        # 8*16**2+16*(9+5)+9 = 2281
+        # 8*32**2+32*(11+5)+11 = 8715
         assert (
             weights.shape[1] ==
             8 * input_size ** 2 + input_size * (output_size + 5) + output_size,

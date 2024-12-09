@@ -48,7 +48,7 @@ class Things:
         self.resource_movements = torch.zeros((0, 2, 3), dtype = torch.float32)
 
         # Initialize genomes and lineages
-        self.genomes = create_initial_genomes(self.Pop, 16, 9)
+        self.genomes = create_initial_genomes(self.Pop, 32, 11)
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
@@ -62,8 +62,8 @@ class Things:
         return self.lineages[i][0] + len(self.lineages[i])
 
     def apply_genomes(self):
-        """Monad7B105 neurogenetics"""
-        self.nn = nn2(self.genomes, 16, 9)
+        """Monad8A203 neurogenetics"""
+        self.nn = nn2(self.genomes, 32, 11)
 
     def mutate(self, i, probability = 0.1, strength = 1.):
         original_genome = self.genomes[i].clone()
@@ -82,12 +82,14 @@ class Things:
 
         # For each monad, the combined effect of energy particles in their
         # vicinity is calculated.
-        indices, distances, diffs = vicinity(self.positions)
+        indices, self.distances, self.diffs = vicinity(self.positions)
         if self.monad_mask.any() and self.energy_mask.any():
             col2  = (
-                diffs[self.monad_mask][:, self.energy_mask] /
+                self.diffs[self.monad_mask][:, self.energy_mask] /
                 (
-                    distances[self.monad_mask][:, self.energy_mask] ** 2 + 1e-5
+                    self.distances[self.monad_mask][
+                        :, self.energy_mask
+                    ] ** 2 + 1e-5
                 ).unsqueeze(2)
             ).sum(dim = 1) * 6.
         else:
@@ -97,9 +99,11 @@ class Things:
         # is calculated.
         if self.Pop > 1:
             col3  = (
-                diffs[self.monad_mask][:, self.monad_mask] /
+                self.diffs[self.monad_mask][:, self.monad_mask] /
                 (
-                    distances[self.monad_mask][:, self.monad_mask] ** 2 + 1e-5
+                    self.distances[self.monad_mask][
+                        :, self.monad_mask
+                    ] ** 2 + 1e-5
                 ).unsqueeze(2)
             ).sum(dim = 1) * 10.
         else:
@@ -115,7 +119,31 @@ class Things:
             col4[:, channel * 3 + 1] = grad_x[0, channel, y_pos, x_pos]
             col4[:, channel * 3 + 2] = grad_y[0, channel, y_pos, x_pos]
 
+        # Monads can interact with at most 8 structural units
+        if self.monad_mask.any() and self.structure_mask.any():
+            dist = self.distances[self.monad_mask][:, self.structure_mask]
+            self.dist_mnd_str, self.structure_indices = torch.topk(
+                dist.masked_fill(dist == 0, float('inf')),
+                k = min(8, self.structure_mask.sum()),
+                dim = 1,
+                largest = False
+            )
 
+            col5  = (
+                torch.gather(
+                    self.diffs[self.monad_mask],
+                    1,
+                    self.structure_indices.unsqueeze(2).expand(-1, -1, 2)
+                ) / (
+                    torch.gather(
+                        self.distances[self.monad_mask],
+                        1,
+                        self.structure_indices
+                    ) ** 2 + 1e-5
+                ).unsqueeze(2)
+            ).view(self.Pop, 16) * 10.
+        else:
+            col5 = torch.zeros((self.Pop, 16), dtype = torch.float32)
 
         # Combine the inputs to create the final input tensor
         self.input_vectors = torch.cat(
@@ -124,10 +152,11 @@ class Things:
                 col2,
                 col3,
                 col4 / 255,
+                col5,
                 (self.energies / 10000).unsqueeze(1)
             ),
             dim = 1
-        ).view(self.Pop, 16, 1)
+        ).view(self.Pop, 32, 1)
 
     def neural_action(self):
         return self.nn.forward(self.input_vectors)
@@ -147,16 +176,15 @@ class Things:
         ).view(numberOf_energyUnits, 2)
         return values[indices]
 
-    def re_action(self, grid):
+    def re_action(self, grid, neural_action):
         numberOf_structuralUnits = self.structure_mask.sum().item()
 
-        # Initialize force field
+        # Force field
         force_field = torch.zeros_like(
             grid.grid
         ).repeat(2, 1, 1, 1).squeeze(1)
         indices = (self.positions[self.structure_mask] // grid.cell_size).long()
 
-        # Apply and return the force field
         for i in range(2): # For vertical and horizontal axes
             for j in range(3): # For each channel
                 force_field[i, j][
@@ -165,7 +193,13 @@ class Things:
 
         grid.diffuse(force_field)
 
-        return torch.tensor([0., 0.])
+        # Movements
+        # self.diffs[self.monad_mask][:, self.structure_mask]
+        # self.dist_mnd_str
+        # self.structure_indices
+        # neural_action
+
+        return torch.zeros((numberOf_structuralUnits, 2), dtype = torch.float32)
 
     def final_action(self, grid):
         # Update sensory inputs
@@ -184,7 +218,7 @@ class Things:
 
             # Auto-fission
             random_gen = torch.rand(self.Pop)
-            to_divide = neural_action[:, 8] > random_gen
+            to_divide = neural_action[:, 2] > random_gen
             for i in to_divide.nonzero():
                 self.monad_division(i.item())
 
@@ -194,7 +228,10 @@ class Things:
 
         # Fetch structuralUnit reactions
         if self.structure_mask.any():
-            self.movement_tensor[self.structure_mask] = self.re_action(grid)
+            self.movement_tensor[self.structure_mask] = self.re_action(
+                grid,
+                neural_action[:, 3:11]
+            )
 
         # Apply movements
         self.update_positions()
@@ -234,7 +271,7 @@ class Things:
         # StructureUnit-anything collisions
         dist = distances[:, self.structure_mask]
         collision_mask_str = (
-            (0. < dist) & (dist < THING_TYPES["structuralUnit"]["size"] * 2)
+            (0. < dist) & (dist < THING_TYPES["monad"]["size"] * 2)
         ).any(dim = 1)
 
         # Check energy levels
@@ -246,7 +283,11 @@ class Things:
 
         # Construct final apply mask
         final_apply_mask = ~collision_mask_str
-        final_apply_mask[self.monad_mask] = enough_energy & ~collision_mask
+        final_apply_mask[self.monad_mask] = (
+            ~collision_mask_str[self.monad_mask] &
+            ~collision_mask &
+            enough_energy
+        )
 
         # Apply the movements
         self.positions = torch.where(
@@ -299,12 +340,15 @@ class Things:
             x + math.cos(angle) * (size + 1) * 2,
             y + math.sin(angle) * (size + 1) * 2
         ])
-        distances = torch.norm(
+        dist_mnd = torch.norm(
             self.positions[self.monad_mask] - new_position, dim = 1
+        )
+        dist_str = torch.norm(
+            self.positions[self.structure_mask] - new_position, dim = 1
         )
         if (new_position[0] < size or new_position[0] > SIMUL_WIDTH - size or
             new_position[1] < size or new_position[1] > SIMUL_HEIGHT - size or
-            (distances < self.sizes[self.monad_mask] + size).any()):
+            (dist_mnd < size * 2).any() or (dist_str < size * 2).any()):
             return 0
 
         # Create a new set of attributes
@@ -600,7 +644,7 @@ class Things:
         self.resource_movements = torch.cat(
             (
                 self.resource_movements,
-                torch.zeros((POP_STR, 2, 3), dtype = torch.float32)
+                torch.rand((POP_STR, 2, 3), dtype = torch.float32) * 2 - 1
             ),
             dim = 0
         )

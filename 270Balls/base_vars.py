@@ -71,5 +71,5 @@ def update_system_heat(new_value):
     global SYSTEM_HEAT
     SYSTEM_HEAT = new_value
     for module in sys.modules.values():
-        if hasattr(module, 'SYSTEM_HEAT'):
+        if hasattr(module, "SYSTEM_HEAT"):
             module.SYSTEM_HEAT = new_value
