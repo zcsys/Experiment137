@@ -203,7 +203,7 @@ class Things:
                         self.structure_indices
                     ) ** 2 + 1e-5
                 ).unsqueeze(2)
-            ).unsqueeze(2).expand(-1, -1, 3, 2) *
+            ).unsqueeze(2).expand(-1, -1, 3, -1) *
             neural_action[:, 8:32].view(self.Pop, 8, 3, 1)
         )
 
@@ -211,7 +211,7 @@ class Things:
             0,
             expanded_indices.view(-1, 2, 1).expand(-1, -1, 3),
             manipulation_contributions.view(-1, 2, 3)
-        )
+        ).clamp_(-1, 1)
 
         # Calculate and apply force field with diffusion
         for i in range(2): # For vertical and horizontal axes

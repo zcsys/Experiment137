@@ -82,7 +82,7 @@ class Grid:
         torch.clamp_(self.grid[0], 0, 255)
         self.fill()
 
-    def apply_forces(self, force_field, scale = 0.01):
+    def apply_forces(self, force_field, scale = 0.001):
         # Get movements
         x_positive = torch.clamp(force_field[0], min = 0) * self.grid[0] * scale
         x_negative = torch.clamp(force_field[0], max = 0) * self.grid[0] * scale
