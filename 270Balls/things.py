@@ -217,7 +217,7 @@ class Things:
             0,
             expanded_indices.view(-1, 2),
             movement_contributions.view(-1, 2)
-        )
+        ) * 10.
 
     def final_action(self, grid):
         # Update sensory inputs
