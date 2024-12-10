@@ -62,19 +62,27 @@ def flattened_identity_matrix(N, x = None):
     lt = x if x else N
     return [1 if i == j and i < lt else 0 for j in range(N) for i in range(N)]
 
-def create_initial_genomes(num_monads, num_input, num_output, nn = "nn2"):
-    if nn == "nn2":
+def create_initial_genomes(num_monads, input, output):
+    if input > 2 * output:
         return torch.tensor(
-            flattened_identity_matrix(num_input) +
-            [0 for _ in range(3 * num_input ** 2)] +
-            [0 for _ in range(4 * num_input)] +
-            flattened_identity_matrix(4 * num_input)[:4 * num_input ** 2] +
-            [0 for _ in range(num_input)] +
-            [0 for _ in range((num_input + 1) * num_output)],
+            flattened_identity_matrix(input) +
+            [0 for _ in range(3 * input ** 2)] +
+            [0 for _ in range(4 * input)] +
+            flattened_identity_matrix(4 * input)[:4 * input ** 2] +
+            [0 for _ in range(input)] +
+            [0 for _ in range((input + 1) * output)],
             dtype = torch.float32
         ).repeat(num_monads, 1)
-    if nn == "nn2b":
-        pass
+    else:
+        return torch.tensor(
+            flattened_identity_matrix(input) +
+            [0 for _ in range(3 * input ** 2)] +
+            [0 for _ in range(4 * input)] +
+            flattened_identity_matrix(4 * input)[:8 * input * output] +
+            [0 for _ in range(2 * output)] +
+            [0 for _ in range((2 * output + 1) * output)],
+            dtype = torch.float32
+        ).repeat(num_monads, 1)
 
 def vicinity(source_positions, radius = SIGHT, target_positions = None):
     source_tree = KDTree(source_positions.numpy())

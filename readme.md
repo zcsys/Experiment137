@@ -35,11 +35,9 @@
 #### Era 0: 270 Balls
 * nn2: Simple feed-forward network with 2 hidden layers using ReLU, where the
 			 first hidden layer has 4x expansion from the input layer, and the second
-			 hidden layer goes back to 1x, finally transformed into the output layer
-			 with tanh
-* nn2b: Same with nn2, except the second hidden layer is 2x the size of the
-				output layer, making it more suitable for networks with higher output
-				dimensions
+			 hidden layer is either of the size of the input layer or 2x the size of
+			 the output layer, whichever is larger, finally transformed into the
+			 output layer with tanh
 * Monads controlled by an nn2
 	* Monad6105: Monad with 12 input, 5 output, 4 memory (both input & output),
 							 and 80 hidden neurons, governed by 2281 parameters
@@ -52,15 +50,15 @@
 	* Monad8A203: Monad with 32 input, 11 output, and 160 hidden neurons, governed
 								by 8715 parameters, having the ability to sense and move
 								surrounding structural units
-* Monads controlled by an nn2b:
-	*  Monad8Bxxx: can control the surrounding structural units' manipulation of
-								 resources
-	*  Monad8Cxxx: Same with Monad8Bxxx, except having a memory organ of ...
+	* Monad8B265: can control the surrounding structural units' manipulation of
+								resources
+	* Monad8Cxxx: Same with Monad8Bxxx, except having a memory organ of ...
 * KDTree to calculate sparse distance matrix
 * conv2d to calculate resource diffusion
 
 #### Era 1: LUCA
 * Autogenetic breeding
+
 
 
 --\

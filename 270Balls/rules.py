@@ -27,17 +27,17 @@ def Rules(simul, n):
             update_system_heat(5)
             AUTO_FISSION_THRESHOLD = 60000
         elif simul.epoch >= 10:
-            N_TARGET = 300
+            N_TARGET = 500
             update_system_heat(7)
             AUTO_FISSION_THRESHOLD = 30000
-            #if simul.age % 5 == 0 and simul.step == 0:
-            #    simul.things.add_structuralUnits(1)
+            if simul.age % 5 == 0 and simul.step == 0:
+                simul.things.add_structuralUnits(1)
         elif simul.epoch >= 5:
-            N_TARGET = 400
+            N_TARGET = 500
             update_system_heat(9)
             AUTO_FISSION_THRESHOLD = 15000
-            #if simul.age % 5 == 0 and simul.step == 0:
-            #    simul.things.add_structuralUnits(1)
+            if simul.age % 5 == 0 and simul.step == 0:
+                simul.things.add_structuralUnits(1)
         else:
             N_TARGET = 500
             update_system_heat(11)

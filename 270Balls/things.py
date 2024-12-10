@@ -5,7 +5,7 @@ import math
 import json
 from base_vars import *
 from helpers import *
-from nn import nn2, nn2b
+from nn import nn2
 from simulation import draw_dashed_circle
 from diffusion import Grid
 
@@ -48,7 +48,7 @@ class Things:
         self.resource_movements = torch.zeros((0, 2, 3), dtype = torch.float32)
 
         # Initialize genomes and lineages
-        self.genomes = create_initial_genomes(self.Pop, 32, 11)
+        self.genomes = create_initial_genomes(self.Pop, 32, 35)
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
@@ -62,8 +62,8 @@ class Things:
         return self.lineages[i][0] + len(self.lineages[i])
 
     def apply_genomes(self):
-        """Monad8A203 neurogenetics"""
-        self.nn = nn2(self.genomes, 32, 11)
+        """Monad8B265 neurogenetics"""
+        self.nn = nn2(self.genomes, 32, 35)
 
     def mutate(self, i, probability = 0.1, strength = 1.):
         original_genome = self.genomes[i].clone()
@@ -177,14 +177,43 @@ class Things:
         return values[indices]
 
     def re_action(self, grid, neural_action):
-        numberOf_structuralUnits = self.structure_mask.sum().item()
+        # Helper variables
+        numberOf_structuralUnits = self.structure_mask.sum()
+        movement_tensor = torch.zeros((numberOf_structuralUnits, 2),
+                                      dtype = torch.float32)
+        expanded_indices = self.structure_indices.unsqueeze(2).expand(-1, -1, 2)
 
-        # Force field
+        # Initialize force field
         force_field = torch.zeros_like(
             grid.grid
         ).repeat(2, 1, 1, 1).squeeze(1)
         indices = (self.positions[self.structure_mask] // grid.cell_size).long()
 
+        # Calculate resource manipulations
+        manipulation_contributions = (
+            (
+                torch.gather(
+                    self.diffs[self.monad_mask][:, self.structure_mask],
+                    1,
+                    expanded_indices
+                ) / (
+                    torch.gather(
+                        self.distances[self.monad_mask][:, self.structure_mask],
+                        1,
+                        self.structure_indices
+                    ) ** 2 + 1e-5
+                ).unsqueeze(2)
+            ).unsqueeze(2).expand(-1, -1, 3, 2) *
+            neural_action[:, 8:32].view(self.Pop, 8, 3, 1)
+        )
+
+        self.resource_movements.scatter_add_(
+            0,
+            expanded_indices.view(-1, 2, 1).expand(-1, -1, 3),
+            manipulation_contributions.view(-1, 2, 3)
+        )
+
+        # Calculate and apply force field with diffusion
         for i in range(2): # For vertical and horizontal axes
             for j in range(3): # For each channel
                 force_field[i, j][
@@ -193,12 +222,7 @@ class Things:
 
         grid.diffuse(force_field)
 
-        # Movements
-        movement_tensor = torch.zeros((numberOf_structuralUnits, 2),
-                                      dtype = torch.float32)
-
-        expanded_indices = self.structure_indices.unsqueeze(2).expand(-1, -1, 2)
-
+        # Calculate and return movements
         movement_contributions = (
             torch.gather(
                 self.diffs[self.monad_mask][:, self.structure_mask],
@@ -211,7 +235,7 @@ class Things:
                     self.structure_indices
                 ) ** 2 + 1e-5
             ).unsqueeze(2)
-        ) * neural_action.unsqueeze(2)
+        ) * neural_action[:, 0:8].unsqueeze(2)
 
         return movement_tensor.scatter_add(
             0,
@@ -241,7 +265,7 @@ class Things:
         if self.structure_mask.any():
             self.movement_tensor[self.structure_mask] = self.re_action(
                 grid,
-                neural_action[:, 3:11]
+                neural_action[:, 3:35]
             )
 
         # Auto-fission
