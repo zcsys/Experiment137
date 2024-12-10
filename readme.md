@@ -50,7 +50,7 @@
   * Monad7B105: Monad7A217 minus memory (down to 2k parameters; faster not
 								step-wise but learning-wise)
 	* Monad8A203: Monad with 32 input, 11 output, and 160 hidden neurons, governed
-								by 8715 parameters, with the ability to sense and move
+								by 8715 parameters, having the ability to sense and move
 								surrounding structural units
 * Monads controlled by an nn2b:
 	*  Monad8Bxxx: can control the surrounding structural units' manipulation of

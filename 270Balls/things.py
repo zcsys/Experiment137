@@ -296,7 +296,7 @@ class Things:
 
         collision_mask_str = torch.zeros(self.N, dtype = torch.bool)
         collision_mask_str[collisions_str[0]] = True
-        collision_mask_str[collisions_str[1]] = True
+        collision_mask_str[self.structure_mask][collisions_str[1]] = True
 
         # Check energy levels
         movement_magnitudes = torch.norm(
