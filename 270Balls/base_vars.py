@@ -47,23 +47,19 @@ THING_TYPES = {
     "monad": {
         "color": colors["rgb"],
         "size": 5,
-        "initial_energy": 1000.,
-        "overlap": False
+        "initial_energy": 1000.
     },
     "energyUnit": {
         "color": colors["G"],
-        "size": 1,
-        "overlap": True
+        "size": 1
     },
     "structuralUnit": {
         "color": colors["R"],
-        "size": 3,
-        "overlap": True
+        "size": 3
     },
     "memoryUnit": {
         "color": colors["B"],
-        "size": 10,
-        "overlap": True
+        "size": 10
     }
 }
 

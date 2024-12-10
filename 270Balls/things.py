@@ -5,7 +5,7 @@ import math
 import json
 from base_vars import *
 from helpers import *
-from nn import nn2
+from nn import nn2, nn2b
 from simulation import draw_dashed_circle
 from diffusion import Grid
 
@@ -194,12 +194,32 @@ class Things:
         grid.diffuse(force_field)
 
         # Movements
-        # self.diffs[self.monad_mask][:, self.structure_mask]
-        # self.dist_mnd_str
-        # self.structure_indices
-        # neural_action
+        movement_tensor = torch.zeros((numberOf_structuralUnits, 2),
+                                      dtype = torch.float32)
 
-        return torch.zeros((numberOf_structuralUnits, 2), dtype = torch.float32)
+        expanded_indices = self.structure_indices.unsqueeze(2).expand(-1, -1, 2)
+
+        movement_contributions = (
+            torch.gather(
+                self.diffs[self.monad_mask][:, self.structure_mask],
+                1,
+                expanded_indices
+            ) / (
+                torch.gather(
+                    self.distances[self.monad_mask][:, self.structure_mask],
+                    1,
+                    self.structure_indices
+                ) ** 2 + 1e-5
+            ).unsqueeze(2)
+        ) * neural_action.unsqueeze(2)
+
+        movement_tensor.scatter_add_(
+            0,
+            expanded_indices.view(-1, 2),
+            movement_contributions.view(-1, 2)
+        )
+
+        return movement_tensor
 
     def final_action(self, grid):
         # Update sensory inputs
@@ -210,17 +230,10 @@ class Things:
             self.movement_tensor = torch.tensor([[0., 0.]
                                                  for _ in range(self.N)])
 
-        # Monad actions
+        # Monad movements
         if self.monad_mask.any():
-            # Movement and memory
             neural_action = self.neural_action().squeeze(2)
             self.movement_tensor[self.monad_mask] = neural_action[:, :2]
-
-            # Auto-fission
-            random_gen = torch.rand(self.Pop)
-            to_divide = neural_action[:, 2] > random_gen
-            for i in to_divide.nonzero():
-                self.monad_division(i.item())
 
         # Fetch energyUnit movements
         if self.energy_mask.any():
@@ -232,6 +245,13 @@ class Things:
                 grid,
                 neural_action[:, 3:11]
             )
+
+        # Auto-fission
+        if self.monad_mask.any():
+            random_gen = torch.rand(self.Pop)
+            to_divide = neural_action[:, 2] > random_gen
+            for i in to_divide.nonzero():
+                self.monad_division(i.item())
 
         # Apply movements
         self.update_positions()
@@ -270,9 +290,13 @@ class Things:
 
         # StructureUnit-anything collisions
         dist = distances[:, self.structure_mask]
-        collision_mask_str = (
+        collisions_str = (
             (0. < dist) & (dist < THING_TYPES["monad"]["size"] * 2)
-        ).any(dim = 1)
+        ).nonzero(as_tuple = True)
+
+        collision_mask_str = torch.zeros(self.N, dtype = torch.bool)
+        collision_mask_str[collisions_str[0]] = True
+        collision_mask_str[collisions_str[1]] = True
 
         # Check energy levels
         movement_magnitudes = torch.norm(
