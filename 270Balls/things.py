@@ -648,7 +648,7 @@ class Things:
     def add_structuralUnits(self, POP_STR = 80):
         self.thing_types += ["structuralUnit" for _ in range(POP_STR)]
         self.sizes, self.positions = add_positions(
-            sizes = torch.tensor([THING_TYPES["structuralUnit"]["size"]
+            sizes = torch.tensor([THING_TYPES["monad"]["size"]
                                  for _ in range(POP_STR)]),
             existing_sizes = self.sizes,
             existing_positions = self.positions
@@ -665,6 +665,7 @@ class Things:
         self.structure_mask = torch.tensor(
             [thing_type == "structuralUnit" for thing_type in self.thing_types]
         )
+        self.sizes[self.structure_mask] = THING_TYPES["structuralUnit"]["size"]
         self.resource_movements = torch.cat(
             (
                 self.resource_movements,
