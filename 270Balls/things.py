@@ -213,13 +213,11 @@ class Things:
             ).unsqueeze(2)
         ) * neural_action.unsqueeze(2)
 
-        movement_tensor.scatter_add_(
+        return movement_tensor.scatter_add(
             0,
             expanded_indices.view(-1, 2),
             movement_contributions.view(-1, 2)
         )
-
-        return movement_tensor
 
     def final_action(self, grid):
         # Update sensory inputs
@@ -290,13 +288,20 @@ class Things:
 
         # StructureUnit-anything collisions
         dist = distances[:, self.structure_mask]
-        collisions_str = (
+        collision_mask_str = (
             (0. < dist) & (dist < THING_TYPES["monad"]["size"] * 2)
-        ).nonzero(as_tuple = True)
+        ).any(dim = 1)
 
+        dist = distances[self.structure_mask]
+        collision_mask_str[self.structure_mask] = (
+            (0. < dist) & (dist < THING_TYPES["monad"]["size"] * 2)
+        ).any(dim = 1)
+
+        """
         collision_mask_str = torch.zeros(self.N, dtype = torch.bool)
         collision_mask_str[collisions_str[0]] = True
         collision_mask_str[self.structure_mask][collisions_str[1]] = True
+        """
 
         # Check energy levels
         movement_magnitudes = torch.norm(
