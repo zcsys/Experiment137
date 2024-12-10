@@ -47,12 +47,12 @@
 								to apply force on the resource grid are added
   * Monad7B105: Monad7A217 minus memory (down to 2k parameters; faster not
 								step-wise but learning-wise)
-	* Monad8A203: Monad with 32 input, 11 output, and 160 hidden neurons, governed
+  * Monad8A203: Monad with 32 input, 11 output, and 160 hidden neurons, governed
 								by 8715 parameters, having the ability to sense and move
 								surrounding structural units
-	* Monad8B265: Monad with 32 input, 35 output, and 198 neurons, governed by
+  * Monad8B265: Monad with 32 input, 35 output, and 198 neurons, governed by
 								15739 parameters, which can control the surrounding structural units' manipulation of resources
-	* Monad8C301: Same with Monad8B265, except having a memory organ of 2
+  * Monad8C301: Same with Monad8B265, except having a memory organ of 2
 							  tanh(float32) variables (17673 parameters)
 * KDTree to calculate sparse distance matrix
 * conv2d to calculate resource diffusion
