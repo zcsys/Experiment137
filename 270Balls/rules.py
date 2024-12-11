@@ -64,4 +64,5 @@ def Rules(simul, n):
 
     # Resource management
     if 2 in n:
-        simul.things.add_energyUnits_atGridCells(simul.grid.grid[0][1], 128)
+        if simul.period > 0 or simul.epoch > 0:
+            simul.things.add_energyUnits_atGridCells(simul.grid.grid[0][1], 128)
