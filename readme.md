@@ -52,13 +52,12 @@
 								surrounding structural units
   * Monad8B265: Monad with 32 input, 35 output, and 198 neurons, governed by
 								15739 parameters, which can control the surrounding structural units' manipulation of resources
-  * Monad8C301: Same with Monad8B265, except having a memory organ of 2
-							  tanh(float32) variables (17673 parameters)
 * KDTree to calculate sparse distance matrix
 * conv2d to calculate resource diffusion
 
 #### Era 1: LUCA
-* Autogenetic breeding
+* Monad8C301: Same with Monad8B265, except having a memory organ of 2
+							tanh(float32) variables (17673 parameters)
 
 
 

@@ -240,9 +240,9 @@ class Things:
         # Reduce energies
         self.energies -= (
             movement_contributions.norm(dim = 2)
-        ).sum(dim = 1) * 3.6 # Scaling with 3.6 to match size difference:
-                             # 1 energy moves a monad (r=5) 1 pixel; 0.36 energy
-        # Return movements   # is enough to move a structural unit (r=3) 1 pixel
+        ).sum(dim = 1) * 1.25
+
+        # Return movements
         return movement_tensor.scatter_add(
             0,
             expanded_indices.view(-1, 2),
