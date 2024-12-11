@@ -21,30 +21,30 @@ def Rules(simul, n):
 
     # Population control
     if 1 in n:
-        if simul.period > 0 or simul.epoch >= 15:
+        if simul.period > 0 or simul.epoch >= 25:
             pass
-        elif simul.epoch >= 12:
+        elif simul.epoch >= 20:
             N_TARGET = 300
             update_system_heat(3)
             AUTO_FISSION_THRESHOLD = 20000
-        elif simul.epoch >= 9:
+        elif simul.epoch >= 15:
             N_TARGET = 400
             update_system_heat(5)
             AUTO_FISSION_THRESHOLD = 16000
-            if simul.age % 5 == 0 and simul.step == 0:
-                simul.things.add_structuralUnits(1)
-        elif simul.epoch >= 6:
+            #if simul.age % 5 == 0 and simul.step == 0:
+            #    simul.things.add_structuralUnits(1)
+        elif simul.epoch >= 10:
             N_TARGET = 500
             update_system_heat(7)
             AUTO_FISSION_THRESHOLD = 14000
-            if simul.age % 5 == 0 and simul.step == 0:
-                simul.things.add_structuralUnits(1)
-        elif simul.epoch >= 3:
+            #if simul.age % 5 == 0 and simul.step == 0:
+            #    simul.things.add_structuralUnits(1)
+        elif simul.epoch >= 5:
             N_TARGET = 500
             update_system_heat(9)
             AUTO_FISSION_THRESHOLD = 12000
-            if simul.age % 10 == 0 and simul.step == 0:
-                simul.things.add_structuralUnits(1)
+            #if simul.age % 10 == 0 and simul.step == 0:
+            #    simul.things.add_structuralUnits(1)
         else:
             N_TARGET = 500
             update_system_heat(11)

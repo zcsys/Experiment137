@@ -8,7 +8,7 @@
 #### Era 1: Monadology
 * ANN PoC
 * Creations with a feed-forward action mechanism
-	* Monad05: simple 5-neuron monad with no activation function
+	* Monad05: simple 5-neuron monad with no activation function (chemotaxis)
 	* Monad15: simple 5-neuron monad with tanh
 
 #### Era 2: FUCA
@@ -56,8 +56,8 @@
 * conv2d to calculate resource diffusion
 
 #### Era 1: LUCA
-* Monad8C301: Same with Monad8B265, except having a memory organ of 2
-							tanh(float32) variables (17673 parameters)
+* Monad8C301: Same as Monad8B265, except having an internal state (works same as
+							a memory organ - acts as both input and output) of 2 tanh(float32) variables (17673 parameters)
 
 
 

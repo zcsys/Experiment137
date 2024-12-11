@@ -50,12 +50,12 @@ def add_positions(sizes,
 def remove_element(tensor, i):
     return torch.cat((tensor[:i], tensor[i + 1:]), dim = 0)
 
-def get_color_by_genome(genome, scale = 1., base_color = (128, 128, 128)):
+def get_color_by_genome(genome, scale = 1., base_color = colors["rgb"]):
     n = len(genome) // 3
     return (
-        max(min(base_color[0] + int(genome[:n].sum().item()), 255), 0),
-        max(min(base_color[1] + int(genome[n:2 * n].sum().item()), 255), 0),
-        max(min(base_color[2] + int(genome[2 * n:3 * n].sum().item()), 255), 0)
+        base_color[0] + torch.clamp(genome[:n].sum(), 0, 255).int().item(),
+        base_color[1] + torch.clamp(genome[n:2 * n].sum(), 0, 255).int().item(),
+        base_color[2] + torch.clamp(genome[2 * n:].sum(), 0, 255).int().item()
     )
 
 def flattened_identity_matrix(N, x = None):
