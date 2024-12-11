@@ -45,7 +45,7 @@ class Grid:
                                 dtype = torch.float32)
         self.fill()
 
-    def fill(self, V = 5e+6):
+    def fill(self, V = RESOURCE_TARGET):
         excess = ((self.grid[0].sum() - V) // 255).int()
         if excess < 0:
             channel = torch.randint(0, self.feature_dim, (-excess,))
