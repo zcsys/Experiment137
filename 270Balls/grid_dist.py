@@ -22,10 +22,19 @@ def plot_grid_distribution(grid, bins=50):
    plt.tight_layout()
    plt.show()
 
-load_file = "simulation_20241206_233339.json"
+load_file = "test.json"
 with open(load_file, 'r') as f:
     saved_data = json.load(f)
     grid = Grid(saved_state = saved_data["grid"])
 
+def count_exceeding_values(grid, threshold=128):
+    counts = []
+    for i in range(grid.feature_dim):
+        count = (grid.grid[0,i] > threshold).sum()
+        print(f"Channel {i}: {count} cells exceed {threshold}")
+        counts.append(count)
+    return counts
+
 if __name__ == '__main__':
     plot_grid_distribution(grid)
+    count_exceeding_values(grid)

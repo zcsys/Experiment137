@@ -222,7 +222,7 @@ class Things:
 
         grid.diffuse(force_field)
 
-        # Calculate and return movements
+        # Calculate movements
         movement_contributions = (
             torch.gather(
                 self.diffs[self.monad_mask][:, self.structure_mask],
@@ -237,6 +237,12 @@ class Things:
             ).unsqueeze(2)
         ) * neural_action[:, 0:8].unsqueeze(2)
 
+        # Reduce energies
+        self.energies -= (
+            movement_contributions.norm(dim = 2)
+        ).sum(dim = 1) * 3.6 # Scaling with 3.6 to match size difference:
+                             # 1 energy moves a monad (r=5) 1 pixel; 0.36 energy
+        # Return movements   # is enough to move a structural unit (r=3) 1 pixel
         return movement_tensor.scatter_add(
             0,
             expanded_indices.view(-1, 2),
@@ -479,7 +485,7 @@ class Things:
 
         return 1
 
-    def monad_death(self, indices):
+    def perish_monad(self, indices):
         for i in indices[::-1]:
             # Remove monad-only attributes
             self.genomes = remove_element(self.genomes, i)
@@ -514,6 +520,71 @@ class Things:
             self.positions
         )
         self.N += N
+        self.monad_mask = torch.cat(
+            (
+                self.monad_mask,
+                torch.zeros(N, dtype = torch.bool)
+            ),
+            dim = 0
+        )
+        self.energy_mask = torch.cat(
+            (
+                self.energy_mask,
+                torch.ones(N, dtype = torch.bool)
+            ),
+            dim = 0
+        )
+        self.structure_mask = torch.cat(
+            (
+                self.structure_mask,
+                torch.zeros(N, dtype = torch.bool)
+            ),
+            dim = 0
+        )
+
+    def add_energyUnits_atGridCells(self, feature, threshold):
+        cell_indices = (feature > threshold).nonzero()
+        occupied_grid_cells = self.positions // GRID_CELL_SIZE
+
+        positions_to_add = torch.empty((0, 2), dtype = torch.float32)
+        for y, x in cell_indices:
+            new_pos = torch.tensor([x, y])
+            if torch.any(occupied_grid_cells.int() == new_pos):
+                continue
+            else:
+                positions_to_add = torch.cat(
+                    (
+                        positions_to_add,
+                        (GRID_CELL_SIZE * (new_pos + 0.5)).unsqueeze(0)
+                    ),
+                    dim = 0
+                )
+                feature[y, x] -= threshold
+
+        N = len(positions_to_add)
+        if N == 0:
+            return
+        self.N += N
+
+        for _ in range(N):
+            self.thing_types.append("energyUnit")
+            self.colors.append(THING_TYPES["energyUnit"]["color"])
+        self.positions = torch.cat(
+            (
+                self.positions,
+                positions_to_add
+            ),
+            dim = 0
+        )
+        self.sizes = torch.cat(
+            (
+                self.sizes,
+                torch.tensor(
+                    THING_TYPES["energyUnit"]["size"]
+                ).expand(N)
+            ),
+            dim = 0
+        )
         self.monad_mask = torch.cat(
             (
                 self.monad_mask,

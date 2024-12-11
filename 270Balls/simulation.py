@@ -238,7 +238,7 @@ class Simulation:
                              self.ui_manager.show_forces)
 
             if not self.paused:
-                Rules(self, [0, 1, ])
+                Rules(self, [0, 1, 2])
 
             # Draw the right pane
             self.ui_manager.draw(

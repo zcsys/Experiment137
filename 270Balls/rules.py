@@ -7,7 +7,7 @@ def Rules(simul, n):
     global N_TARGET, SYSTEM_HEAT, METABOLIC_ACTIVITY_CONSTANT, \
            AUTO_FISSION_THRESHOLD
 
-    # Birth and death
+    # Coming into existence and perishing
     if 0 in n:
         fission_mask = simul.things.energies >= AUTO_FISSION_THRESHOLD
         for i, mask in enumerate(fission_mask):
@@ -16,33 +16,33 @@ def Rules(simul, n):
         simul.things.energies -= METABOLIC_ACTIVITY_CONSTANT
         to_remove = torch.nonzero(simul.things.energies <= 0)
         if len(to_remove) > 0:
-            simul.things.monad_death(to_remove.squeeze(1).tolist())
+            simul.things.perish_monad(to_remove.squeeze(1).tolist())
         simul.things.E = simul.things.energies.sum().item() // 1000
 
     # Population control
     if 1 in n:
-        if simul.period > 0 or simul.epoch >= 25:
+        if simul.period > 0 or simul.epoch >= 15:
             pass
-        elif simul.epoch >= 20:
-            N_TARGET = 400
+        elif simul.epoch >= 12:
+            N_TARGET = 300
             update_system_heat(3)
-            AUTO_FISSION_THRESHOLD = 90000
-        elif simul.epoch >= 15:
-            N_TARGET = 500
+            AUTO_FISSION_THRESHOLD = 20000
+        elif simul.epoch >= 9:
+            N_TARGET = 400
             update_system_heat(5)
-            AUTO_FISSION_THRESHOLD = 60000
+            AUTO_FISSION_THRESHOLD = 16000
             if simul.age % 5 == 0 and simul.step == 0:
                 simul.things.add_structuralUnits(1)
-        elif simul.epoch >= 10:
+        elif simul.epoch >= 6:
             N_TARGET = 500
             update_system_heat(7)
-            AUTO_FISSION_THRESHOLD = 30000
+            AUTO_FISSION_THRESHOLD = 14000
             if simul.age % 5 == 0 and simul.step == 0:
                 simul.things.add_structuralUnits(1)
-        elif simul.epoch >= 5:
+        elif simul.epoch >= 3:
             N_TARGET = 500
             update_system_heat(9)
-            AUTO_FISSION_THRESHOLD = 15000
+            AUTO_FISSION_THRESHOLD = 12000
             if simul.age % 10 == 0 and simul.step == 0:
                 simul.things.add_structuralUnits(1)
         else:
@@ -64,6 +64,4 @@ def Rules(simul, n):
 
     # Resource management
     if 2 in n:
-        numberOf_energyUnits_to_create, simul.excess = divmod(simul.excess, 10)
-        if numberOf_energyUnits_to_create > 0:
-            simul.things.add_energyUnits(int(numberOf_energyUnits_to_create))
+        simul.things.add_energyUnits_atGridCells(simul.grid.grid[0][1], 128)
