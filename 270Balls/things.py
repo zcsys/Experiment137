@@ -549,7 +549,9 @@ class Things:
         positions_to_add = torch.empty((0, 2), dtype = torch.float32)
         for y, x in cell_indices:
             new_pos = torch.tensor([x, y])
-            if torch.any(occupied_grid_cells.int() == new_pos):
+            if torch.any(
+                torch.all(occupied_grid_cells.int() == new_pos, dim = 1)
+            ):
                 continue
             else:
                 positions_to_add = torch.cat(
