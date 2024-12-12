@@ -45,6 +45,14 @@ class Grid:
                                 dtype = torch.float32)
         self.fill()
 
+    def add(self, channel = 1, n = 1):
+        self.grid[
+            0,
+            channel,
+            torch.randint(0, self.grid_y, (n,)),
+            torch.randint(0, self.grid_x, (n,))
+        ] = 255.
+
     def fill(self, V = RESOURCE_TARGET):
         excess = ((self.grid[0].sum() - V) // 255).int()
         if excess < 0:

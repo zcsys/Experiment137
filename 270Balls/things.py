@@ -741,7 +741,7 @@ class Things:
         pygame.font.init()
         self.font = pygame.font.SysFont(None, 12)
 
-    def add_structuralUnits(self, POP_STR = 80):
+    def add_structuralUnits(self, POP_STR = 1):
         self.thing_types += ["structuralUnit" for _ in range(POP_STR)]
         self.sizes, self.positions = add_positions(
             sizes = torch.tensor([THING_TYPES["monad"]["size"]
