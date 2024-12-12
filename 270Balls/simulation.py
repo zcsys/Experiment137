@@ -221,31 +221,22 @@ class Simulation:
 
         while running:
             # print("\n\n==== BEGIN STEP ====\n")
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                self.ui_manager.handle_event(event, self)
 
-            # Let things take a step
             if not self.paused:
                 self.things.final_action(self.grid)
+                Rules(self, [0, 1, 2])
                 self.update_state()
 
-            # Draw simulation area
             self.screen.fill(colors["0"])
             if self.ui_manager.show_resources:
                 self.grid.draw(self.screen)
             self.things.draw(self.screen, self.ui_manager.show_info,
                              self.ui_manager.show_sight,
                              self.ui_manager.show_forces)
-
-            # Handle window events
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                self.ui_manager.handle_event(event, self)
-
-            # Apply rules
-            if not self.paused:
-                Rules(self, [0, 1, 2])
-
-            # Draw the right pane
             self.ui_manager.draw(
                 self.get_state(),
                 self.things.N,
@@ -253,7 +244,6 @@ class Simulation:
                 self.things.E
             )
 
-            # Put it all on display and limit FPS
             pygame.display.flip()
             # clock.tick(24)
 
