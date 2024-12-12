@@ -53,9 +53,9 @@ def remove_element(tensor, i):
 def get_color_by_genome(genome, scale = 1., base_color = colors["rgb"]):
     n = len(genome) // 3
     return (
-        base_color[0] + torch.clamp(genome[:n].sum(), 0, 255).int().item(),
-        base_color[1] + torch.clamp(genome[n:2 * n].sum(), 0, 255).int().item(),
-        base_color[2] + torch.clamp(genome[2 * n:].sum(), 0, 255).int().item()
+        min(max(base_color[0] + genome[:n].sum().int().item(), 0), 255),
+        min(max(base_color[1] + genome[n:2 * n].sum().int().item(), 0), 255),
+        min(max(base_color[2] + genome[2 * n:].sum().int().item(), 0), 255)
     )
 
 def flattened_identity_matrix(N, x = None):
