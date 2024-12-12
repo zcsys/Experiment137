@@ -221,14 +221,14 @@ class Simulation:
 
         while running:
             # print("\n\n==== BEGIN STEP ====\n")
+            if not self.paused:
+                self.things.final_action(self.grid)
+                self.update_state()
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
                 self.ui_manager.handle_event(event, self)
-
-            if not self.paused:
-                self.things.final_action(self.grid)
-                self.update_state()
 
             self.screen.fill(colors["0"])
             if self.ui_manager.show_resources:
