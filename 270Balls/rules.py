@@ -21,68 +21,68 @@ def Rules(simul, n):
 
     # Population control
     if 1 in n:
-        if simul.period > 0 or simul.epoch >= 51:
+        if simul.period > 0 or simul.epoch >= 31:
             pass
-        elif simul.epoch >= 50:
+        elif simul.epoch >= 30:
             N_TARGET = 300
             update_system_heat(3)
             AUTO_FISSION_THRESHOLD = 20000
             if simul.age % 40 == 0 and simul.step == 1:
                 simul.things.add_structuralUnits()
-        elif simul.epoch >= 45:
+        elif simul.epoch >= 27:
             N_TARGET = 320
             update_system_heat(3)
             AUTO_FISSION_THRESHOLD = 19000
             if simul.age % 40 == 0 and simul.step == 1:
                 simul.things.add_structuralUnits()
-        elif simul.epoch >= 40:
+        elif simul.epoch >= 24:
             N_TARGET = 340
             update_system_heat(3)
             AUTO_FISSION_THRESHOLD = 18000
             if simul.age % 40 == 0 and simul.step == 1:
                 simul.things.add_structuralUnits()
-        elif simul.epoch >= 35:
+        elif simul.epoch >= 21:
             N_TARGET = 360
             update_system_heat(5)
             AUTO_FISSION_THRESHOLD = 17000
             if simul.age % 40 == 0 and simul.step == 1:
                 simul.things.add_structuralUnits()
-        elif simul.epoch >= 30:
+        elif simul.epoch >= 18:
             N_TARGET = 380
             update_system_heat(5)
             AUTO_FISSION_THRESHOLD = 16000
             if simul.age == 0 and simul.step == 1:
                 simul.things.add_structuralUnits()
-        elif simul.epoch >= 25:
+        elif simul.epoch >= 15:
             N_TARGET = 400
             update_system_heat(7)
             AUTO_FISSION_THRESHOLD = 15000
             if simul.age == 0 and simul.step == 1:
                 simul.things.add_structuralUnits()
-        elif simul.epoch >= 20:
+        elif simul.epoch >= 12:
             N_TARGET = 420
             update_system_heat(7)
             AUTO_FISSION_THRESHOLD = 14000
             if simul.age == 0 and simul.step == 1:
                 simul.things.add_structuralUnits()
-        elif simul.epoch >= 15:
+        elif simul.epoch >= 9:
             N_TARGET = 440
             update_system_heat(9)
             AUTO_FISSION_THRESHOLD = 13000
             if simul.age == 0 and simul.step == 1:
                 simul.things.add_structuralUnits()
-        elif simul.epoch >= 10:
+        elif simul.epoch >= 6:
             N_TARGET = 460
             update_system_heat(9)
             AUTO_FISSION_THRESHOLD = 12000
             if simul.age == 0 and simul.step == 1:
                 simul.things.add_structuralUnits()
-        elif simul.epoch >= 5:
+        elif simul.epoch >= 3:
             N_TARGET = 480
             update_system_heat(11)
             AUTO_FISSION_THRESHOLD = 11000
-            if simul.age == 0 and simul.step == 1:
-                simul.things.add_structuralUnits()
+            if simul.epoch == 3 and simul.age == 0 and simul.step == 1:
+                simul.things.add_structuralUnits(31)
         else:
             N_TARGET = 500
             update_system_heat(11)

@@ -752,14 +752,26 @@ class Things:
         self.colors += [THING_TYPES["structuralUnit"]["color"]
                         for _ in range(POP_STR)]
         self.N += POP_STR
-        self.monad_mask = torch.tensor(
-            [thing_type == "monad" for thing_type in self.thing_types]
+        self.monad_mask = torch.cat(
+            (
+                self.monad_mask,
+                torch.zeros(POP_STR, dtype = torch.bool)
+            ),
+            dim = 0
         )
-        self.energy_mask = torch.tensor(
-            [thing_type == "energyUnit" for thing_type in self.thing_types]
+        self.energy_mask = torch.cat(
+            (
+                self.energy_mask,
+                torch.zeros(POP_STR, dtype = torch.bool)
+            ),
+            dim = 0
         )
-        self.structure_mask = torch.tensor(
-            [thing_type == "structuralUnit" for thing_type in self.thing_types]
+        self.structure_mask = torch.cat(
+            (
+                self.structure_mask,
+                torch.ones(POP_STR, dtype = torch.bool)
+            ),
+            dim = 0
         )
         self.sizes[self.structure_mask] = THING_TYPES["structuralUnit"]["size"]
         self.resource_movements = torch.cat(

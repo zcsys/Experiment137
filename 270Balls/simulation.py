@@ -110,7 +110,7 @@ class UIManager:
         if self.resources_toggle_button.handle_event(event):
             self.show_resources = not self.show_resources
 
-    def draw(self, state, N, Pop, E):
+    def draw(self, state, N, Pop, E, PopStr):
         # Draw the right menu section (white background)
         pygame.draw.rect(self.screen, (255, 255, 255),
                          (self.screen.get_width() - self.menu_width, 0,
@@ -139,6 +139,7 @@ class UIManager:
         N_text = self.font.render(f"N: {N}", True, (0, 0, 0))
         Pop_text = self.font.render(f"Pop.: {Pop}", True, (0, 0, 0))
         E_text = self.font.render(f"E: {int(E)}k", True, (0, 0, 0))
+        PopStr_text = self.font.render(f"PopStr: {PopStr}", True, (0, 0, 0))
 
         self.screen.blit(period_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y))
@@ -154,6 +155,8 @@ class UIManager:
                          self.menu_width + 10, start_y + 150))
         self.screen.blit(E_text, (self.screen.get_width() -
                          self.menu_width + 10, start_y + 180))
+        self.screen.blit(PopStr_text, (self.screen.get_width() -
+                         self.menu_width + 10, start_y + 210))
 
 class Simulation:
     def __init__(self, things_object, load_file = None):
@@ -241,7 +244,8 @@ class Simulation:
                 self.get_state(),
                 self.things.N,
                 self.things.Pop,
-                self.things.E
+                self.things.E,
+                self.things.structure_mask.sum().item()
             )
 
             pygame.display.flip()
