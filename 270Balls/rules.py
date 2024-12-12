@@ -91,7 +91,11 @@ def Rules(simul, n):
                 simul.things.add_structuralUnits(10)
 
         if simul.things.N < N_TARGET:
-            simul.things.add_energyUnits(N_TARGET - simul.things.N)
+            green_to_add = N_TARGET - simul.things.N
+            if simul.period == 0 and simul.epoch == 0:
+                simul.things.add_energyUnits(green_to_add)
+            else:
+                simul.grid.add(n)
 
         if simul.things.E <= 100:
             METABOLIC_ACTIVITY_CONSTANT = 0.1
