@@ -7,10 +7,12 @@ from scipy.spatial import KDTree
 def unique(x):
     """Gets a list and returns its unique values as a list in same order"""
     seen = set()
+    result = []
     for item in x:
         if item not in seen:
+            result.append(item)
             seen.add(item)
-    return list(seen)
+    return result
 
 def add_positions(sizes,
                   existing_sizes = torch.empty(0),
