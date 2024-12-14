@@ -22,7 +22,7 @@ def plot_grid_distribution(grid, bins=50):
    plt.tight_layout()
    plt.show()
 
-load_file = "Epoch2.json"
+load_file = "simulation_20241212_225506.json"
 with open(load_file, 'r') as f:
     saved_data = json.load(f)
     grid = Grid(saved_state = saved_data["grid"])
@@ -36,5 +36,8 @@ def count_exceeding_values(grid, threshold=128):
     return counts
 
 if __name__ == '__main__':
-    plot_grid_distribution(grid)
+    print("Red total:", grid.grid[0][0].sum()/(192 * 108))
+    print("Green total:", grid.grid[0][1].sum()/(192 * 108))
+    print("Blue total:", grid.grid[0][2].sum()/(192 * 108))
     # count_exceeding_values(grid)
+    plot_grid_distribution(grid)

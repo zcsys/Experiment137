@@ -62,7 +62,8 @@ class Grid:
             self.grid[0, channel, y, x] = 255.
 
     def gradient(self):
-        self.padded = F.pad(self.grid, (1, 1, 1, 1), mode = "replicate")
+        # self.padded = F.pad(self.grid, (1, 1, 1, 1), mode = "replicate")
+        self.padded = F.pad(self.grid, (1, 1, 1, 1), mode = "circular")
         grad_x = F.conv2d(
             self.padded,
             self.kernel_x,

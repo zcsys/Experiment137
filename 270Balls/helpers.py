@@ -82,9 +82,11 @@ def create_initial_genomes(num_monads, input, output):
         ).repeat(num_monads, 1)
 
 def vicinity(source_positions, radius = SIGHT, target_positions = None):
-    source_tree = KDTree(source_positions.numpy())
+    source_tree = KDTree(source_positions.numpy(),
+                         boxsize = (SIMUL_WIDTH, SIMUL_HEIGHT))
     if target_positions:
-        target_tree = KDTree(target_positions.numpy())
+        target_tree = KDTree(target_positions.numpy(),
+                             boxsize = (SIMUL_WIDTH, SIMUL_HEIGHT))
     else:
         target_tree, target_positions = source_tree, source_positions
 

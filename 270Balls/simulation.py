@@ -162,7 +162,7 @@ class Simulation:
     def __init__(self, things_object, load_file = None):
         pygame.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        pygame.display.set_caption("Eon 1 Era 0: 270 Balls")
+        pygame.display.set_caption("Eon 1 Era 1: FUCA")
         self.things = things_object
         self.age_start_time = time.time()
 

@@ -45,10 +45,11 @@ class Things:
         )
         self.E = self.energies.sum().item() // 1000
         self.colors = [THING_TYPES[x]["color"] for x in self.thing_types]
+        self.internal_states = torch.zeros((self.Pop, 4), dtype = torch.float32)
         self.resource_movements = torch.zeros((0, 2, 3), dtype = torch.float32)
 
         # Initialize genomes and lineages
-        self.genomes = create_initial_genomes(self.Pop, 32, 35)
+        self.genomes = create_initial_genomes(self.Pop, 34, 39)
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
@@ -62,8 +63,8 @@ class Things:
         return self.lineages[i][0] + len(self.lineages[i])
 
     def apply_genomes(self):
-        """Monad8B265 neurogenetics"""
-        self.nn = nn2(self.genomes, 32, 35)
+        """Monad8C287 neurogenetics"""
+        self.nn = nn2(self.genomes, 34, 39)
 
     def mutate(self, i, probability = 0.1, strength = 1.):
         original_genome = self.genomes[i].clone()
@@ -72,19 +73,11 @@ class Things:
         return original_genome + mutation_mask * mutations * strength
 
     def sensory_inputs(self, grid):
-        # For each monad, there's a vector pointing towards the center of the
-        # universe, with increasing magnitude as the thing gets closer to edges.
-        if self.monad_mask.any():
-            midpoint = torch.tensor([SIMUL_WIDTH / 2, SIMUL_HEIGHT / 2])
-            col1 = (1 - self.positions[self.monad_mask] / midpoint)
-        else:
-            col1 = torch.zeros((self.Pop, 2))
-
         # For each monad, the combined effect of energy particles in their
         # vicinity is calculated.
         indices, self.distances, self.diffs = vicinity(self.positions)
         if self.monad_mask.any() and self.energy_mask.any():
-            col2  = (
+            col1  = (
                 self.diffs[self.monad_mask][:, self.energy_mask] /
                 (
                     self.distances[self.monad_mask][
@@ -93,12 +86,12 @@ class Things:
                 ).unsqueeze(2)
             ).sum(dim = 1) * 6.
         else:
-            col2 = torch.zeros((self.Pop, 2))
+            col1 = torch.zeros((self.Pop, 2))
 
         # For each monad, the combined effect of other monads in their vicinity
         # is calculated.
         if self.Pop > 1:
-            col3  = (
+            col2  = (
                 self.diffs[self.monad_mask][:, self.monad_mask] /
                 (
                     self.distances[self.monad_mask][
@@ -107,17 +100,17 @@ class Things:
                 ).unsqueeze(2)
             ).sum(dim = 1) * 10.
         else:
-            col3 = torch.zeros((self.Pop, 2))
+            col2 = torch.zeros((self.Pop, 2))
 
         # Gradient sensors
         y_pos = (self.positions[self.monad_mask][:, 1] // grid.cell_size).int()
         x_pos = (self.positions[self.monad_mask][:, 0] // grid.cell_size).int()
         grad_x, grad_y = grid.gradient()
-        col4 = torch.zeros((self.Pop, 9), dtype = torch.float32)
+        col3 = torch.zeros((self.Pop, 9), dtype = torch.float32)
         for channel in range(3):
-            col4[:, channel * 3] = grid.grid[0, channel, y_pos, x_pos]
-            col4[:, channel * 3 + 1] = grad_x[0, channel, y_pos, x_pos]
-            col4[:, channel * 3 + 2] = grad_y[0, channel, y_pos, x_pos]
+            col3[:, channel * 3] = grid.grid[0, channel, y_pos, x_pos]
+            col3[:, channel * 3 + 1] = grad_x[0, channel, y_pos, x_pos]
+            col3[:, channel * 3 + 2] = grad_y[0, channel, y_pos, x_pos]
 
         # Monads can interact with at most 8 structural units
         if self.monad_mask.any() and self.structure_mask.any():
@@ -129,7 +122,7 @@ class Things:
                 largest = False
             )
 
-            col5  = (
+            col4  = (
                 torch.gather(
                     self.diffs[self.monad_mask],
                     1,
@@ -143,7 +136,7 @@ class Things:
                 ).unsqueeze(2)
             ).view(self.Pop, 16) * 10.
         else:
-            col5 = torch.zeros((self.Pop, 16), dtype = torch.float32)
+            col4 = torch.zeros((self.Pop, 16), dtype = torch.float32)
 
         # Combine the inputs to create the final input tensor
         self.input_vectors = torch.cat(
@@ -152,11 +145,11 @@ class Things:
                 col2,
                 col3,
                 col4 / 255,
-                col5,
-                (self.energies / 10000).unsqueeze(1)
+                (self.energies / 10000).unsqueeze(1),
+                self.internal_states
             ),
             dim = 1
-        ).view(self.Pop, 32, 1)
+        ).view(self.Pop, 34, 1)
 
     def neural_action(self):
         return self.nn.forward(self.input_vectors)
@@ -258,10 +251,11 @@ class Things:
             self.movement_tensor = torch.tensor([[0., 0.]
                                                  for _ in range(self.N)])
 
-        # Monad movements
+        # Monad movements & internal state
         if self.monad_mask.any():
             neural_action = self.neural_action().squeeze(2)
             self.movement_tensor[self.monad_mask] = neural_action[:, :2]
+            self.internal_states = neural_action[:, 35:39]
 
         # Fetch energyUnit movements
         if self.energy_mask.any():
@@ -290,7 +284,7 @@ class Things:
     def update_positions(self):
         provisional_positions = self.positions + self.movement_tensor
 
-        # Apply rigid boundaries
+        """# Apply rigid boundaries
         provisional_positions = torch.stack(
             [
                 torch.clamp(
@@ -305,7 +299,11 @@ class Things:
                 )
             ],
             dim = 1
-        )
+        )"""
+
+        # Apply toroidal boundaries
+        provisional_positions[:, 0] %= SIMUL_WIDTH
+        provisional_positions[:, 1] %= SIMUL_HEIGHT
 
         # Get neighboring things
         indices, distances, diffs = vicinity(provisional_positions)
@@ -428,6 +426,13 @@ class Things:
             ),
             dim = 0
         )
+        self.internal_states = torch.cat(
+            (
+                self.internal_states,
+                torch.zeros((1, 4), dtype = torch.float32)
+            ),
+            dim = 0
+        )
         self.movement_tensor = torch.cat(
             (
                 self.movement_tensor,
@@ -490,6 +495,7 @@ class Things:
             # Remove monad-only attributes
             self.genomes = remove_element(self.genomes, i)
             self.energies = remove_element(self.energies, i)
+            self.internal_states = remove_element(self.internal_states, i)
             del self.lineages[i]
 
             # Get general index to remove universal attributes
@@ -705,7 +711,8 @@ class Things:
             'genomes': self.genomes.tolist(),
             'resource_movements': self.resource_movements.tolist(),
             'lineages': self.lineages,
-            'colors': self.colors
+            'colors': self.colors,
+            'internal_states': self.internal_states.tolist()
         }
 
     def load_state(self, state_file):
@@ -723,6 +730,7 @@ class Things:
         self.lineages = state['lineages']
         self.colors = state['colors']
         self.resource_movements = torch.tensor(state['resource_movements'])
+        self.internal_states = torch.tensor(state['internal_states'])
 
         self.monad_mask = torch.tensor(
             [thing_type == "monad" for thing_type in self.thing_types]
@@ -777,7 +785,25 @@ class Things:
         self.resource_movements = torch.cat(
             (
                 self.resource_movements,
-                torch.rand((POP_STR, 2, 3), dtype = torch.float32) * 2 - 1
+                torch.cat(
+                    (
+                        # Red
+                        torch.rand(
+                            (POP_STR, 2, 1),
+                            dtype = torch.float32
+                        ) * 2 - 1,
+
+                        # Green
+                        torch.zeros((POP_STR, 2, 1), dtype = torch.float32),
+
+                        #Blue
+                        torch.rand(
+                            (POP_STR, 2, 1),
+                            dtype = torch.float32
+                        ) * 2 - 1,
+                    ),
+                    dim = 2
+                )
             ),
             dim = 0
         )

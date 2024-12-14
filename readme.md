@@ -1,7 +1,7 @@
 ### Eon 0: Chaos
 (Aug 18, 2024 - Nov 23, 2024)
 
-#### Era 0: Abiogenesis
+#### Era 0: Blubzers
 * pygame PoC
 * Pre-monad creations
 
@@ -11,7 +11,7 @@
 	* Monad05: simple 5-neuron monad with no activation function (chemotaxis)
 	* Monad15: simple 5-neuron monad with tanh
 
-#### Era 2: FUCA
+#### Era 2: Failing Abiogenesis
 * pytorch PoC
 * Creations with fully tensor-based movements
 	* Monad211: 11-neuron monad with full IO flattening and LMWH sensory input
@@ -55,9 +55,10 @@
 * KDTree to calculate sparse distance matrix
 * conv2d to calculate resource diffusion
 
-#### Era 1: LUCA
-* Monad8C301: Same as Monad8B265, except having an internal state (works same as
-							a memory organ - acts as both input and output) of 2 tanh(float32) variables (17673 parameters)
+#### Era 1: FUCA
+* Toroidal boundaries
+* Monad8C287: Same as Monad8B265, except having an internal state (works same as
+						 	a memory organ - acts as both input and output) of 4 tanh(float32) variables (18527 parameters)
 
 
 
