@@ -14,41 +14,11 @@ def unique(x):
             seen.add(item)
     return result
 
-def add_positions(sizes,
-                  existing_sizes = torch.empty(0),
+def add_positions(N = 1,
                   existing_positions = torch.empty((0, 2)),
+                  min_dist = 10.,
                   width = SIMUL_WIDTH,
                   height = SIMUL_HEIGHT):
-    existing_N = len(existing_positions)
-    total_N = existing_N + len(sizes)
-
-    positions = existing_positions
-    sizes = torch.cat((existing_sizes, sizes), dim = 0)
-
-    i = existing_N
-    while i < total_N:
-        new_position = torch.tensor(
-            [
-                random.randint(int(sizes[i]), int(width - sizes[i])),
-                random.randint(int(sizes[i]), int(height - sizes[i]))
-            ],
-            dtype = torch.float32
-        ).unsqueeze(0)
-
-        distances = torch.norm(new_position - positions, dim = 1)
-        if (distances < sizes[i] + sizes[:i]).any():
-            continue
-
-        positions = torch.cat((positions, new_position), dim = 0)
-        i += 1
-
-    return sizes, positions
-
-def add_positions2(N = 1,
-                   existing_positions = torch.empty((0, 2)),
-                   min_dist = 10.,
-                   width = SIMUL_WIDTH,
-                   height = SIMUL_HEIGHT):
     positions = existing_positions
     existing_N = len(positions)
     total_N = existing_N + N

@@ -22,7 +22,7 @@ class Things:
         # Main attributes
         self.thing_types = thing_types
         self.sizes = torch.tensor([THING_TYPES[x]["size"] for x in thing_types])
-        self.positions = add_positions2(len(thing_types))
+        self.positions = add_positions(len(thing_types))
 
         # Initialize tensor masks
         self.monad_mask = torch.tensor(
@@ -262,10 +262,16 @@ class Things:
 
         # Fetch structuralUnit reactions
         if self.structure_mask.any():
-            self.movement_tensor[self.structure_mask] = self.re_action(
-                grid,
-                neural_action[:, 3:35]
-            )
+            if self.Pop > 0:
+                self.movement_tensor[self.structure_mask] = self.re_action(
+                    grid,
+                    neural_action[:, 3:35]
+                )
+            else:
+                self.movement_tensor[self.structure_mask] = torch.zeros(
+                    (self.structure_mask.sum(), 2),
+                    dtype = torch.float32
+                )
 
         # Auto-fission
         if self.monad_mask.any():
@@ -282,23 +288,6 @@ class Things:
 
     def update_positions(self):
         provisional_positions = self.positions + self.movement_tensor
-
-        """# Apply rigid boundaries
-        provisional_positions = torch.stack(
-            [
-                torch.clamp(
-                    provisional_positions[:, 0],
-                    min = self.sizes,
-                    max = SIMUL_WIDTH - self.sizes
-                ),
-                torch.clamp(
-                    provisional_positions[:, 1],
-                    min = self.sizes,
-                    max = SIMUL_HEIGHT - self.sizes
-                )
-            ],
-            dim = 1
-        )"""
 
         # Apply toroidal boundaries
         provisional_positions[:, 0] %= SIMUL_WIDTH
@@ -528,7 +517,7 @@ class Things:
             ),
             dim = 0
         )
-        self.positions = add_positions2(N, self.positions)
+        self.positions = add_positions(N, self.positions)
         self.N += N
         self.monad_mask = torch.cat(
             (
@@ -765,7 +754,7 @@ class Things:
             ),
             dim = 0
         )
-        self.positions = add_positions2(POP_STR, self.positions)
+        self.positions = add_positions(POP_STR, self.positions)
         self.colors += [THING_TYPES["structuralUnit"]["color"]
                         for _ in range(POP_STR)]
         self.N += POP_STR
