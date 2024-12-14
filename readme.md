@@ -55,7 +55,7 @@
 * KDTree to calculate sparse distance matrix
 * conv2d to calculate resource diffusion
 
-#### Era 1: FUCA
+#### Era 1: Celestial Aquatics
 * Toroidal boundaries
 * Monad8C287: Same as Monad8B265, except having an internal state (works same as
 						 	a memory organ - acts as both input and output) of 4 tanh(float32) variables (18527 parameters)

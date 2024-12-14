@@ -21,9 +21,8 @@ class Things:
 
         # Main attributes
         self.thing_types = thing_types
-        self.sizes, self.positions = add_positions(
-            torch.tensor([THING_TYPES[x]["size"] for x in thing_types])
-        )
+        self.sizes = torch.tensor([THING_TYPES[x]["size"] for x in thing_types])
+        self.positions = add_positions2(len(thing_types))
 
         # Initialize tensor masks
         self.monad_mask = torch.tensor(
@@ -520,11 +519,16 @@ class Things:
         for _ in range(N):
             self.thing_types.append("energyUnit")
             self.colors.append(THING_TYPES["energyUnit"]["color"])
-        self.sizes, self.positions = add_positions(
-            torch.tensor([THING_TYPES["energyUnit"]["size"] for _ in range(N)]),
-            self.sizes,
-            self.positions
+        self.sizes = torch.cat(
+            (
+                self.sizes,
+                torch.tensor(
+                    [THING_TYPES["energyUnit"]["size"] for _ in range(N)]
+                )
+            ),
+            dim = 0
         )
+        self.positions = add_positions2(N, self.positions)
         self.N += N
         self.monad_mask = torch.cat(
             (
@@ -751,12 +755,17 @@ class Things:
 
     def add_structuralUnits(self, POP_STR = 1):
         self.thing_types += ["structuralUnit" for _ in range(POP_STR)]
-        self.sizes, self.positions = add_positions(
-            sizes = torch.tensor([THING_TYPES["monad"]["size"]
-                                 for _ in range(POP_STR)]),
-            existing_sizes = self.sizes,
-            existing_positions = self.positions
+        self.sizes = torch.cat(
+            (
+                self.sizes,
+                torch.tensor(
+                    [THING_TYPES["structuralUnit"]["size"]
+                     for _ in range(POP_STR)]
+                )
+            ),
+            dim = 0
         )
+        self.positions = add_positions2(POP_STR, self.positions)
         self.colors += [THING_TYPES["structuralUnit"]["color"]
                         for _ in range(POP_STR)]
         self.N += POP_STR

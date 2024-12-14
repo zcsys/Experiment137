@@ -98,11 +98,13 @@ class Grid:
         y_positive = torch.clamp(force_field[1], min = 0) * self.grid[0] * scale
         y_negative = torch.clamp(force_field[1], max = 0) * self.grid[0] * scale
 
+        """
         # Zero out edge movements
         x_positive[..., -1] = 0
         x_negative[..., 0] = 0
         y_positive[:, -1, :] = 0
         y_negative[:, 0, :] = 0
+        """
 
         # Apply movements
         self.grid[0] -= x_positive + x_negative + y_positive + y_negative

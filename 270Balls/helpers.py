@@ -44,6 +44,35 @@ def add_positions(sizes,
 
     return sizes, positions
 
+def add_positions2(N = 1,
+                   existing_positions = torch.empty((0, 2)),
+                   min_dist = 10.,
+                   width = SIMUL_WIDTH,
+                   height = SIMUL_HEIGHT):
+    positions = existing_positions
+    existing_N = len(positions)
+    total_N = existing_N + N
+
+    while len(positions) < total_N:
+        remaining = total_N - len(positions)
+        tree = KDTree(positions.numpy(), boxsize = (SIMUL_WIDTH, SIMUL_HEIGHT))
+        new_pos = np.column_stack(
+            (
+                np.random.uniform(0, width, remaining),
+                np.random.uniform(0, height, remaining)
+            )
+        )
+        distances, _ = tree.query(new_pos)
+        positions = torch.cat(
+            (
+                positions,
+                torch.from_numpy(new_pos[distances >= min_dist]).float()
+            ),
+            dim = 0
+        )
+
+    return positions
+
 def remove_element(tensor, i):
     return torch.cat((tensor[:i], tensor[i + 1:]), dim = 0)
 
